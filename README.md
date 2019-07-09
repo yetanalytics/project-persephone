@@ -7,8 +7,19 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 ### Profile Input Processing
 
 1. Convert from JSON to EDN.
-2. ???
-3. Profit!
+2. Convert Statement Templates into specs/patterns/data/..., which can be
+used to validate.
+3. Convert Patterns into Dativity rules/finite state machines, whose
+transitions are Statement Templates.
+
+### Statement Input Processing
+
+Here, we also convert from JSON to EDN, which can be used by our validator in
+a machine-readable format. Statements MUST be matched greedily by our Patterns,
+in temporal order (ie. by timestamp); there is also additional grouping
+requirements given by the `registration` and `subregistration` properties. 
+Alternatively individual Statements MUST be matched by individual Statement
+Templates.
 
 ### Validation on Statement Template
 
@@ -22,7 +33,7 @@ Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
 - Validating against Rules. To do so, we need to use the JSONPath given by
-`location` (and possibly `selector`). and match against `presence` keywords,
+`location` (and possibly `selector`) and match against `presence` keywords,
 `any`, `all` and `none`.
 
 ### Validation on Pattern

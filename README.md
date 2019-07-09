@@ -35,6 +35,7 @@ is simply a regular expression (which we can then compose):
 - `optional`: A?
 - `oneOrMore`: A+
 - `zeroOrMore`: A\*
+
 To build our FSM, we will use a Dativity process model (because Will likes it),
 where we have one Role - the Pattern - whose Actions are each Statement 
 Templates (once expanded out). Each Data point is equivalent to a node in an

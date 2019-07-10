@@ -1,7 +1,7 @@
 (ns com.yetanalytics.template-validation
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
-            [com.yetanalytics.util]))
+            [com.yetanalytics.util :as util]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties predicates.
@@ -10,19 +10,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Statement MUST include the Verb of the Statement Template.
-(defn has-verb? [t-verb statement]
+(defn verb? [t-verb statement]
   (let [s-verb (-> statement :verb :id)]
-    (= s-verb t-verb)))
+    (and (some? s-verb)
+         (= s-verb t-verb))))
 
 ;; Statement MUST include the objectActivityType (the activityType of the
 ;; object Activity) of the Statement Template.
-(defn has-object-activity-type? [t-oat statement]
+(defn object-activity-type? [t-oat statement]
   (let [s-oat (-> statement :object :definition :type)]
-    (= s-oat t-oat)))
+    (and (some? s-oat)
+         (= s-oat t-oat))))
 
 ;; Statement MUST include contextParentActivityTypes (the activityTypes of the
 ;; context's parent Activities) from the Statement Template.
-(defn has-context-parent-activity-types? [t-cpats statement]
+(defn context-parent-activity-types? [t-cpats statement]
   (let [s-cpats (-> statement :context :contextActivities :parent
                     (util/get-value-map :type))]
     (and (not (empty? s-cpats))
@@ -30,7 +32,7 @@
 
 ;; Statement MUST include contextGroupingActivityTypes (the activityTypes of 
 ;; the context's grouping Activities) from the Statement Template.
-(defn has-context-grouping-activity-types? [t-cgats statement]
+(defn context-grouping-activity-types? [t-cgats statement]
   (let [s-cgats (-> statement :context :contextActivities :grouping
                     (util/get-value-map :type))]
     (and (not (empty? s-cgats))
@@ -38,7 +40,7 @@
 
 ;; Statement MUST include contextCategoryActivityTypes (the activityTypes of 
 ;; the context's category Activities) from the Statement Template.
-(defn has-context-category-activity-types? [t-ccats statement]
+(defn context-category-activity-types? [t-ccats statement]
   (let [s-ccats (-> statement :context :contextActivities :category
                     (util/get-value-map :type))]
     (and (not (empty? s-ccats))
@@ -46,7 +48,7 @@
 
 ;; Statement MUST include contextOtherActivityTypes (the activityTypes of the
 ;; context's other Activities) from the Statement Template.
-(defn has-context-other-activity-types? [t-coats statement]
+(defn context-other-activity-types? [t-coats statement]
   (let [s-coats (-> statement :context :contextActivities :other
                     (util/get-value-map :type))]
     (and (not (empty? s-coats))
@@ -54,7 +56,7 @@
 
 ;; Statement MUST include attachmentUsageTypes (the usageTypes of a statement's
 ;; attachments) from the StatementTemplate.
-(defn has-attachment-usage-types? [t-auts statement]
+(defn attachment-usage-types? [t-auts statement]
   (let [s-auts (-> statement :attachments (util/get-value-map :usageType))]
     (and (not (empty? s-auts))
          (cset/subset? (set s-auts) (set t-auts)))))
@@ -66,24 +68,24 @@
            contextGroupingActivityType contextCategoryActivityType
            contextOtherActivityType attachmentUsageType]}]
   (s/and (util/cond-on-val verb
-                           (partial has-verb? verb))
+                           (partial verb? verb))
          (util/cond-on-val objectActivityType
-                           (partial has-object-activity-type?
+                           (partial object-activity-type?
                                     objectActivityType))
          (util/cond-on-val contextParentActivityType
-                           (partial has-context-parent-activity-type?
+                           (partial context-parent-activity-type?
                                     contextParentActivityType))
          (util/cond-on-val contextGroupingActivityType
-                           (partial has-context-grouping-activity-types?
+                           (partial context-grouping-activity-types?
                                     contextGroupingActivityType))
          (util/cond-on-val contextCategoryActivityType
-                           (partial has-context-category-activity-types?
+                           (partial context-category-activity-types?
                                     contextCategoryActivityType))
          (util/cond-on-val contextOtherActivityType
-                           (partial has-context-other-activity-types?
+                           (partial context-other-activity-types?
                                     contextOtherActivityType))
          (util/cond-on-val attachmentUsageType
-                           (partial has-attachment-usage-types?
+                           (partial attachment-usage-types?
                                     attachmentUsageType))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -179,13 +181,13 @@
         :recommended (partial recommended? rule)
         :no-presence (partial valid-values? rule)))
 
-(defn get-values
-  "Using the 'locator' and 'selector properties, return the evaluated values
-  from a Statement."
-  [statement location & {:selector selector}]
-  (let [location-vals (util/read-json statement location)]
-    (if (some? selector)
-      (util/read-json location-vals selector)
-      location-vals)))
+; (defn get-values
+;   "Using the 'locator' and 'selector properties, return the evaluated values
+;   from a Statement."
+;   [statement location & {:selector selector}]
+;   (let [location-vals (util/read-json statement location)]
+;     (if (some? selector)
+;       (util/read-json location-vals selector)
+;       location-vals)))
 
 ;; TODO Write functions that actually validate Statements

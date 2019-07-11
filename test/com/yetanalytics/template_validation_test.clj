@@ -34,6 +34,10 @@
              {:id "http://foo.org/other-activity-2"
               :definition {:type "http://foo.org/other-activity-type"}}]}}})
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Determining Properties predicate tests.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (deftest verb?-test
   (testing "verb? predicate: 
            Statement MUST include Verb of Statement Template"
@@ -68,7 +72,6 @@
     ;; Check internal functioning of predicate
     (is (nil? (-> ex-statement-4 :object :definition :type)))))
 
-;; TODO Finish remaining tests
 (deftest context-parent-activity-types?-test
   (testing "context-parent-activity-types? predicate:
            Statement MUST include contextParentActivityType of Template."
@@ -160,3 +163,94 @@
     (is (not (tv/attachment-usage-types? [] ex-statement-4)))
     (is (not (tv/attachment-usage-types? nil ex-statement-4)))
     (is (not (tv/attachment-usage-types? nil ex-statement-1)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rules predicate tests.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; ["Andrew Downes" "Toby "Nichols" "Ena Hills"]
+(def name-values (-> ex-statement-3 :actor :member (util/value-map :name)))
+
+(deftest any-valid?-test
+  (testing "any-valid? function: values MUST include at least one value that is
+           given by 'any', ie. the collections need to intersect."
+    (is (tv/any-valid? ["Andrew Downes" "Toby Nichols"] name-values))
+    (is (tv/any-valid? ["Andrew Downes" "Will Hoyt"] name-values))
+    (is (not (tv/any-valid? ["Will Hoyt" "Milt Reder"] name-values)))
+    (is (not (tv/any-valid? [] name-values)))
+    ;; any-valid? is undefined if there are no matchable values
+    (is (not (tv/any-valid? [] [])))))
+
+(deftest all-valid?-test
+  (testing "all-valid? function: values MUST all be from the values given by
+           'all'."
+    (is (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+                       name-values))
+    ;; Superset is okay
+    (is (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
+                       name-values))
+    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols"] name-values)))
+    (is (not (tv/all-valid? [] name-values)))
+    ;; MUST NOT include any unmatchable values 
+    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))))
+
+(deftest none-valid?-test
+  (testing "none-valid? function: values MUST NOT be included in the set given
+           by 'none'."
+    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] name-values))
+    (is (not (tv/none-valid? ["Andrew Downes"] name-values)))
+    (is (not (tv/none-valid? ["Will Hoyt" "Milt Reder" "Ena Hills"]
+                             name-values)))
+    ;; If there is nothing to exclude, we should be okay
+    (is (tv/none-valid? [] name-values))
+    (is (tv/none-valid? [] []))))
+
+(deftest any-all-none?-test
+  (testing "any-all-none?: Super-predicate over any-valid?, all-valid? and
+           none-valid?."
+    (is (tv/any-all-none? {:any ["Andrew Downes" "Will Hoyt"]
+                           :all ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+                           :none ["Milt Reder"]}
+                          name-values))
+    (is (tv/any-all-none? {:any ["Andrew Downes"]} name-values))
+    (is (not (tv/any-all-none? {:any ["Will Hoyt"]} name-values)))
+    (is (not (tv/any-all-none? {:any ["Andrew Downes" "Will Hoyt"]
+                                :none ["Ena Hills"]}
+                               name-values)))
+    (is (tv/any-all-none? {} name-values))))
+
+(deftest included?-test
+  (testing "included? function: values MUST have at least one matchable value
+           (and no unmatcable values) and MUST follow any/all/none reqs."
+    (is (tv/included? {:presence "included" :any ["Andrew Downes"]}
+                      name-values))
+    (is (not (tv/included? {:presence "included" :any ["Will Hoyt"]}
+                           name-values)))
+    (is (not (tv/included? {:presence "recommended" :any ["Andrew Downes"]}
+                           name-values)))
+    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]} [])))))
+
+(deftest excluded?-test
+  (testing "excluded? function: MUST NOT have any matchable values."
+    (is (tv/excluded? {:presence "excluded"} []))
+    (is (not (tv/excluded? {:presence "excluded"} name-values)))
+    (is (not (tv/excluded? {:presence "included"} [])))))
+
+(deftest recommended?-test
+  (testing "recommended? function: MUST follow any/all/none reqs."
+    (is (tv/recommended? {:presence "recommended" :any ["Andrew Downes"]}
+                         name-values))
+    (is (tv/recommended? {:presence "recommended"} name-values))
+    (is (not (tv/recommended? {:presence "recommended" :any ["Will Hoyt"]}
+                              name-values)))
+    (is (not (tv/recommended? {:presence "included" :any ["Andrew Downes"]}
+                              name-values)))))
+
+(deftest missing?-test
+  (testing "missing? function: MUST follow any/all/none reqs."
+    (is (tv/missing? {:any ["Andrew Downes"]} name-values))
+    (is (not (tv/missing? {:presence "included" :any ["Andrew Downes"]}
+                          name-values)))
+    ;; The key itself has to be missing 
+    (is (not (tv/missing? {:presence nil :any ["Andrew Downes"]} name-values)))
+    (is (not (tv/missing? {:any ["Will Hoyt"]} name-values)))))

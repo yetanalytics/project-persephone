@@ -25,6 +25,12 @@
   [map-vec k1 k2]
   (mapv #(-> % k1 k2) map-vec))
 
+(defn predicate
+  "Create a predicate from a 2-arg function and its first argument; the
+  predicate is ignored if said argument is nil."
+  [func value]
+  (cond-on-val value (partial func value)))
+
 (defn json-to-edn
   "Convert a JSON data structure to EDN."
   [js]

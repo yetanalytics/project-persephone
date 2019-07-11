@@ -93,26 +93,17 @@
   [{:keys [verb objectActivityType contextParentActivityType
            contextGroupingActivityType contextCategoryActivityType
            contextOtherActivityType attachmentUsageType]}]
-  (s/and (util/cond-on-val verb
-                           (partial verb? verb))
-         (util/cond-on-val objectActivityType
-                           (partial object-activity-type?
-                                    objectActivityType))
-         (util/cond-on-val contextParentActivityType
-                           (partial context-parent-activity-types?
-                                    contextParentActivityType))
-         (util/cond-on-val contextGroupingActivityType
-                           (partial context-grouping-activity-types?
-                                    contextGroupingActivityType))
-         (util/cond-on-val contextCategoryActivityType
-                           (partial context-category-activity-types?
-                                    contextCategoryActivityType))
-         (util/cond-on-val contextOtherActivityType
-                           (partial context-other-activity-types?
-                                    contextOtherActivityType))
-         (util/cond-on-val attachmentUsageType
-                           (partial attachment-usage-types?
-                                    attachmentUsageType))))
+  (s/and (util/predicate verb? verb)
+         (util/predicate object-activity-type? objectActivityType)
+         (util/predicate context-parent-activity-types?
+                         contextParentActivityType)
+         (util/predicate context-grouping-activity-types?
+                         contextGroupingActivityType)
+         (util/predicate context-category-activity-types?
+                         contextCategoryActivityType)
+         (util/predicate context-other-activity-types?
+                         contextOtherActivityType)
+         (util/predicate attachment-usage-types? attachmentUsageType)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement References predicates.
@@ -129,31 +120,37 @@
 
 ;; If 'any' is provided, evaluated values MUST include at least one value
 ;; that is given by 'any'.
-(defn any-valid? [presence any values]
-  (fn [any values]
-    (let [any-set (set any)] (some (partial contains? any-set) values))))
+(defn any-valid?
+  "Return true if there's at least one value in 'any'; false otherwise."
+  [any values]
+  (let [any-set (set any)]
+    (some (partial contains? any-set) values)))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'
 ;; and MUST NOT include any unmatchable values.
-(defn all-valid? [presence all values]
-  (fn [all values]
-    (let [all-set (set all)] (every? (partial contains? all-set) values))))
+(defn all-valid?
+  "Return true is every value is in 'all'; false otherwise."
+  [all values]
+  (let [all-set (set all)]
+    (and (not (empty? values))
+         (every? (partial contains? all-set) values))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'
-(defn none-valid? [presence none values]
-  (fn [none values]
-    (let [none-set (set none)]
-      (not (some (partial contains? none-set) values)))))
+(defn none-valid?
+  "Return true if there are no values in 'none'; false otherwise."
+  [none values]
+  (let [none-set (set none)]
+    (not (some (partial contains? none-set) values))))
 
 (defn any-all-none?
   "Super-predicate over the any-valid?, all-valid?, and none-valid? 
-  predicates."
+  predicates. Ignore predicates where the corresponding value is nil."
   [{:keys [any all none] :as rule} values]
   (every? true? (cond-> []
-                  any (any-valid? any values)
-                  all (all-valid? all values)
-                  none (none-valid? none values))))
+                  any (conj (any-valid? any values))
+                  all (conj (all-valid? all values))
+                  none (conj (none-valid? none values)))))
 
 ;; MUST apply the 'any', 'all' and 'none' requirements if presence is missing,
 ;; 'included' or 'recommended' (ie. not 'excluded') and any matchable values
@@ -180,20 +177,22 @@
 ;; If presence is 'recommended', the evaluated values MUST conform to the 'any',
 ;; 'all' and 'none' specs (but recommended doesn't have restrictions of its
 ;; own).
+;; 'recommended' is only a thing to allow a rule to not have any/all/none.
 (defn recommended?
   "Returns true if presence is 'recommended' and the values follow the specs."
   [{:keys [presence] :as rule} values]
-  (and (#{"recommended" presence})
+  (and (#{"recommended"} presence)
        (if (not (empty? values))
          (any-all-none? rule values)
          true)))
 
 ;; If presence is missing, the evaluated values MUST conform to the 'any',
-;; 'all' and 'none specs.
-(defn valid-values?
-  "Returns true if presence is missing and the values follow the specs."
+;; 'all' and 'none' specs.
+(defn missing?
+  "Returns true if presence is missing and the values follow the specs.
+  Acts as a 'default' if presence is not included, exlucded nor recommended."
   [{:keys [presence] :as rule} values]
-  (and (nil? presence)
+  (and (not (contains? rule :presence))
        (if (not (empty? values))
          (any-all-none? rule values)
          true)))
@@ -202,10 +201,14 @@
   "Given a rule as an argument, return a spec for that rule that will validate
   a Statement."
   [{:keys [presence any all none] :as rule}]
-  (s/or :included (partial included? rule)
-        :exluded (partial excluded? rule)
-        :recommended (partial recommended? rule)
-        :no-presence (partial valid-values? rule)))
+  (let [is-included? (partial included? rule)
+        is-excluded? (partial excluded? rule)
+        is-recommended? (partial recommended? rule)
+        is-missing? (partial missing? rule)]
+    (s/or :included is-included?
+          :excluded is-excluded?
+          :recommended is-recommended?
+          :no-presence is-missing?)))
 
 ; (defn get-values
 ;   "Using the 'locator' and 'selector properties, return the evaluated values

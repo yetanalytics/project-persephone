@@ -4,6 +4,22 @@
             [com.yetanalytics.util :as util]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Util functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn string-same?
+  "Return true if string-1 exists and is equal to string-2, false otherwise."
+  [string-1 string-2]
+  (and (some? string-1)
+       (= string-1 string-2)))
+
+(defn set-subset?
+  "Return true if set-1 exists and is a subset of set-2, false otherwise."
+  [set-1 set-2]
+  (and (not (empty? set-1))
+       (cset/subset? set-1 set-2)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties predicates.
 ;; A Statment MUST include all the Determing Properties in the Statement 
 ;; Template.
@@ -11,53 +27,63 @@
 
 ;; Statement MUST include the Verb of the Statement Template.
 (defn verb? [t-verb statement]
+  "Return true if Statement's Verb exists and whose id matches the Statement 
+  Template's; false otherwise."
   (let [s-verb (-> statement :verb :id)]
-    (and (some? s-verb)
-         (= s-verb t-verb))))
+    (string-same? s-verb t-verb)))
 
-;; Statement MUST include the objectActivityType (the activityType of the
-;; object Activity) of the Statement Template.
+;; Statement MUST include the objectActivityType of the Statement Template.
 (defn object-activity-type? [t-oat statement]
+  "Return true if Statement's objectActivityType exists and whose id matches 
+  the Statement Template's; false otherwise."
   (let [s-oat (-> statement :object :definition :type)]
-    (and (some? s-oat)
-         (= s-oat t-oat))))
+    (string-same? s-oat t-oat)))
 
-;; Statement MUST include contextParentActivityTypes (the activityTypes of the
-;; context's parent Activities) from the Statement Template.
+;; Statement MUST include contextParentActivityTypes from the Template.
 (defn context-parent-activity-types? [t-cpats statement]
+  "Return true if Statement's contextParentActivityTypes (the type of each
+  parent contextActivity) exist and are included in the Statement Template;
+  false otherwise."
   (let [s-cpats (-> statement :context :contextActivities :parent
-                    (util/get-value-map :type))]
+                    (util/value-map-double :definition :type))]
     (and (not (empty? s-cpats))
          (cset/subset? (set s-cpats) (set t-cpats)))))
 
-;; Statement MUST include contextGroupingActivityTypes (the activityTypes of 
-;; the context's grouping Activities) from the Statement Template.
+;; Statement MUST include contextGroupingActivityTypes from the Template.
 (defn context-grouping-activity-types? [t-cgats statement]
+  "Return true if Statement's contextGroupingActivityTypes (the type of each
+  grouping contextActivity) exist and are included in the Statement Template;
+  false otherwise."
   (let [s-cgats (-> statement :context :contextActivities :grouping
-                    (util/get-value-map :type))]
+                    (util/value-map-double :definition :type))]
     (and (not (empty? s-cgats))
          (cset/subset? (set s-cgats) (set t-cgats)))))
 
-;; Statement MUST include contextCategoryActivityTypes (the activityTypes of 
-;; the context's category Activities) from the Statement Template.
+;; Statement MUST include contextCategoryActivityTypes from the Template.
 (defn context-category-activity-types? [t-ccats statement]
+  "Return true if Statement's contextCategoryActivityTypes (the type of each
+  category contextActivity) exist and are included in the Statement Template;
+  false otherwise."
   (let [s-ccats (-> statement :context :contextActivities :category
-                    (util/get-value-map :type))]
+                    (util/value-map-double :definition :type))]
     (and (not (empty? s-ccats))
          (cset/subset? (set s-ccats) (set t-ccats)))))
 
-;; Statement MUST include contextOtherActivityTypes (the activityTypes of the
-;; context's other Activities) from the Statement Template.
+;; Statement MUST include contextOtherActivityTypes from the Template.
 (defn context-other-activity-types? [t-coats statement]
+  "Return true if Statement's contextOtherActivityTypes (the type of each
+  other contextActivity) exist and are included in the Statement Template;
+  false otherwise."
   (let [s-coats (-> statement :context :contextActivities :other
-                    (util/get-value-map :type))]
+                    (util/value-map-double :definition :type))]
     (and (not (empty? s-coats))
          (cset/subset? (set s-coats) (set t-coats)))))
 
-;; Statement MUST include attachmentUsageTypes (the usageTypes of a statement's
-;; attachments) from the StatementTemplate.
+;; Statement MUST include attachmentUsageTypes from the Statement Template.
 (defn attachment-usage-types? [t-auts statement]
-  (let [s-auts (-> statement :attachments (util/get-value-map :usageType))]
+  "Return true if the Statement's attachmentUsageTypes (the usageType of each
+  attachment) exist and are in the Statement Template; false otherwise."
+  (let [s-auts (-> statement :attachments (util/value-map :usageType))]
     (and (not (empty? s-auts))
          (cset/subset? (set s-auts) (set t-auts)))))
 
@@ -73,7 +99,7 @@
                            (partial object-activity-type?
                                     objectActivityType))
          (util/cond-on-val contextParentActivityType
-                           (partial context-parent-activity-type?
+                           (partial context-parent-activity-types?
                                     contextParentActivityType))
          (util/cond-on-val contextGroupingActivityType
                            (partial context-grouping-activity-types?

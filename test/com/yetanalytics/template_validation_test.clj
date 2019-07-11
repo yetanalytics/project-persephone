@@ -13,6 +13,27 @@
 (def ex-statement-4
   (util/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
 
+;; Not a complete statement; only has context
+(def ex-context-statement
+  {:context
+   {:contextActivities
+    {:parent [{:id "http://foo.org/parent-activity"
+               :definition {:type "http://foo.org/parent-activity-type"}}
+              {:id "http://foo.org/parent-activity-2"
+               :definition {:type "http://foo.org/parent-activity-type"}}]
+     :grouping [{:id "http://foo.org/grouping-activity"
+                 :definition {:type "http://foo.org/grouping-activity-type"}}
+                {:id "http://foo.org/grouping-activity-2"
+                 :definition {:type "http://foo.org/grouping-activity-type"}}]
+     :category [{:id "http://foo.org/category-activity"
+                 :definition {:type "http://foo.org/category-activity-type"}}
+                {:id "http://foo.org/category-activity-2"
+                 :definition {:type "http://foo.org/category-activity-type"}}]
+     :other [{:id "http://foo.org/other-activity"
+              :definition {:type "http://foo.org/other-activity-type"}}
+             {:id "http://foo.org/other-activity-2"
+              :definition {:type "http://foo.org/other-activity-type"}}]}}})
+
 (deftest verb?-test
   (testing "verb? predicate: 
            Statement MUST include Verb of Statement Template"
@@ -50,20 +71,92 @@
 ;; TODO Finish remaining tests
 (deftest context-parent-activity-types?-test
   (testing "context-parent-activity-types? predicate:
-           Statement MUST include contextParentActivityType of Template."))
+           Statement MUST include contextParentActivityType of Template."
+    (is (tv/context-parent-activity-types?
+         ["http://foo.org/parent-activity-type"] ex-context-statement))
+    (is (not (tv/context-parent-activity-types?
+              ["http://foo.org/parent/activity-type-2"] ex-context-statement)))
+    ;; Superset is okay
+    (is (tv/context-parent-activity-types?
+         ["http://foo.org/parent-activity-type"
+          "http://foo.org/parent/activity-type-2"] ex-context-statement))
+    (is (not (tv/context-parent-activity-types?
+              ["http://example.com/expapi/activities/meetingcategory"]
+              ex-statement-3)))
+    (is (not (tv/context-parent-activity-types? [] ex-statement-1)))
+    (is (not (tv/context-parent-activity-types? nil ex-statement-1)))))
 
 (deftest context-grouping-activity-types?-test
   (testing "context-grouping-activity-types? predicate:
-           Statement MUST include contextGroupingActivityType of Template."))
+           Statement MUST include contextGroupingActivityType of Template."
+    (is (tv/context-grouping-activity-types?
+         ["http://foo.org/grouping-activity-type"] ex-context-statement))
+    (is (not (tv/context-grouping-activity-types?
+              ["http://foo.org/grouping/activity-type-2"] ex-context-statement)))
+    ;; Superset is okay
+    (is (tv/context-grouping-activity-types?
+         ["http://foo.org/grouping-activity-type"
+          "http://foo.org/grouping/activity-type-2"] ex-context-statement))
+    (is (not (tv/context-grouping-activity-types?
+              ["http://example.com/expapi/activities/meetingcategory"]
+              ex-statement-3)))
+    (is (not (tv/context-grouping-activity-types? [] ex-statement-1)))
+    (is (not (tv/context-grouping-activity-types? nil ex-statement-1)))))
 
 (deftest context-category-activity-types?-test
   (testing "context-category-activity-types? predicate:
-           Statement MUST include contextCategoryActivityType of Template."))
+           Statement MUST include contextCategoryActivityType of Template."
+    (is (tv/context-category-activity-types?
+         ["http://foo.org/category-activity-type"] ex-context-statement))
+    (is (not (tv/context-category-activity-types?
+              ["http://foo.org/category/activity-type-2"] ex-context-statement)))
+    ;; Superset is okay
+    (is (tv/context-category-activity-types?
+         ["http://foo.org/category-activity-type"
+          "http://foo.org/category/activity-type-2"] ex-context-statement))
+    ;; Only instance where a contextActivity actually has a type in ADL 
+    ;; examples
+    (is (tv/context-category-activity-types?
+         ["http://example.com/expapi/activities/meetingcategory"]
+         ex-statement-3))
+    (is (not (tv/context-category-activity-types? [] ex-statement-1)))
+    (is (not (tv/context-category-activity-types? nil ex-statement-1)))))
 
 (deftest context-other-activity-types?-test
   (testing "context-other-activity-types? predicate:
-           Statement MUST include contextOtherActivityType of Template."))
+           Statement MUST include contextOtherActivityType of Template."
+    (is (tv/context-other-activity-types?
+         ["http://foo.org/other-activity-type"] ex-context-statement))
+    (is (not (tv/context-other-activity-types?
+              ["http://foo.org/other/activity-type-2"] ex-context-statement)))
+    ;; Superset is okay
+    (is (tv/context-other-activity-types?
+         ["http://foo.org/other-activity-type"
+          "http://foo.org/other/activity-type-2"] ex-context-statement))
+    (is (not (tv/context-other-activity-types?
+              ["http://example.com/expapi/activities/meetingcategory"]
+              ex-statement-3)))
+    (is (not (tv/context-other-activity-types? [] ex-statement-1)))
+    (is (not (tv/context-other-activity-types? nil ex-statement-1)))))
 
 (deftest attachment-usage-types?-test
   (testing "attachment-usage-types? predicate:
-           Statement MUST include attachmentUsageType of Template."))
+           Statement MUST include attachmentUsageType of Template."
+    (is (tv/attachment-usage-types?
+         ["http://adlnet.gov/expapi/attachments/signature"] ex-statement-4))
+    (is (not (tv/attachment-usage-types?
+              ["http://adlnet.gov/expapi/attachments/signature"]
+              ex-statement-1)))
+    (is (not (tv/attachment-usage-types?
+              ["http://adlnet.gov/expapi/attachments/signature"]
+              ex-statement-2)))
+    (is (not (tv/attachment-usage-types?
+              ["http://adlnet.gov/expapi/attachments/signature"]
+              ex-statement-3)))
+    ;; Superset is okay
+    (is (tv/attachment-usage-types?
+         ["http://adlnet.gov/expapi/attachments/signature"
+          "http://foo.org/some-other-usage-type"] ex-statement-4))
+    (is (not (tv/attachment-usage-types? [] ex-statement-4)))
+    (is (not (tv/attachment-usage-types? nil ex-statement-4)))
+    (is (not (tv/attachment-usage-types? nil ex-statement-1)))))

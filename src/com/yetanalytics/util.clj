@@ -14,10 +14,16 @@
     pred-fn
     (constantly true)))
 
-(defn get-value-map
+(defn value-map
   "Given a key, return corresponding values from a vector of maps."
   [map-vec k]
   (mapv #(get % k) map-vec))
+
+(defn value-map-double
+  "Given two keys, return a vector of corresponding values from a vector of
+  maps that themselves have a nested map."
+  [map-vec k1 k2]
+  (mapv #(-> % k1 k2) map-vec))
 
 (defn json-to-edn
   "Convert a JSON data structure to EDN."

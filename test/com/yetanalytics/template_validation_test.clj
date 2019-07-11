@@ -34,9 +34,49 @@
              {:id "http://foo.org/other-activity-2"
               :definition {:type "http://foo.org/other-activity-type"}}]}}})
 
+;; Example template
+(def ex-template
+  {:id "http://foo.org/example/template"
+   :type "StatementTemplate"
+   :inScheme "http://foo.org/profile/v1"
+   :prefLabel {:en "Example Template"}
+   :definition {:en "This template is an example template for test cases."}
+   ;; Determining Properties
+   :verb "http://foo.org/verb"
+   :objectActivityType "http://foo.org/oat"
+   :contextGroupingActivityType ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+   :contextParentActivityType ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+   :contextOtherActivityType ["http://foo.org/coat1" "http://foo.org/coat2"]
+   :contextCategoryActivityType ["http://foo.org/ccat1" "http://ccat2"]
+   :attachmentUsageType ["http://foo.org/aut1" "http://foo.org/aut2"]
+   ;; Statement Reference Templates*
+   :objectStatementRefTemplate ["http://foo.org/templates/template1"
+                                "http://foo.org/templates/template2"]
+   :contextStatementRefTemplate ["http://foo.org/templates/template3"
+                                 "http://foo.org/templates/template4"]
+   ;; Rules
+   :rules [{:locator "$.actor.objectType" :presence "included"}
+           {:locator "$.actor.name" :presence "included"
+            ;; Developers (and friends) only
+            :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
+                  "Erika Lee" "Boris Boiko"]
+            :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
+                   "Jeremy Gardner"]}
+           {:locator "$.actor"
+            :selector "$.mbox"
+            :presence "included"}
+           {:locator "$.actor"
+            :selector "$.mbox_sha1sum"
+            :presence "excluded"}]})
+
+;; *Note that having both objectActivityType and objectStatementRefTemplate
+;; is actually illegal (since an Object can't be an Activity or a Statement-
+;; Ref at the same time), but we'll bend the rules for our test cases.
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties predicate tests.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (deftest verb?-test
   (testing "verb? predicate: 

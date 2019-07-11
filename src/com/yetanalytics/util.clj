@@ -1,5 +1,6 @@
 (ns com.yetanalytics.util
-  (:require [cheshire.core :as cheshire])
+  (:require [clojure.string :as string]
+            [cheshire.core :as cheshire])
   (:import [com.jayway.jsonpath
             Configuration
             JsonPath
@@ -35,6 +36,20 @@
   "Convert an EDN data structure to JSON."
   [edn]
   (cheshire/generate-string edn))
+
+;; TODO: Eventually we would like to create an in-house set of functions (or
+;; even a lib) that will evaulate EDN data structures with JSONPath directly
+;; (instead of having to convert back to JSON).
+
+;; TODO: Fix project-pan's axiom functions so that it matches split-regex here.
+;; Right now it doesn't because we need to account for pipes in odd locations,
+;; namely in brackets (eg. ['b|ah']).
+;; Right now project-pan utilizes lookahead and escape chars, which is awk.
+(defn split-json-path
+  "Split JSONPath strings that are separated by pipe (ie. '|') characters."
+  [json-paths]
+  (let [split-regex #"\s*\|\s*"]
+    (string/split json-paths split-regex)))
 
 (defn read-json
   "Evaluate a JSONPath query given a JSONPath string and JSON.

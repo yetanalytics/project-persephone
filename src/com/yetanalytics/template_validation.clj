@@ -87,6 +87,7 @@
     (and (not (empty? s-auts))
          (cset/subset? (set s-auts) (set t-auts)))))
 
+;; TODO Write test for this
 (defn create-det-properties-spec
   "Given a Statement Template as an argument, return a spec for the Template's
   Determing Properties."
@@ -112,6 +113,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TODO Fill in
+(defn create-template-ref-spec
+  [{:keys objectStatementRefTemplate contextStatementRefTemplate}]
+  (s/and (constantly true)
+         (constantly true)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicates.
@@ -197,6 +202,8 @@
          (any-all-none? rule values)
          true)))
 
+;; TODO Write tests for everything below
+
 (defn create-rule-spec
   "Given a rule as an argument, return a spec for that rule that will validate
   a Statement."
@@ -210,15 +217,53 @@
           :recommended is-recommended?
           :no-presence is-missing?)))
 
-(s/explain (create-rule-spec {:presence "excluded"}) ["foo"])
+(defn create-rules-spec
+  "Given a Statement Template as an argument, return a vector of specs for all 
+  the rules in the Template."
+  [{:keys [rules]}]
+  (mapv create-rule-spec rules))
 
-; (defn get-values
-;   "Using the 'locator' and 'selector properties, return the evaluated values
-;   from a Statement."
-;   [statement location & {:selector selector}]
-;   (let [location-vals (util/read-json statement location)]
-;     (if (some? selector)
-;       (util/read-json location-vals selector)
-;       location-vals)))
+(defn evaluate-paths
+  "Given a vector of JSONPath strings and a statement, return a flattened
+  vector of evaluated values."
+  [statement json-paths]
+  (vec (mapcat identity (mapv (fn [loc] (-> statement (util/read-json loc)))
+                              locations))))
 
-;; TODO Write functions that actually validate Statements
+(defn find-values
+  "Using the 'locator' and 'selector' JSONPath strings, return the evaluated 
+  values from a Statement as a vector."
+  [statement location & selector]
+  (let [locations (util/split-json-path location)
+        values (evaluate-paths statement location)]
+    ;; If there's a selector, re-evaulate the previously evaluated values
+    (if (some? selector)
+      (vec (mapcat identity
+                   (util/read-json location-vals
+                                   (replace selector #"^\$" "$[*]"))))
+      location-vals)))
+
+(defn locator-map
+  "Given a vector of rules, return a vector of their respective JSONPath 
+  strings."
+  [{:keys [rules]}]
+  (mapv (fn [{:keys [location selector]}] {:location location
+                                           :selector selector}) rules))
+
+(defn create-template-spec
+  [template]
+  {:template-specs (s/and (create-det-properties-spec template)
+                          (create-template-ref-spec tempate))
+   :rule-specs (create-rules-spec template)
+   :locators (locator-map template)})
+
+(defn validate-statement
+  "Given a Statement and a spec map created from a Statement Template, validate
+  the Statement against the Template."
+  [{:keys [template-specs rule-specs locators]} statement]
+  (let [values (mapv (fn [{:keys [location selector]}]
+                       (find-values statement location selector))
+                     locators)]
+    (and (s/valid? template-specs statement)
+         (every? true? (map (fn [spec value] (s/valid? spec value))
+                            rule-specs values)))))

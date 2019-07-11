@@ -45,7 +45,7 @@
   parent contextActivity) exist and are included in the Statement Template;
   false otherwise."
   (let [s-cpats (-> statement :context :contextActivities :parent
-                    (util/value-map-double :definition :type))]
+                    (util/value-map :definition :type))]
     (and (not (empty? s-cpats))
          (cset/subset? (set s-cpats) (set t-cpats)))))
 
@@ -55,7 +55,7 @@
   grouping contextActivity) exist and are included in the Statement Template;
   false otherwise."
   (let [s-cgats (-> statement :context :contextActivities :grouping
-                    (util/value-map-double :definition :type))]
+                    (util/value-map :definition :type))]
     (and (not (empty? s-cgats))
          (cset/subset? (set s-cgats) (set t-cgats)))))
 
@@ -65,7 +65,7 @@
   category contextActivity) exist and are included in the Statement Template;
   false otherwise."
   (let [s-ccats (-> statement :context :contextActivities :category
-                    (util/value-map-double :definition :type))]
+                    (util/value-map :definition :type))]
     (and (not (empty? s-ccats))
          (cset/subset? (set s-ccats) (set t-ccats)))))
 
@@ -75,7 +75,7 @@
   other contextActivity) exist and are included in the Statement Template;
   false otherwise."
   (let [s-coats (-> statement :context :contextActivities :other
-                    (util/value-map-double :definition :type))]
+                    (util/value-map :definition :type))]
     (and (not (empty? s-coats))
          (cset/subset? (set s-coats) (set t-coats)))))
 
@@ -209,6 +209,8 @@
           :excluded is-excluded?
           :recommended is-recommended?
           :no-presence is-missing?)))
+
+(s/explain (create-rule-spec {:presence "excluded"}) ["foo"])
 
 ; (defn get-values
 ;   "Using the 'locator' and 'selector properties, return the evaluated values

@@ -21,19 +21,16 @@
 ;; TODO Add SNSD data
 
 (deftest value-map-test
-  (testing "value-map test: given a key and a vector of maps, we get back a
+  (testing "value-map test: given keys and a vector of maps, we get back a
            vector of the appropriate values."
     (is (= (util/value-map ex-map-vec :odd) [1 3]))
     (is (= (util/value-map ex-map-vec :even) [2 4]))
     (is (= (util/value-map ex-map-vec :not-exist) [nil nil]))
-    (is (= (util/value-map-double ex-map-vec :map :odd) [nil nil]))))
-
-(deftest value-map-double-test
-  (testing "value-map-double test: given a key and a vector of maps with a
-           nested map inside, we get back a vector of values."
-    (is (= (util/value-map-double ex-map-vec-2 :map :odd) [1 3]))
-    (is (= (util/value-map-double ex-map-vec-2 :map :even) [2 4]))
-    (is (= (util/value-map-double ex-map-vec-2 :not-exist :odd) [nil nil]))
-    (is (= (util/value-map-double ex-map-vec-2 :map :not-exist) [nil nil]))))
+    ;; Multiple arguments
+    (is (= (util/value-map ex-map-vec-2 :map :odd) [1 3]))
+    (is (= (util/value-map ex-map-vec-2 :map :even) [2 4]))
+    (is (= (util/value-map ex-map-vec-2 :not-exist :odd) [nil nil]))
+    (is (= (util/value-map ex-map-vec-2 :map :not-exist) [nil nil]))
+    (is (= (util/value-map ex-map-vec :map :odd) [nil nil]))))
 
 ;; TODO Test edn-to-json and read-json

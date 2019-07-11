@@ -15,15 +15,10 @@
     (constantly true)))
 
 (defn value-map
-  "Given a key, return corresponding values from a vector of maps."
-  [map-vec k]
-  (mapv #(get % k) map-vec))
-
-(defn value-map-double
-  "Given two keys, return a vector of corresponding values from a vector of
-  maps that themselves have a nested map."
-  [map-vec k1 k2]
-  (mapv #(-> % k1 k2) map-vec))
+  "Given an array of keys (each corresponding to a level of map nesting),
+  return corresponding values from a vector of maps."
+  [map-vec & ks]
+  (mapv #(get-in % ks) map-vec))
 
 (defn predicate
   "Create a predicate from a 2-arg function and its first argument; the

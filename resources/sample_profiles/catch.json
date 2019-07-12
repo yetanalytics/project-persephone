@@ -1,0 +1,5119 @@
+{"versions": [
+    {
+      "id": "https://w3id.org/xapi/catch/v1",
+      "generatedAtTime": "2017-12-22T22:30:00-07:00"
+    }
+  ],
+  "@context": "https://w3id.org/xapi/profiles/context",
+  "author": {
+    "id": "https://www.yetanalyitcs.io",
+    "type": "Organization",
+    "name": "Yet Analytics"
+  },
+  "type": "Profile",
+  "id": "https://w3id.org/xapi/catch",
+  "definition": {
+    "en": "The profile for the trinity education application CATCH"
+  },
+  "conformsTo": "https://w3id.org/xapi/profiles#1.0",
+  "prefLabel": {
+    "en": "Catch"
+  },
+  "concepts": [
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/domain",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Domain"
+      },
+      "definition": {
+        "en": "A learning path within the EPISD Dual Language Competency Framework"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/domain/planning-and-preparation",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Planning and Preparation for DLE Teaching and Learning"
+        },
+        "description": {
+          "en": "The planning and preparation for DLE teaching and learning domain as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/domain"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/domain/education-environment",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Dual Language Education Environment"
+        },
+        "description": {
+          "en": "The dual language education environment domain as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/domain"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/domain/professional-responsibilities",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Professional Responsibilities"
+        },
+        "description": {
+          "en": "The professional responsibilities learning path as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/domain"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/competency",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Competency"
+      },
+      "definition": {
+        "en": "A collection of activities which repserent skills required within the workplace as described within the EPISD Dual Language Competency Framework"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "DLE Research, Goals, Models, and Benifits"
+        },
+        "description": {
+          "en": "The DLE Research, Goals, Models, and Benefits competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/twiop",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Two-Way Sheltered Instruction"
+        },
+        "description": {
+          "en": "The two-way sheltered instruction competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/cross-linguistic-connections",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Cross Linguistic Connections"
+        },
+        "description": {
+          "en": "The cross linguistic connections competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/utilizing-resources",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Utilizing Dual Language Resources"
+        },
+        "description": {
+          "en": "The utilizing dual language resources competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/cultural-awareness",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Cultural Awareness in the Dual Language Classroom"
+        },
+        "description": {
+          "en": "The cultural awareness in the dual language classroom competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/family-engagement",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Engagement of the Dual Language Family"
+        },
+        "description": {
+          "en": "The engagement of the dual language family competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/competency/community-engagement",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Community Engagement in the Dual Language Classroom"
+        },
+        "description": {
+          "en": "The community engagement in the dual language classroom competency as described by the EPISD Dual Language Competency Framework"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/competency"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/presented",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "presented"
+      },
+      "definition": {
+        "en": "leading a discussion at an advocacy event"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/sent",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "sent"
+      },
+      "definition": {
+        "en": "Indicates that the actor has sent the object to a dual language family."
+      },
+      "broadMatch": [
+        "http://activitystrea.ms/schema/1.0/send"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/provided",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provided"
+      },
+      "definition": {
+        "en": "supplying a link to an online resource"
+      },
+      "broadMatch": [
+        "http://adlnet.gov/expapi/verbs/shared"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provided"
+      },
+      "definition": {
+        "en": "Uploading a resource from a local file system"
+      },
+      "broader": [
+        "https://w3id.org/xapi/catch/verbs/submitted",
+        "https://w3id.org/xapi/catch/verbs/provided"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/submitted",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "submitted"
+      },
+      "definition": {
+        "en": "The actor has clicked the submit or save button within the CATCH application"
+      },
+      "broadMatch": [
+        "http://activitystrea.ms/schema/1.0/submit"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/reflected",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "reflected"
+      },
+      "definition": {
+        "en": "To provide a reflection about an activity or piece of content within the CATCH application"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/read",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "read"
+      },
+      "definition": {
+        "en": "To read a research article"
+      },
+      "broadMatch": [
+        "https://w3id.org/xapi/adb/verbs/read"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/verbs/finished",
+      "type": "Verb",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "read"
+      },
+      "definition": {
+        "en": "to complete the process of viewing, reading and optionally reflecting on a article within the catch application"
+      },
+      "broadMatch": [
+        "http://adlnet.gov/expapi/verbs/completed"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/check-in",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Check in"
+      },
+      "definition": {
+        "en": "An activity in which the learner reports progression."
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/reflection",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Reflection"
+      },
+      "definition": {
+        "en": "An activity where a learner reads an article and optionally provides a reflection on that article."
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/article",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "article"
+      },
+      "definition": {
+        "en": "Represents objects such as news articles, knowledge base entries, or other similar construct. Such objects generally consist of paragraphs of text, in some cases incorporating embedded media such as photos and inline hyperlinks to other resources."
+      },
+      "exactMatch": [
+        "http://activitystrea.ms/schema/1.0/article"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Lesson Plan"
+      },
+      "definition": {
+        "en": "a Lesson plan is a document which outlines activities which happen in the classroom"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Evidence"
+      },
+      "definition": {
+        "en": "A activity in which something is provided to validate the claim being made within an activity"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/professional-development",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "professional development"
+      },
+      "definition": {
+        "en": "An in-person professional development event. These types of activites are created from the information the learner provides about the event."
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/advocacy-event",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "advocacy-event"
+      },
+      "definition": {
+        "en": "An in-person dual language advocacy event. These types of activites are created from the information the learner provides about the event."
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activitytypes/instance-of-interaction",
+      "type": "ActivityType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Family communication"
+      },
+      "definition": {
+        "en": "This activity type describes a teacher engaging with a family/parent/community in some way on a given date."
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/dle-research-goals-models-benifits/check-in/pd",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Check-in Pd-Activity"
+        },
+        "description": {
+          "en": "CATCH activity f1.1.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/check-in"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/dle-research-goals-models-benifits/evidence/schedule",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence: Provide Schedule"
+        },
+        "description": {
+          "en": "CATCH activity f1.1.03"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/dle-research-goals-models-benifits/evidence/advocacy",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence: Provide Examples of Advocacy"
+        },
+        "description": {
+          "en": "CATCH activity f1.1.04"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/twiop/lesson-plan/1",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Lesson Plan - Submit lesson plan 1"
+        },
+        "description": {
+          "en": "CATCH activity f1.2.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/twiop/lesson-plan/2",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Lesson Plan - Submit lesson plan 2"
+        },
+        "description": {
+          "en": "CATCH activity f1.2.02"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/twiop/lesson-plan/3",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Lesson Plan - Submit lesson plan 3"
+        },
+        "description": {
+          "en": "CATCH activity f1.2.03"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/cross-linguistic-connections/lesson-plan",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Submit a lesson plan "
+        },
+        "description": {
+          "en": "CATCH activity f3.2.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/utilizing-resources/lesson-plan/resources",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Submit a lesson plan and resources"
+        },
+        "description": {
+          "en": "CATCH activity m3.2.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/planning-and-preparation/utilizing-resources/lesson-plan/evidence",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Submit a lesson plan with evidence"
+        },
+        "description": {
+          "en": "CATCH activity m3.3.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/education-environment/cultural-awareness/reflection",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Reflection - Read program selected Article"
+        },
+        "description": {
+          "en": "CATCH activity f2.1.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/reflection"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/education-environment/cultural-awareness/evidence",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence - provide survey"
+        },
+        "description": {
+          "en": "CATCH activity f2.1.02"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/education-environment/cultural-awareness/lesson-plan",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Lesson Plan - Submit Lesson Plan incorporating culture."
+        },
+        "description": {
+          "en": "CATCH activity m2.1.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/professional-responsibilities/family-engagement/evidence",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence - Demonstrate how learner communicates with families"
+        },
+        "description": {
+          "en": "CATCH activity f4.2.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/professional-responsibilities/family-engagement/lesson-plan",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Lesson Plans - Submit lesson plans and evidence"
+        },
+        "description": {
+          "en": "CATCH activity m1.2.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/professional-responsibilities/community-engagement/evidence/parents",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence - Provide examples of communication to parents"
+        },
+        "description": {
+          "en": "CATCH activity f4.3.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activities/professional-responsibilities/community-engagement/evidence/community",
+      "type": "Activity",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "activityDefinition": {
+        "@context": "https://w3id.org/xapi/profiles/activity-context",
+        "name": {
+          "en": "Evidence - Community Collaboration"
+        },
+        "description": {
+          "en": "CATCH activity m4.3.01"
+        },
+        "type": "https://w3id.org/xapi/catch/activitytypes/evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design",
+      "type": "ActivityExtension",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Lesson Plan Info"
+      },
+      "definition": {
+        "en": "The fields of a Lesson Plan template filled in by the learner"
+      },
+      "recommendedActivityTypes": [
+        "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      ],
+      "inlineSchema": "{\"type\":\"object\",\"properties\":{\"application\":{\"type\":\"string\"},\"background\":{\"type\":\"string\"},\"adaptation\":{\"type\":\"string\"},\"assessment\":{\"type\":\"string\"},\"scaffolding\":{\"type\":\"string\"},\"review\":{\"type\":\"string\"},\"group-options\":{\"type\":\"string\"},\"vocabulary\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"uniqueItems\":true}},\"language-skills\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"uniqueItems\":true}},\"linguistic-cognitive-scaffolds\":{\"type\":\"string\"}}}"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards",
+      "type": "ActivityExtension",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "State Standards"
+      },
+      "definition": {
+        "en": "the Standards for a provided or designed lesson plan"
+      },
+      "recommendedActivityTypes": [
+        "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+      ],
+      "inlineSchema": "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"grade\":{\"type\":\"string\"},\"strand\":{\"type\":\"string\"}}}}"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/context-extensions/communication-with-families-criteria",
+      "type": "ContextExtension",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Communication Criteria"
+      },
+      "definition": {
+        "en": "Criteria for demonstrating communication with families.  The selected check boxes"
+      },
+      "recommendedVerbs": [
+        "https://w3id.org/xapi/catch/verbs/sent",
+        "https://w3id.org/xapi/catch/verbs/provided",
+        "https://w3id.org/xapi/catch/verbs/uploaded",
+        "https://w3id.org/xapi/catch/verbs/submitted"
+      ],
+      "inlineSchema": "{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"uniqueItems\":true}"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/activity-extensions/schedule/date-range",
+      "type": "ActivityExtension",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Date Range"
+      },
+      "definition": {
+        "en": "The date range (as a string) a schedule covers"
+      },
+      "recommendedActivityTypes": [
+        "https://w3id.org/xapi/catch/activitytypes/evidence"
+      ],
+      "inlineSchema": "{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"string\"}}}"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/context-extensions/advocacy-event",
+      "type": "ContextExtension",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "meta data about an advocacy event"
+      },
+      "definition": {
+        "en": "the type and audience for an advocacy event."
+      },
+      "recommendedVerbs": [
+        "http://adlnet.gov/expapi/verbs/attended",
+        "https://w3id.org/xapi/catch/verbs/presented",
+        "https://w3id.org/xapi/catch/verbs/submitted"
+      ],
+      "inlineSchema": "{\"type\":\"object\",\"properties\":{\"advocacy-type\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"uniqueItems\":true}},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"uniqueItems\":true}}}}"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/attachment-usage-types/supporting-documents",
+      "type": "AttachmentUsageType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Supporting documents"
+      },
+      "definition": {
+        "en": "Documents which provide aditional information about the lesson plan. Can be instructions for lesson plan execution, demonstrating implementation or any other documents related to the lesson plan"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/attachment-usage-types/evidence/parent-survey",
+      "type": "AttachmentUsageType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Parent Survey"
+      },
+      "definition": {
+        "en": "A survey provided to the parent(s) of a DL student"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/attachment-usage-types/evidence/parent-survey-result",
+      "type": "AttachmentUsageType",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Parent Survey Result"
+      },
+      "definition": {
+        "en": "The results of the survey provided to the parent(s) of a DL student"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://adlnet.gov/expapi/verbs/scored",
+      "id": "https://w3id.org/xapi/catch/templates#score-rubric",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.result.score.raw",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the total number of points awarded.  This value will be determined by the point values associated with the various criteria"
+          }
+        },
+        {
+          "location": "$.result.score.min",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the lowest possible number of points"
+          }
+        },
+        {
+          "location": "$.result.score.max",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the greatest possible number of points"
+          }
+        },
+        {
+          "location": "$.result.success",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be true if the score threshold was met, false otherwise"
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the mentors feedback"
+          }
+        },
+        {
+          "location": "$.result.extensions['https://w3id.org/xapi/catch/result-extensions/rubric-criteria']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "an array of objects where each object represents one of the criteria being scored.  each object will have a property for the name of the criteria, the possible values (ie. Emerging, Attainment, Excellence) and the selected value."
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the mentor submited the scored rubric"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements that are the result of a mentor reviewing and scoring somthing within the catch application."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "score rubric"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/assessment",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://id.tincanapi.com/verb/viewed",
+      "id": "https://w3id.org/xapi/catch/templates#view-rubric",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The timestamp when the learner viewed the rubric"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "this statement template should be used whenever a learner clicks on the drop down button to view a scoring rubric within the catch application.  This is possible within many different types of activities and will show up in every pattern in which an activity includes a rubric.  This is a simple statement of actor viewed rubric in some activity"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Viewed rubric"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/updated",
+      "id": "https://w3id.org/xapi/catch/templates#activity-updated",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is activity specific.  Most of the time it will be when the submission of the updated document happens."
+          }
+        },
+        {
+          "location": "$.object.definition.type",
+          "any": [
+            "https://w3id.org/xapi/catch/activitytypes/evidence",
+            "https://w3id.org/xapi/catch/activitytypes/lesson-plan"
+          ],
+          "scopeNote": {
+            "en": "the different types of activities within the CATCH application.  Select the one appropriate to the completed activity"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this should be the name of the activity"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for when a learner needs to go back and rework a resource due to not meeting a score threshold.  This statement should come before/at the same time as the second submit statement for a given object."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Updated Activity"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/reflected",
+      "id": "https://w3id.org/xapi/catch/templates#wrote-reflection",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "When the learner returns to the activity page"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the thing being reflected upon"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The statement about the object being reflected on. Should be the submitted statement."
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "this is the reflection if entered by the learner"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for a learner providing a reflection about a piece of content or activity within the CATCH application."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provided reflection"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/notified",
+      "id": "https://w3id.org/xapi/catch/templates#system-notification-submission",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "any": [
+            "Agent"
+          ],
+          "scopeNote": {
+            "en": "The object is the user recieving the notification"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system notified the user"
+          }
+        },
+        {
+          "location": "$.result.success",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be true if the submission was successful, false otherwise"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the submission statement the system is responding to"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system notifies the user that a submission was (not)successfuly recieved"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submission system notification"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/notified",
+      "id": "https://w3id.org/xapi/catch/templates#system-notification-progression",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "any": [
+            "Agent"
+          ],
+          "scopeNote": {
+            "en": "The object is the user recieving the notification"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system notified the user"
+          }
+        },
+        {
+          "location": "$.result.score.raw",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the number of submissions made so far"
+          }
+        },
+        {
+          "location": "$.result.score.min",
+          "presence": "included",
+          "scopeNote": {
+            "en": "Should be 0 in almost all cases"
+          }
+        },
+        {
+          "location": "$.result.score.max",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the threshold which determines completion"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the system submission confirmation statement generated by the statement template https://w3id.org/xapi/catch/templates#system-notification-submission"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system notifies the user on their progression through an activity after a successful submission"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "progression system notification"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/notified",
+      "id": "https://w3id.org/xapi/catch/templates#system-notification-completion",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "any": [
+            "Agent"
+          ],
+          "scopeNote": {
+            "en": "The object is the user recieving the notification"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system notified the user"
+          }
+        },
+        {
+          "location": "$.result.completion",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be true to indicate completion"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the submission statement the system is responding to"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system notifies the user that they have completed an activity"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Completion system notification"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/updated",
+      "id": "https://w3id.org/xapi/catch/templates#system-actions-status-change-needs-work",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The object is the thing submitted by the user.  All properties of the object should be contained within these statements"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system updated the status"
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be 'Needs Work'"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the scoring of the submited object"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system updates the status of a submission to needs work"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Status - needs work"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/updated",
+      "id": "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The object is the thing submitted by the user.  All properties of the object should be contained within these statements"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system updated the status"
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be 'In Review'"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the scoring of the submited object"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system updates the status of a submission to in review"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Status - in review"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/updated",
+      "id": "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The object is the thing submitted by the user.  All properties of the object should be contained within these statements"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system updated the status"
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "included",
+          "scopeNote": {
+            "en": "should be 'Complete'"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the scoring of the submited object"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system updates the status of a submission to complete"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Status - complete"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/notified",
+      "id": "https://w3id.org/xapi/catch/templates#system-notification-alert",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.objectType",
+          "any": [
+            "Agent"
+          ],
+          "scopeNote": {
+            "en": "The user being notified.  Could be a teacher or a mentor based on the context"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the system notified the user"
+          }
+        },
+        {
+          "location": "$.result.response",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The message displayed to the user"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "included",
+          "scopeNote": {
+            "en": "A statement refrence to the statement the system is responding to"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The system provides a status report to the user.  The progress is reported in the form of a score xAPI object and the activity the user was progressing through is represented by the contextActivities ids.  "
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Check-in progress notification"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://adlnet.gov/expapi/verbs/completed",
+      "id": "https://w3id.org/xapi/catch/templates#activity-completion",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is activity specific.  Most of the time it will be when the final submission was made by the teacher"
+          }
+        },
+        {
+          "location": "$.object.definition.type",
+          "any": [
+            "https://w3id.org/xapi/catch/activitytypes/check-in",
+            "https://w3id.org/xapi/catch/activitytypes/evidence",
+            "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+            "https://w3id.org/xapi/catch/activitytypes/reflection"
+          ],
+          "scopeNote": {
+            "en": "the different types of activities within the CATCH application.  Select the one appropriate to the completed activity"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this should be the name of the activity.  ie. Check-in Existing PD Activity"
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this should be the description of the Activity.  ie. The teacher attended 3 existing PD events"
+          }
+        },
+        {
+          "location": "$.object.id",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this should be the id of the activity completed.  as of now, that id consists of .../catch/activities/{certification}/{domain}/{competency}/{activity-type}/{activity-name}"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for generating statements indicating that an activity was completed.  Fires off after a pattern of activity specific statements occurs measured via a threshold."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Completed Activity"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/competency",
+      "verb": "http://adlnet.gov/expapi/verbs/completed",
+      "id": "https://w3id.org/xapi/catch/templates#competency-completion",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The timestamp when the learner viewed the rubric"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The description, purpose and usage of this template"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Completion of a competency"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/templates#domain-completion",
+      "type": "StatementTemplate",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "Completed domain"
+      },
+      "definition": {
+        "en": "The description, purpose and usage of this template"
+      },
+      "verb": "http://adlnet.gov/expapi/verbs/completed",
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/domain",
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The timestamp when the learner viewed the rubric"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ]
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#lesson-plan-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the learner clicked upload doc"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file or some subset of the full file name."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The description of the lesson plan if avialable. This would be the text entered into the field labeled Activity: Describe your lesson..."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "An array of objects which contain the information about the State standards covered by the lesson plan.  each object should contain the subject, grade, strand and expectations if avialable.  This field will not be present in the case of uploading an original document where state standards dont apply or aren't known."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements when the learner uploaded a lesson plan instead of designing one.  The uploaded lesson plan should be one designed by the teacher."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "upload Lesson Plan"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/acrossx/verbs/designed",
+      "id": "https://w3id.org/xapi/catch/templates#lesson-plan-design",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "When the learner clicks create lesson plan button"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan.  The title field within the template"
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The description of the lesson plan if avialable. This would be the text entered into the field labeled Activity: Describe your lesson... when the object is an adapted lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  Some of the fields from the template are used in other places in an xAPI statement.  This extension is for the fields that don't naturally fit into existing xAPI fields."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "An array of objects which contain the information about the State standards covered by the lesson plan.  each object should contain the subject, grade, strand and expectations if avialable."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This statement tempalte is for when the learner uses the provided Lesson plan template to create a lesson plan instead of uploading a lesson plan."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "design a Lesson Plan"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/professional-development",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://adlnet.gov/expapi/verbs/attended",
+      "id": "https://w3id.org/xapi/catch/templates#professional-development-event",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is the date of PD from the date selection"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is the Title of the PD event"
+          }
+        },
+        {
+          "location": "$.result.duration",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the duration entered by the user.  Will need to be converted to an ISO 861 duration string"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the provider of the PD if provided"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statments describing a learner attending a PD session."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "A PD event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/check-in",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates/professional-development/event"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-1-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the learner hit the submit button"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "This is the name defined in the refrenced statement"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements regarding activity f1.1.01. This statement should refrence the PD event itself."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit Professional Development Check-in"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-schedule-provide",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/schedule/date-range']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date range entered by the user"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided schedule. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to a schedule"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide schedule"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-schedule-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/schedule/date-range']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date range entered by the user"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading a schedule"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "upload schedule"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-1-03",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the learner hit submit"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/schedule/date-range']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date range entered by the user"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the source of the schedlue.  If there was a provided statement, it should be the platform within that statement.  If there was an uploaded statement, this should be the 'Local File System'."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about submitting a schedule"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "submit schedule"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/advocacy-event",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://adlnet.gov/expapi/verbs/attended",
+      "id": "https://w3id.org/xapi/catch/templates#attended-advocacy-event",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is the date of the event as entered by the user"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/advocacy-event']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statments describing a learner attending an advocacy session."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Atteneded advocacy event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/advocacy-event",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/presented",
+      "id": "https://w3id.org/xapi/catch/templates#presented-advocacy-event",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this is the date of the event as entered by the user"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/advocacy-event']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statments describing a learner presenting at an advocacy session."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Presented advocacy event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#presented-advocacy-event",
+        "https://w3id.org/xapi/catch/templates#attended-advocacy-event"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/advocacy-event']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided schedule. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to evidence of an advocacy event.  The object should be the provided evidence.  The statement refrence should refrence the attended or presented event"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide evidence of advocacy event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#presented-advocacy-event",
+        "https://w3id.org/xapi/catch/templates#attended-advocacy-event"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-advocacy-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/advocacy-event']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading  evidence of an advocacy event.  The object should be the uploaded evidence.  The statement refrence should refrence the attended or presented event"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide evidence of advocacy event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#presented-advocacy-event",
+        "https://w3id.org/xapi/catch/templates#attended-advocacy-event"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-1-04",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the learner hit submit"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/advocacy-event']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the source of the evidence.  If there was a provided statement, it should be the platform within that statement.  If there was an uploaded statement, this should be the 'Local File System'."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about submitting evidence of attending or presenting a/at an advocacy event"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "submit evidence of advocacy event"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-2-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity f1.2.01.  The object of these statements should be the designed or uploaded lesson plan for this activity."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit lesson plan 1"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-2-02",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity f1.2.02.  The object of these statements should be the designed or uploaded lesson plan for this activity."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit lesson plan 2"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f1-2-03",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity f1.2.03.  The object of these statements should be the designed or uploaded lesson plan for this activity."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit lesson plan 3"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f3-2-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cross-linguistic-connections']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity f3.2.01.  The object of this statement should be the designed or uploaded lesson plan."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit a lesson plan with linguistic strategies"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#m3-2-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/utilizing-resources']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity M3.2.01. The object should be the uploaded/designed lesson plan."
+      },
+      "type": "StatementTemplate",
+      "attachmentUsageType": [
+        "https://w3id.org/xapi/catch/attachment-usage-types/supporting-documents"
+      ],
+      "prefLabel": {
+        "en": "Submit a lesson plan and resources"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#m3-3-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/utilizing-resources']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity M3.3.01. The object should be the uploaded/designed lesson plan."
+      },
+      "type": "StatementTemplate",
+      "attachmentUsageType": [
+        "https://w3id.org/xapi/catch/attachment-usage-types/supporting-documents"
+      ],
+      "prefLabel": {
+        "en": "Submit a lesson plan with evidence"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/article",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://id.tincanapi.com/verb/viewed",
+      "id": "https://w3id.org/xapi/catch/templates#reflection-viewed-article",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "When the learner clicks the link to the article"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the article"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This statement template is for describing the action of clicking on a link which takes the learner to an article.  The object should be the article itself with the object id being the url of the article.  This template should be used for each article viewed this way"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "viewed article"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/article",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/read",
+      "id": "https://w3id.org/xapi/catch/templates#reflection-read-article",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "When the learner returns to the activity page"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the article read"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.result.duration",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The difference between the viewed and timestamp in the timestamp used for this statement. Needs to be in ISO 861 duration format"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This statement template is for recording the action of reading the article. The object of these statements is the article that was viewed.  This template should be used for every article a teacher reads"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Read research article"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/article",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/finished",
+      "id": "https://w3id.org/xapi/catch/templates#f2-1-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the learner leaves the expanded form containing the link to the article."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the article read"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for the completion of viewing, reading and optionally reflecting on a single research article as described by activity f2-1-01."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Program selected article"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-survey-provide",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app.  That could be once the application retried the file from the provided link or when the user clicked the button to provide the link"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "this field should only be used to refrence the uploading/providing statements about surveys when the object of this statement is the result of the survey"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided survey/survey results. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to surveys and/or survey results.  Survey and Survey results should be seperate statements"
+      },
+      "type": "StatementTemplate",
+      "attachmentUsageType": [
+        "https://w3id.org/xapi/catch/attachment-usage-types/evidence/survey",
+        "https://w3id.org/xapi/catch/attachment-usage-types/evidence/survey-result"
+      ],
+      "prefLabel": {
+        "en": "provide parent survey"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-survey-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app.  Could also be when the user clicked the button"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "this field should only be used to refrence the uploading/providing statements about surveys when the object of this statement is the result of the survey"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading a survey and/or survey results for the users computer. Survey and Survey results should be seperate statements"
+      },
+      "type": "StatementTemplate",
+      "attachmentUsageType": [
+        "https://w3id.org/xapi/catch/attachment-usage-types/evidence/survey",
+        "https://w3id.org/xapi/catch/attachment-usage-types/evidence/survey-result"
+      ],
+      "prefLabel": {
+        "en": "uploaded parent survey"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f2-1-02",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the user clicked submit"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the object in the refrenced statement"
+          }
+        },
+        {
+          "location": "$.context.statement",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "If the learner provided survey results, the statement about providing the results should be refrenced when the current object is the survey.  If the learner did not provide results, this field should not be included in the statement"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements which are generated when a learner submits their survey and optional survey results.  The object should be the survey and the results should be refrenced if they were provided.  The refrence is to the uploaded or provided statement regarding the survey results"
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Evidence, provide parent survey"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#m2-1-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity m2.1.01.  The object of this statement should be the designed or uploaded lesson plan."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Submit a lesson plan incorporating culture"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/instance-of-interaction",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/sent",
+      "id": "https://w3id.org/xapi/catch/templates#communicated-with-families",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date provided by the teacher"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the type of communication provided by the teacher.  If more than one type is entered, the first tag should be used here"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/communication-with-families-criteria']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the criteria covered by the object.  The titles for the selected check boxes should be the string values of the array."
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "All tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements regarding the learner reaching out to families in some way.  The object's name will be the provided type in activity f4.2.01.  Each type of communication should have a unique IRI associated with it so patterns of how teachers communicate can easily be established. ie. when the type is email, that has a unique id vs flyer has its own unique identifier across all teachers.  If multiple types are supplied, the IRI should be based off of the first type entered, the one used for the object name."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Learner communicated with families"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-with-families"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-communication-provide",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/communication-with-families-criteria']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the criteria covered by the object.  The titles for the selected check boxes should be the string values of the array."
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "All tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided schedule. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to evidence of communication with familes.  This statement should refrence a statement which matches the communicated-with-families template.  The object is the provided link."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide evidence of communication"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-with-families"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-communication-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/communication-with-families-criteria']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the criteria covered by the object.  The titles for the selected check boxes should be the string values of the array."
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "All tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading evidence of communication with familes.  This statement should refrence a statement which matches the communicated-with-families template.  The object is the uploaded document."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "upload evidence of communication"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-with-families"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f4-2-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time at which the teacher hit submit"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the name of the provided evidence"
+          }
+        },
+        {
+          "location": "$.context.extensions['https://w3id.org/xapi/catch/context-extensions/communication-with-families-criteria']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the criteria covered by the object.  The titles for the selected check boxes should be the string values of the array."
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "All tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "either the users file system or the source of the provided link."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/family-engagement']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements regarding the submission of evidence about communication with families. For each communication-with-families/upload statement, there should be a statement matching this template.  A learner uploads/provides the evidence and then submits it."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Evidence: demonstrate how learner communicates with families"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/lesson-plan",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#m1-2-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the lesson plan."
+          }
+        },
+        {
+          "location": "$.object.definition.description",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the description of the lesson plan if provided."
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/design']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The meta data from the filled out template.  This will only exist on lesson plans objects that originate in statements about designing a lesson plan"
+          }
+        },
+        {
+          "location": "$.object.definition.extensions['https://w3id.org/xapi/catch/activity-extensions/lesson-plan/standards']",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The information selected within the TEKS widget"
+          }
+        },
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the teacher hit the submit button"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/family-engagement']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "The submission statement specific to activity M1.2.01. The object of this statement should be the designed/uploaded lesson plan"
+      },
+      "type": "StatementTemplate",
+      "attachmentUsageType": [
+        "https://w3id.org/xapi/catch/attachment-usage-types/supporting-documents"
+      ],
+      "prefLabel": {
+        "en": "submit lesson plans and evidence"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/instance-of-interaction",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/sent",
+      "id": "https://w3id.org/xapi/catch/templates#communicated-to-parents",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date provided by the teacher"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the title provided by the teacher"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements regarding the learner reaching out to parents in some way.  The object's id should be a randomly generated UUID."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Learner communicated with parents"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-to-parents"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-communication-provide-parents",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided schedule. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to evidence of communication to parents.  This statement should refrence a statement which matches the communicated-to-parents template.  The object is the provided link."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide evidence of communication"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-to-parents"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-communication-upload-parents",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading evidence of communication to parents.  This statement should refrence a statement which matches the communicated-with-parents template.  The object is the uploaded document."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "upload evidence of communication"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#communicated-with-parents"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#f4-3-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time at which the teacher hit submit"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "the name of the provided or uploaded example"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/community-engagement']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        }
+      ],
+      "definition": {
+        "en": "this template describes the user hitting submit.  A statement matching this template should be produced for each piece of evidence provided or uploaded."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Evidence - Provide examples of communication to parents"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/instance-of-interaction",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "verb": "http://adlnet.gov/expapi/verbs/attended",
+      "id": "https://w3id.org/xapi/catch/templates#community-activity",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The date provided by the teacher"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the title provided by the teacher"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for statements regarding the learner engaging with the community.  The object's id should be a randomly generated UUID."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Learner engaged the community"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#community-activity"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/provided",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-community-activity-provide",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The source of the provided schedule. Should be parsed out of the url"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about providing a link to evidence of attending a community activity.  This statement should refrence a statement which matches the community-activity template.  The object is the provided link."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "provide evidence of community activity"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#community-activity"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/uploaded",
+      "id": "https://w3id.org/xapi/catch/templates#evidence-community-activity-upload",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the time when the resource was registered by the app."
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "The name of the file"
+          }
+        },
+        {
+          "location": "$.context.extensions['http://id.tincanapi.com/extension/tags']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the tags provided by the teacher."
+          }
+        },
+        {
+          "location": "$.context.platform",
+          "presence": "recommended",
+          "scopeNote": {
+            "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template matches statements about uploading evidence of attending a community activity.  This statement should refrence a statement which matches the community-activity template.  The object is the uploaded document."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "upload evidence of community activity"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    },
+    {
+      "objectActivityType": "https://w3id.org/xapi/catch/activitytypes/evidence",
+      "contextGroupingActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/domain"
+      ],
+      "contextStatementRefTemplate": [
+        "https://w3id.org/xapi/catch/templates#community-activity"
+      ],
+      "verb": "https://w3id.org/xapi/catch/verbs/submitted",
+      "id": "https://w3id.org/xapi/catch/templates#m4-3-01",
+      "contextParentActivityType": [
+        "https://w3id.org/xapi/catch/activitytypes/competency"
+      ],
+      "rules": [
+        {
+          "location": "$.timestamp",
+          "presence": "included",
+          "scopeNote": {
+            "en": "when the learner hit submit"
+          }
+        },
+        {
+          "location": "$.object.definition.name",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the name of the object in the referenced statement"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the domain"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/community-engagement']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "the competency"
+          }
+        },
+        {
+          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
+          "presence": "included",
+          "scopeNote": {
+            "en": "this states the the statement conforms to this profile"
+          }
+        }
+      ],
+      "definition": {
+        "en": "This template is for when the learner hits submit.  There should be a statement matching this template for each provided/uploaded evidence.  These statements should refrence the statement about the event itself."
+      },
+      "type": "StatementTemplate",
+      "prefLabel": {
+        "en": "Evidence - community collaboration"
+      },
+      "inScheme": "https://w3id.org/xapi/catch/v1"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#view-rubric",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "view rubric"
+      },
+      "definition": {
+        "en": "This is a pattern for someone looking at a rubric"
+      },
+      "optional": {
+        "id": "https://w3id.org/xapi/catch/templates#view-rubric"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#reflection",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "write reflection"
+      },
+      "definition": {
+        "en": "This is a pattern for someone writing a reflection"
+      },
+      "optional": {
+        "id": "https://w3id.org/xapi/catch/templates#wrote-reflection"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "design or upload lesson plan"
+      },
+      "definition": {
+        "en": "Designing from a template or uploading a lesson plan"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#lesson-plan-upload",
+        "https://w3id.org/xapi/catch/templates#lesson-plan-design"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#system-progress-response",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "system response progress"
+      },
+      "definition": {
+        "en": "System responses to progress within an activity"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#system-notification-submission",
+        "https://w3id.org/xapi/catch/templates#system-notification-progression"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#system-updates-status-incomplete",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "system updates status"
+      },
+      "definition": {
+        "en": "the system updates an activity to be in-review or needs work"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-needs-work",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#zero-or-more-incompletes",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "maybe incomplete"
+      },
+      "definition": {
+        "en": "matches if there is an incomplete activity or a succssful activity.  Needed to allow for multiple attemps and a definite conclusion."
+      },
+      "zeroOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#system-updates-status-incomplete"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#mentor-scores-activity",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "mentor scores activity"
+      },
+      "definition": {
+        "en": "A mentor scores a rubric and submits it back to the CATCH application"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#score-rubric",
+        "https://w3id.org/xapi/catch/patterns#zero-or-more-incompletes",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.1.01 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of attending PD event and submitting an optional reflection on the event.  The reflection should have an earlier timestamp than the submission"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#professional-development-event",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-1-01",
+        "https://w3id.org/xapi/catch/patterns#system-progress-response"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-1-01"
+      },
+      "definition": {
+        "en": "The system will respond to a submission and update progress"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-1-01-iteration",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-schedule",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "design or upload a schedule"
+      },
+      "definition": {
+        "en": "Designing from a template or uploading a lesson plan"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-schedule-provide",
+        "https://w3id.org/xapi/catch/templates#evidence-schedule-upload"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.1.03 cycle"
+      },
+      "definition": {
+        "en": "one iteraction of uploading or providing a schedule, optionally writing a reflection, and then submitting the schedule for a mentor to score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-provide-schedule",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-1-03",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring schedule"
+      },
+      "definition": {
+        "en": "The learner submitting the schedule and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-1-03-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-1-03",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f1-1-03"
+      },
+      "definition": {
+        "en": "one or more submission of a schedule for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-1-03"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-1-03",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#attend-or-present-advocacy-event",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "attend or present advocacy event"
+      },
+      "definition": {
+        "en": "the possible level of participation at an advocacy event"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#attended-advocacy-event",
+        "https://w3id.org/xapi/catch/templates#presented-advocacy-event"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-advocacy-evidence",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provide or upload advocacy event evidence"
+      },
+      "definition": {
+        "en": "upload or provide a link to evidence of attending or presenting at an advocacy event."
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide",
+        "https://w3id.org/xapi/catch/templates#evidence-advocacy-upload"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.1.03 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, attending or presenting at an advocacy event, uploading or providing a link to evidence of that level of participation, optionaly writing a reflection and then submitting the evidence."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#attend-or-present-advocacy-event",
+        "https://w3id.org/xapi/catch/patterns#upload-or-provide-advocacy-evidence",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-1-04",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring advocacy event evidence"
+      },
+      "definition": {
+        "en": "The learner submitting the evidence and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-1-04-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-1-04",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f1-1-04"
+      },
+      "definition": {
+        "en": "one or more submission of advocacy event evidence for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-1-04"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-1-04",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#dle-research-goals-models-benefits-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete DLE Research, Goals, Models, and Benefits"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-1-01-completion",
+        "https://w3id.org/xapi/catch/patterns#f1-1-03-completion",
+        "https://w3id.org/xapi/catch/patterns#f1-1-04-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.2.01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring lesson plan 1"
+      },
+      "definition": {
+        "en": "The learner submitting lesson plan 1 and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f1-2-01"
+      },
+      "definition": {
+        "en": "one or more submission of lesson plan 1 for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-2-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.2.02 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-2-02",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring lesson plan 2"
+      },
+      "definition": {
+        "en": "The learner submitting lesson plan 2 and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-2-02-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-02",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f1-2-02"
+      },
+      "definition": {
+        "en": "one or more submission of lesson plan 2 for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-2-02"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-02",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f1.2.03 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f1-2-03",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring lesson plan 3"
+      },
+      "definition": {
+        "en": "The learner submitting lesson plan 3 and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-2-03-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-03",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f1-2-03"
+      },
+      "definition": {
+        "en": "one or more submission of lesson plan 3 for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f1-2-03"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f1-2-03",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#twiop-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Two-Way Sheltered Instruction"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f1-2-01-completion",
+        "https://w3id.org/xapi/catch/patterns#f1-2-02-completion",
+        "https://w3id.org/xapi/catch/patterns#f1-2-03-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f3.2.01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f3-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring submitted lesson plan"
+      },
+      "definition": {
+        "en": "The learner submitting a lesson plan and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f3-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f3-2-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions f3-2-01"
+      },
+      "definition": {
+        "en": "one or more submission of a lesson plan for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f3-2-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-f3-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#cross-linguistic-connections-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Two-Way Sheltered Instruction"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-completion"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One m3.2.01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review.  this iteration, m3-3-01 and m1.2.01 do not have a seperate statement for uploading supporing documents, these uploads are attached to the submission statement as an attachment.  If this inconsistency causes an issue, the templats can be changed to have an upload statement which gets refrenced by the lesson plan submission statement.  That change will cause a minor disconnect between the lesson plan and the supporting documents and will add an aditional step to get to the supporting material.  If more explanation on this decision is necessary, I can go into more specific rational."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#m3-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring submitted lesson plan and resources"
+      },
+      "definition": {
+        "en": "The learner submitting a lesson plan and resources and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m3-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m3-2-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions m3-2-01"
+      },
+      "definition": {
+        "en": "one or more submission of a lesson plan and resources for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete m3-2-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m3-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One m3.3.01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review.  this iteration, m3-2-01 and m1.2.01 do not have a seperate statement for uploading supporing documents, these uploads are attached to the submission statement as an attachment.  If this inconsistency causes an issue, the templats can be changed to have an upload statement which gets refrenced by the lesson plan submission statement.  That change will cause a minor disconnect between the lesson plan and the supporting documents and will add an aditional step to get to the supporting material.  If more explanation on this decision is necessary, I can go into more specific rational."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#m3-3-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring submitted lesson plan with evidence"
+      },
+      "definition": {
+        "en": "The learner submitting a lesson plan with evidence and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m3-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m3-3-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions m3-3-01"
+      },
+      "definition": {
+        "en": "one or more submission of a lesson plan and resources for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete m3-3-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m3-3-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#utilizing-resources-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Two-Way Sheltered Instruction"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m3-2-01-completion",
+        "https://w3id.org/xapi/catch/patterns#m3-3-01-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#planning-and-preperation-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Planning and Preparation for DLE Teaching and Learning"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#dle-research-goals-models-benefits-completion",
+        "https://w3id.org/xapi/catch/patterns#twiop-completion",
+        "https://w3id.org/xapi/catch/patterns#cross-linguistic-connections-completion",
+        "https://w3id.org/xapi/catch/patterns#utilizing-resources-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f2-1-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f2.1.01 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of activity f2.1.01.  Viewing, reading, optional reflection and then finish"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#reflection-viewed-article",
+        "https://w3id.org/xapi/catch/templates#reflection-read-article",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f2-1-01"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f2-1-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f2-1-01"
+      },
+      "definition": {
+        "en": "The system will respond to user reading all articles"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f2-1-01-iteration",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-survey-evidence",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provide or upload survey"
+      },
+      "definition": {
+        "en": "providing or uploading a survey or survey results"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-survey-provide",
+        "https://w3id.org/xapi/catch/templates#evidence-survey-upload"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#survey-maybe-results",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "survey and maybe a result"
+      },
+      "definition": {
+        "en": "providing or uploading a survey and maybe survey results"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-survey-evidence"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#submit-survey-maybe-result",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "submit survey and maybe a result"
+      },
+      "definition": {
+        "en": "submitting a survey and maybe survey results"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/templates#f2-1-02"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f2-1-02-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f2.1.02 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of activity f2.1.02.  Uploading or providing a survey, optionally uploading or providing survey results, optional reflection"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#survey-maybe-results",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/patterns#submit-survey-maybe-result",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One m2-1-01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#m2-1-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring submitted lesson plan"
+      },
+      "definition": {
+        "en": "The learner submitting a lesson plan and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m2-1-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m2-1-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions m2-1-01"
+      },
+      "definition": {
+        "en": "one or more submission of a lesson plan for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete m2-1-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m2-1-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#cultural-awareness-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Cultural Awareness in the Dual Language Classroom"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f2-1-01-completion",
+        "https://w3id.org/xapi/catch/patterns#f2-1-02-completion",
+        "https://w3id.org/xapi/catch/patterns#m2-1-01-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#education-environment-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Dual Language Education Environment"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#cultural-awareness-completion"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-communication-with-family-evidence",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provide or upload evidence of communication with families"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-communication-provide",
+        "https://w3id.org/xapi/catch/templates#evidence-communication-upload"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f4-2-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f4.2.01 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of activity f4.2.01. The communication with families event, the uploading or providing link to the evidence of that event and then submission."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#communicated-with-families",
+        "https://w3id.org/xapi/catch/patterns#upload-or-provide-communication-with-family-evidence",
+        "https://w3id.org/xapi/catch/templates#f4-2-01"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f4-2-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f4-2-01"
+      },
+      "definition": {
+        "en": "The system will respond to user submitting all evidence"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f4-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#f4-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#f4-2-01-iteration",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One m1.2.01 cycle"
+      },
+      "definition": {
+        "en": "one interaton of optionally viewing a rubric, uploading or designing a lesson plan, optionally writing a reflection and then submitting the lesson paln for mentor review.  this iteration, m3-3-01 and m3.2.01 do not have a seperate statement for uploading supporing documents, these uploads are attached to the submission statement as an attachment.  If this inconsistency causes an issue, the templats can be changed to have an upload statement which gets refrenced by the lesson plan submission statement.  That change will cause a minor disconnect between the lesson plan and the supporting documents and will add an aditional step to get to the supporting material.  If more explanation on this decision is necessary, I can go into more specific rational."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#view-rubric",
+        "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#m1-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-in-review",
+        "https://w3id.org/xapi/catch/templates#system-notification-alert"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-scored",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "scoring submitted lesson plan and resources"
+      },
+      "definition": {
+        "en": "The learner submitting a lesson plan and resources and then the mentor scoring it.  accounts for the possibility of not a successful score."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m1-2-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#mentor-scores-activity"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m1-2-01",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "any number of submissions m1-2-01"
+      },
+      "definition": {
+        "en": "one or more submission of a lesson plan and resources for scoring"
+      },
+      "oneOrMore": {
+        "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-scored"
+      }
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete m1-2-01"
+      },
+      "definition": {
+        "en": "The learner has reached the score threshold necessary for completion"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m1-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/patterns#one-or-more-attempt-m1-2-01",
+        "https://w3id.org/xapi/catch/templates#system-actions-status-change-complete",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#family-engagement-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Engagement of the Dual Language Family"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f4-2-01-completion",
+        "https://w3id.org/xapi/catch/patterns#m1-2-01-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-communication-to-parents-evidence",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provide or upload evidence of communication to parents"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-communication-provide-parents",
+        "https://w3id.org/xapi/catch/templates#evidence-communication-upload-parents"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f4-3-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One f4.3.01 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of activity f4.3.01. The communication to parents event, the uploading or providing link to the evidence of that event and then submission."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#communicated-to-parents",
+        "https://w3id.org/xapi/catch/patterns#upload-or-provide-communication-to-parents-evidence",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#f4-3-01"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#f4-3-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete f4-3-01"
+      },
+      "definition": {
+        "en": "The system will respond to user submitting all evidence"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f4-3-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#f4-3-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#f4-3-01-iteration",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-community-event-evidence",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "provide or upload evidence of a community event"
+      },
+      "alternates": [
+        "https://w3id.org/xapi/catch/templates#evidence-community-activity-provide",
+        "https://w3id.org/xapi/catch/templates#evidence-community-activity-upload"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m4-3-01-iteration",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "One m4.3.01 cycle"
+      },
+      "definition": {
+        "en": "This is one cycle of activity m4.3.01. The communication to parents event, the uploading or providing link to the evidence of that event and then submission."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/templates#community-activity",
+        "https://w3id.org/xapi/catch/patterns#upload-or-provide-community-event-evidence",
+        "https://w3id.org/xapi/catch/patterns#reflection",
+        "https://w3id.org/xapi/catch/templates#m4-3-01"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#m4-3-01-completion",
+      "type": "Pattern",
+      "primary": true,
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete m4-3-01"
+      },
+      "definition": {
+        "en": "The system will respond to user submitting all evidence"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#m4-3-01-iteration",
+        "https://w3id.org/xapi/catch/patterns#m4-3-01-iteration",
+        "https://w3id.org/xapi/catch/templates#system-notification-completion",
+        "https://w3id.org/xapi/catch/templates#activity-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#community-engagement-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Community Engagement in the Dual Language Classroom."
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#f4-3-01-completion",
+        "https://w3id.org/xapi/catch/patterns#m4-3-01-completion"
+      ]
+    },
+    {
+      "id": "https://w3id.org/xapi/catch/patterns#community-engagement-completion",
+      "type": "Pattern",
+      "inScheme": "https://w3id.org/xapi/catch/v1",
+      "prefLabel": {
+        "en": "complete Dual Language Education Professional Responsibilities"
+      },
+      "sequence": [
+        "https://w3id.org/xapi/catch/patterns#family-engagement-completion",
+        "https://w3id.org/xapi/catch/patterns#community-engagement-completion"
+      ]
+    }
+  ]
+}

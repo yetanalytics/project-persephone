@@ -374,19 +374,23 @@
 (deftest create-rules-spec-test
   (testing "create-rule-spec function: Create spec from a rule."
     (is (vector? (tv/create-rules-spec ex-template)))
-    (is (= 4 (count (tv/create-rules-spec ex-template))))
+    (is (= 5 (count (tv/create-rules-spec ex-template))))
     ;; Pretend we already utilized our JSONPaths
     (is (every? true? (map s/valid? (tv/create-rules-spec ex-template)
                            [["Agent"]
                             ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
                             ["mailto:email@yetanalytics.io"]
-                            []])))
+                            []
+                            ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
+                             "Activity" "Activity" "Activity"]])))
     (is (= (mapv s/valid? (tv/create-rules-spec ex-template)
                  [["Agent"]
                   ["Mary Poppins"]
                   ["mailto:email@yetanalytics.io"]
-                  []])
-           [true false true true]))))
+                  []
+                  ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
+                   "Activity" "Activity" "Activity"]])
+           [true false true true true]))))
 
 (deftest evaluate-paths-test
   (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get

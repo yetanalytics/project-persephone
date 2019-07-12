@@ -117,7 +117,7 @@
 
 ;; TODO Fill in
 (defn create-template-ref-spec
-  [{:keys objectStatementRefTemplate contextStatementRefTemplate}]
+  [{:keys [objectStatementRefTemplate contextStatementRefTemplate]}]
   ::temp-spec)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -268,7 +268,6 @@
         locators (locator-maps template)
         values (mapv (fn [{:keys [location selector]}]
                        (if (some? selector)
-
                          (find-values statement location selector)
                          (find-values statement location)))
                      (:rules template))]

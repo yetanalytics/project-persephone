@@ -1,6 +1,7 @@
 (ns com.yetanalytics.template-validation
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
+            [clojure.string :as string]
             [com.yetanalytics.util :as util]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -111,11 +112,13 @@
 ;; the Statement Templates referenced by the main Template.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO Temporary
+(s/def ::temp-spec (constantly true))
+
 ;; TODO Fill in
 (defn create-template-ref-spec
   [{:keys objectStatementRefTemplate contextStatementRefTemplate}]
-  (s/and (constantly true)
-         (constantly true)))
+  ::temp-spec)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicates.
@@ -137,6 +140,7 @@
   [all values]
   (let [all-set (set all)]
     (and (not (empty? values))
+         (every? some? values)
          (every? (partial contains? all-set) values))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
@@ -168,6 +172,7 @@
   [{:keys [presence] :as rule} values]
   (and (#{"included"} presence)
        (not (empty? values))
+       (every? some? values)
        (any-all-none? rule values)))
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
@@ -176,7 +181,7 @@
   "Returns true if presence is 'excluded' and the values follow the specs."
   [{:keys [presence] :as rule} values]
   (and (#{"excluded"} presence)
-       (empty? values)))
+       (or (empty? values) (every? nil? values))))
 
 ;; If presence is 'recommended', the evaluated values MUST conform to the 'any',
 ;; 'all' and 'none' specs (but recommended doesn't have restrictions of its
@@ -222,25 +227,32 @@
   [{:keys [rules]}]
   (mapv create-rule-spec rules))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Template validation functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn evaluate-paths
   "Given a vector of JSONPath strings and a statement, return a flattened
-  vector of evaluated values."
+  vector of evaluated values. Helper function for find-values"
   [statement json-paths]
-  (vec (mapcat identity (mapv (fn [loc] (-> statement (util/read-json loc)))
-                              locations))))
+  (vec (mapcat identity
+               (mapv (fn [loc]
+                       [(util/read-json statement loc)])
+                     json-paths))))
 
 (defn find-values
   "Using the 'locator' and 'selector' JSONPath strings, return the evaluated 
   values from a Statement as a vector."
   [statement location & selector]
   (let [locations (util/split-json-path location)
-        values (evaluate-paths statement location)]
+        values (evaluate-paths statement locations)]
     ;; If there's a selector, re-evaulate the previously evaluated values
     (if (some? selector)
-      (vec (mapcat identity
-                   (util/read-json location-vals
-                                   (replace selector #"^\$" "$[*]"))))
-      location-vals)))
+      (find-values values
+                   (-> selector first (string/replace #"(\$)" "$1[*]")))
+      values)))
+
+(string/replace "$.mbox" #"^(\$)" "$1[*]")
 
 (defn locator-map
   "Given a vector of rules, return a vector of their respective JSONPath 

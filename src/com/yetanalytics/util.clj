@@ -77,11 +77,14 @@
 ;; TODO read-json clj lib is a piece of garbage and only a temp solution;
 ;; eventually we will be moving to a more robust solution like Jayway.
 (defn read-json
+  "Read an EDN data structure using a JSONPath string.
+  Queries that cannot be matched will evaluate to a nil value (or values)."
   [json json-path]
-  (let [result-map (jpath/query (prepare-path json-path) json)]
+  (let [result-map (try (jpath/query (prepare-path json-path) json)
+                        (catch Exception e nil))]
     (if (seq? result-map)
-      (filterv some? (map :value result-map))
-      (filterv some? [(:value result-map)]))))
+      (mapv :value result-map)
+      [(:value result-map)])))
 
 ;(defn read-json
 ;  "Evaluate a JSONPath query given a JSONPath string and JSON.

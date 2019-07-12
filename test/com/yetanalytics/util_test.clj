@@ -55,7 +55,8 @@
                     {:category "fiction"
                      :author "Evelyn Waugh"
                      :title "Sword of Honour"
-                     :price 12.99}]}})
+                     :price 12.99}]}
+                  :expensive 10})
 
 (deftest prepare-path-test
   (testing "prepare-path test: given a JSONPath using bracket notation,
@@ -65,13 +66,11 @@
     (is (= (util/prepare-path "$['store']['book'][0]['category']")
            "$.store.book[0].category"))))
 
-(util/read-json edn-example "$.store.book[2]")
+(util/read-json [{:foo "bar"} {:baz "boo"}] "$[*].fee")
 ;; TODO: These test cases should pass, but don't (because read-json is a piece
-;; of garbage)
-;; "$.*" -> Doesn't return entire structure; returns one level down
-;; "$..path" -> Throws an exception
+;; of garbage):
+;; "$..price" -> Throws an exception
 ;; "$.store.book[0,1] -> Only returns first item in array
-;; "$.store.book[2] -> Out of bounds, throws an exception 
 (deftest read-json-test
   (testing "read-json test: given a JSONPath, correctly evaluate a EDN data
            structure."
@@ -89,8 +88,10 @@
     (is (= (util/read-json edn-example "$.store.book[0]")
            [{:category "reference" :author "Nigel Rees"
              :title "Sayings of the Century" :price 8.95}]))
-    (is (= (util/read-json edn-example "$.non-existent")
+    (is (= (util/read-json edn-example "$.*")))
 
-           []))))
+    (is (= (util/read-json edn-example "$.non-existent") [nil]))
+    (is (= (util/read-json edn-example "$.store.book[2]") [nil]))
+    (is (= (util/read-json edn-example "$.store.book[*].blah") [nil nil]))))
 
 ; (util/read-json edn-example "$.store.book[*]..price")

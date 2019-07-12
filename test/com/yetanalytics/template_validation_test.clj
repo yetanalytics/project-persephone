@@ -56,7 +56,7 @@
                                  "http://foo.org/templates/template4"]
    ;; Rules
    :rules [{:locator "$.actor.objectType" :presence "included"}
-           {:locator "$.actor.name" :presence "included"
+           {:locator "$.actor.member[*].name" :presence "included"
             ;; Developers (and friends) only
             :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
                   "Erika Lee" "Boris Boiko"]
@@ -67,10 +67,19 @@
             :presence "included"}
            {:locator "$.actor"
             :selector "$.mbox_sha1sum"
-            :presence "excluded"}]})
+            :presence "excluded"}
+           {:locator "$.object.objectType
+                     | $.context.contextActivities.parent[*].objectType
+                     | $.context.contextActivities.grouping[*].objectType
+                     | $.context.contextActivities.category[*].objectType
+                     | $.context.contextActivities.other[*].objectType"
+            :presence "included"
+            :all ["Activity"]}]})
 
 ;; Statement that conforms to ex-template
 ;; Not a complete Statement, but has the minimum for validation
+
+
 (def ex-statement-0
   {:id "some-uuid"
    :actor {:objectType "Agent"
@@ -84,23 +93,25 @@
                     {:name "Boris Boiko"}]}
    :verb {:id "http://foo.org/verb"}
    :object {:id "http://www.example.com/object"
+            :objectType "Activity"
             :definition {:type "http://foo.org/oat"}}
+   :result {:score {:raw 9001}} ;; It's over 9000!
    :context {:contextActivities
-             {:parent [{:id "http://foo.org/ca1"
+             {:parent [{:id "http://foo.org/ca1" :objectType "Activity"
                         :definition {:type "http://foo.org/cpat1"}}
-                       {:id "http://foo.org/ca2"
+                       {:id "http://foo.org/ca2" :objectType "Activity"
                         :definition {:type "http://foo.org/cpat2"}}]
-              :grouping [{:id "http://foo.org/ca3"
+              :grouping [{:id "http://foo.org/ca3" :objectType "Activity"
                           :definition {:type "http://foo.org/cgat1"}}
-                         {:id "http://foo.org/ca4"
+                         {:id "http://foo.org/ca4" :objectType "Activity"
                           :definition {:type "http://foo.org/cgat2"}}]
-              :category [{:id "http://foo.org/ca5"
+              :category [{:id "http://foo.org/ca5" :objectType "Activity"
                           :definition {:type "http://foo.org/ccat1"}}
-                         {:id "http://foo.org/ca6"
+                         {:id "http://foo.org/ca6" :objectType "Activity"
                           :definition {:type "http://foo.org/ccat2"}}]
-              :other [{:id "http://foo.org/ca7"
+              :other [{:id "http://foo.org/ca7" :objectType "Activity"
                        :definition {:type "http://foo.org/coat1"}}
-                      {:id "http://foo.org/ca8"
+                      {:id "http://foo.org/ca8" :objectType "Activity"
                        :definition {:type "http://foo.org/coat2"}}]}}
    :attachments [{:usageType "http://foo.org/aut1"}
                  {:usageType "http://foo.org/aut2"}]})
@@ -273,7 +284,9 @@
     (is (not (tv/any-valid? ["Will Hoyt" "Milt Reder"] name-values)))
     (is (not (tv/any-valid? [] name-values)))
     ;; any-valid? is undefined if there are no matchable values
-    (is (not (tv/any-valid? [] [])))))
+    (is (not (tv/any-valid? [] [])))
+    (is (not (tv/any-valid? ["Andrew Downes"] [nil])))
+    (is (tv/any-valid? [nil] [nil]))))
 
 (deftest all-valid?-test
   (testing "all-valid? function: values MUST all be from the values given by
@@ -286,7 +299,9 @@
     (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols"] name-values)))
     (is (not (tv/all-valid? [] name-values)))
     ;; MUST NOT include any unmatchable values 
-    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))))
+    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))
+    (is (not (tv/all-valid? ["Andrew Downes"] [nil nil])))
+    (is (not (tv/all-valid? [nil] [nil nil])))))
 
 (deftest none-valid?-test
   (testing "none-valid? function: values MUST NOT be included in the set given
@@ -295,6 +310,9 @@
     (is (not (tv/none-valid? ["Andrew Downes"] name-values)))
     (is (not (tv/none-valid? ["Will Hoyt" "Milt Reder" "Ena Hills"]
                              name-values)))
+    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] []))
+    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] [nil]))
+    (is (not (tv/none-valid? [nil] [nil])))
     ;; If there is nothing to exclude, we should be okay
     (is (tv/none-valid? [] name-values))
     (is (tv/none-valid? [] []))))
@@ -322,11 +340,14 @@
                            name-values)))
     (is (not (tv/included? {:presence "recommended" :any ["Andrew Downes"]}
                            name-values)))
-    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]} [])))))
+    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]} [])))
+    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]}
+                           ["Andrew Downes" nil])))))
 
 (deftest excluded?-test
   (testing "excluded? function: MUST NOT have any matchable values."
     (is (tv/excluded? {:presence "excluded"} []))
+    (is (tv/excluded? {:presence "excluded"} [nil nil]))
     (is (not (tv/excluded? {:presence "excluded"} name-values)))
     (is (not (tv/excluded? {:presence "included"} [])))))
 
@@ -348,3 +369,103 @@
     ;; The key itself has to be missing 
     (is (not (tv/missing? {:presence nil :any ["Andrew Downes"]} name-values)))
     (is (not (tv/missing? {:any ["Will Hoyt"]} name-values)))))
+
+(deftest create-rules-spec-test
+  (testing "create-rule-spec function: Create spec from a rule."
+    (is (vector? (tv/create-rules-spec ex-template)))
+    (is (= 4 (count (tv/create-rules-spec ex-template))))
+    ;; Pretend we already utilized our JSONPaths
+    (is (every? true? (map s/valid? (tv/create-rules-spec ex-template)
+                           [["Agent"]
+                            ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+                            ["mailto:email@yetanalytics.io"]
+                            []])))
+    (is (= (mapv s/valid? (tv/create-rules-spec ex-template)
+                 [["Agent"]
+                  ["Mary Poppins"]
+                  ["mailto:email@yetanalytics.io"]
+                  []])
+           [true false true true]))))
+
+(deftest evaluate-paths-test
+  (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get
+           a vector of evaluated values."
+    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.objectType"])
+           ["Agent"]))
+    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.member[*].name"])
+           ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]))
+    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.mbox" "$.actor.mbox_sha1sum"])
+           ["mailto:email@yetanalytics.io" nil]))
+    (is (= (tv/evaluate-paths
+            ex-statement-0
+            ["$.object.objectType"
+             "$.context.contextActivities.parent[*].objectType"
+             "$.context.contextActivities.grouping[*].objectType"
+             "$.context.contextActivities.category[*].objectType"
+             "$.context.contextActivities.other[*].objectType"])
+           ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
+            "Activity" "Activity" "Activity"]))
+    (is (= (tv/evaluate-paths ex-statement-0 ["$.foo" "$.object.bar"])
+           [nil nil]))))
+
+(deftest find-values-test
+  (testing "find-values: given a statement, location and selector, find the
+          values evaluated by the JSONPath strings."
+    (is (= (tv/find-values ex-statement-0 "$.actor.objectType")
+           ["Agent"]))
+    (is (= (tv/find-values ex-statement-0 "$.actor.member[*].name")
+           ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]))
+    (is (= (tv/find-values ex-statement-0 "$.actor.mbox")
+           ["mailto:email@yetanalytics.io"]))
+    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox")
+           ["mailto:email@yetanalytics.io"]))
+    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox_sha1sum")
+           [nil]))
+    (is (= (tv/find-values ex-statement-0 "$.actor.mbox | $.actor.mbox_sha1sum")
+           ["mailto:email@yetanalytics.io" nil]))
+    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox | $.mbox_sha1sum")
+           ["mailto:email@yetanalytics.io" nil]))
+    (is (= (tv/find-values ex-statement-0
+                           "$.object.objectType 
+                           | $.context.contextActivities.parent[*].objectType 
+                           | $.context.contextActivities.grouping[*].objectType
+                           | $.context.contextActivities.category[*].objectType
+                           | $.context.contextActivities.other[*].objectType")
+           ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
+            "Activity" "Activity" "Activity"]))
+    (is (= (tv/find-values ex-statement-0
+                           "$.context.contextActivities"
+                           "$.parent[*].objectType 
+                          | $.grouping[*].objectType
+                          | $.category[*].objectType
+                          | $.other[*].objectType")
+           ["Activity" "Activity" "Activity" "Activity" "Activity"
+            "Activity" "Activity" "Activity"]))
+    (is (= 4 (count (tv/find-values ex-statement-0
+                                    "$.context.contextActivities.parent 
+                                   | $.context.contextActivities.grouping
+                                   | $.context.contextActivities.category
+                                   | $.context.contextActivities.other"))))
+    (is (s/valid? (s/coll-of vector? :kind vector?)
+                  (tv/find-values ex-statement-0
+                                  "$.context.contextActivities.parent 
+                                 | $.context.contextActivities.grouping
+                                 | $.context.contextActivities.category
+                                 | $.context.contextActivities.other")))
+    (is (= (tv/find-values ex-statement-0
+                           "$.context.contextActivities.parent.fi
+                          | $.context.contextActivities.grouping.fy
+                                     | $.context.contextActivities.category.fo
+                                     | $.context.contextActivities.other.fum")
+           [nil nil nil nil]))
+    (is (= (set (tv/find-values ex-statement-0 "$..type"))
+           #{"http://foo.org/oat"
+             "http://foo.org/cpat1" "http://foo.org/cpat2"
+             "http://foo.org/cgat1" "http://foo.org/cgat2"
+             "http://foo.org/ccat1" "http://foo.org/ccat2"
+             "http://foo.org/coat1" "http://foo.org/coat2"}))
+    (is (= (tv/find-values ex-statement-0 "$.result.score.raw") [9001]))))
+
+;; FIXME: This is a bug in gga/json-path!
+;; Either switch to a more robust lib or warn the user about it
+;; (tv/find-values ex-statement-0 "$..raw") will throw an exception

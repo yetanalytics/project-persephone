@@ -233,15 +233,13 @@
 
 (defn evaluate-paths
   "Given a vector of JSONPath strings and a statement, return a flattened
-  vector of evaluated values. Helper function for find-values"
+  vector of evaluated values."
   [statement json-paths]
   (vec (mapcat identity
-               (mapv (fn [loc]
-                       [(util/read-json statement loc)])
-                     json-paths))))
+               (mapv (fn [loc] (util/read-json statement loc)) json-paths))))
 
 (defn find-values
-  "Using the 'locator' and 'selector' JSONPath strings, return the evaluated 
+  "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
   values from a Statement as a vector."
   [statement location & selector]
   (let [locations (util/split-json-path location)
@@ -252,29 +250,42 @@
                    (-> selector first (string/replace #"(\$)" "$1[*]")))
       values)))
 
-(string/replace "$.mbox" #"^(\$)" "$1[*]")
-
-(defn locator-map
-  "Given a vector of rules, return a vector of their respective JSONPath 
-  strings."
+(defn locator-maps
+  "Given a Statement Template, return a vector of the JSONPath strings given
+  by its rules."
   [{:keys [rules]}]
-  (mapv (fn [{:keys [location selector]}] {:location location
-                                           :selector selector}) rules))
+  (mapv (fn [{:keys [location selector]}]
+          (if (some? selector)
+            {:location location :selector selector}
+            {:location location}))
+        rules))
+
+(defn rules-valid?
+  "Given a Statement and a spec map created from a Statement Template, validate
+  the Statement against the Template's rules."
+  [template statement]
+  (let [rule-specs (create-rules-spec template)
+        locators (locator-maps template)
+        values (mapv (fn [{:keys [location selector]}]
+                       (if (some? selector)
+
+                         (find-values statement location selector)
+                         (find-values statement location)))
+                     (:rules template))]
+    (every? true? (map (fn [spec value] (s/valid? spec value))
+                       rule-specs values))))
 
 (defn create-template-spec
+  "From a Template, create a predicate to validate Statements against."
   [template]
-  {:template-specs (s/and (create-det-properties-spec template)
-                          (create-template-ref-spec tempate))
-   :rule-specs (create-rules-spec template)
-   :locators (locator-map template)})
+  (let [det-prop-specs (create-det-properties-spec template)
+        rules-pred (partial rules-valid? template)]
+    (fn [st]
+      (and (s/valid? det-prop-specs st)
+           (rules-pred st)))))
 
-(defn validate-statement
-  "Given a Statement and a spec map created from a Statement Template, validate
-  the Statement against the Template."
-  [{:keys [template-specs rule-specs locators]} statement]
-  (let [values (mapv (fn [{:keys [location selector]}]
-                       (find-values statement location selector))
-                     locators)]
-    (and (s/valid? template-specs statement)
-         (every? true? (map (fn [spec value] (s/valid? spec value))
-                            rule-specs values)))))
+(defn valid-statement?
+  "Given a Statement Template's predicate and a Statment, validate the 
+  Statement"
+  [template-pred statement]
+  (s/valid? template-pred statement))

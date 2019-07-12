@@ -88,10 +88,9 @@
     (is (= (util/read-json edn-example "$.store.book[0]")
            [{:category "reference" :author "Nigel Rees"
              :title "Sayings of the Century" :price 8.95}]))
-    (is (= (util/read-json edn-example "$.*")))
-
+    (is (= (util/read-json edn-example "$['store']['book'][*]['author']")
+           (util/read-json edn-example "$.store.book.*.author")))
+    ;; Ummatchable values
     (is (= (util/read-json edn-example "$.non-existent") [nil]))
     (is (= (util/read-json edn-example "$.store.book[2]") [nil]))
     (is (= (util/read-json edn-example "$.store.book[*].blah") [nil nil]))))
-
-; (util/read-json edn-example "$.store.book[*]..price")

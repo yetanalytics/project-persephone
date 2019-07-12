@@ -1,6 +1,5 @@
 (ns com.yetanalytics.util
   (:require [clojure.string :as string]
-            [clojure.walk :as walk]
             [cheshire.core :as cheshire]
             [json-path :as jpath])
   (:import [com.jayway.jsonpath
@@ -43,10 +42,6 @@
   [edn]
   (cheshire/generate-string edn))
 
-;; TODO: Eventually we would like to create an in-house set of functions (or
-;; even a lib) that will evaulate EDN data structures with JSONPath directly
-;; (instead of having to convert back to JSON).
-
 ;; We require the lookahead group "(?!([^\[]*\]))" to avoid separating along
 ;; pipes within brackets. The "\]" detects a closing bracket, but the "[^\[]"
 ;; ensures we avoid brackets that aren't the ones enclosing the pipe.
@@ -57,22 +52,10 @@
   (let [split-regex #"\s*\|\s*(?!([^\[]*\]))"]
     (string/split json-paths split-regex)))
 
-; (defn create-funs
-;   [json-path]
-;   ; (let [period-replace (string/replace json-path #"\.(.*)" #(str %1))]
-;   ;   period-replace)
-;   (-> json-path
-;       (string/replace #"\.([^.]*)" "['$1']")
-;       (string/replace #"\['\*'\]" "[*]")))
-
-;; Things to fix
-;; Bracket notation (['blah'])
-;; Union operator (['foo','bar'])
-;; Special chars (':', '"')
 (defn prepare-path
   "Prepare path to allow bracket notation to be used by json-path"
   [json-path]
-  (-> json-path (string/replace #"\[\s*'([^\]]*)'\s*\]" ".$1")))
+  (string/replace json-path #"\[\s*'([^\]]*)'\s*\]" ".$1"))
 
 ;; TODO read-json clj lib is a piece of garbage and only a temp solution;
 ;; eventually we will be moving to a more robust solution like Jayway.

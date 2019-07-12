@@ -55,24 +55,21 @@
    :contextStatementRefTemplate ["http://foo.org/templates/template3"
                                  "http://foo.org/templates/template4"]
    ;; Rules
-   :rules [{:locator "$.actor.objectType" :presence "included"}
-           {:locator "$.actor.member[*].name" :presence "included"
+   :rules [{:location "$.actor.objectType" :presence "included"}
+           {:location "$.actor.member[*].name" :presence "included"
             ;; Developers (and friends) only
             :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
                   "Erika Lee" "Boris Boiko"]
             :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
                    "Jeremy Gardner"]}
-           {:locator "$.actor"
+           {:location "$.actor"
             :selector "$.mbox"
             :presence "included"}
-           {:locator "$.actor"
+           {:location "$.actor"
             :selector "$.mbox_sha1sum"
             :presence "excluded"}
-           {:locator "$.object.objectType
-                     | $.context.contextActivities.parent[*].objectType
-                     | $.context.contextActivities.grouping[*].objectType
-                     | $.context.contextActivities.category[*].objectType
-                     | $.context.contextActivities.other[*].objectType"
+           {:location
+            "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
             :presence "included"
             :all ["Activity"]}]})
 
@@ -370,6 +367,10 @@
     (is (not (tv/missing? {:presence nil :any ["Andrew Downes"]} name-values)))
     (is (not (tv/missing? {:any ["Will Hoyt"]} name-values)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSONPath tests.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (deftest create-rules-spec-test
   (testing "create-rule-spec function: Create spec from a rule."
     (is (vector? (tv/create-rules-spec ex-template)))
@@ -467,5 +468,35 @@
     (is (= (tv/find-values ex-statement-0 "$.result.score.raw") [9001]))))
 
 ;; FIXME: This is a bug in gga/json-path!
-;; Either switch to a more robust lib or warn the user about it
 ;; (tv/find-values ex-statement-0 "$..raw") will throw an exception
+;; Either switch to a more robust lib or warn the user about it
+
+(deftest locator-maps-test
+  (testing "locator-map test: Dissassociate the rules s.t. we only have the
+          locator and selector."
+    (is (= (tv/locator-maps ex-template)
+           [{:location "$.actor.objectType"}
+            {:location "$.actor.member[*].name"}
+            {:location "$.actor"
+             :selector "$.mbox"}
+            {:location "$.actor"
+             :selector "$.mbox_sha1sum"}
+            {:location
+             "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"}]))))
+
+(deftest rules-valid?-test
+  (testing "rules-valid? test: Given a template and its rules, evaluate values
+           and validate them against the rules."
+    (is (tv/rules-valid? ex-template ex-statement-0))
+    (is (not (tv/rules-valid? ex-template ex-statement-1)))))
+
+(deftest create-template-spec-test
+  (testing "create-template-spec function"
+    (is (fn? (tv/create-template-spec ex-template)))))
+
+(deftest valid-statement?-test
+  (testing "valid-statment? function"
+    (is (tv/valid-statement? (tv/create-template-spec ex-template)
+                             ex-statement-0))
+    (is (not (tv/valid-statement? (tv/create-template-spec ex-template)
+                                  ex-statement-1)))))

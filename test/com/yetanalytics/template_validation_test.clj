@@ -263,8 +263,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; name-values = ["Andrew Downes" "Toby "Nichols" "Ena Hills"]
-
-
 (def name-values (-> ex-statement-3 :actor :member (util/value-map :name)))
 
 (deftest any-valid?-test

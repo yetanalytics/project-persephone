@@ -34,3 +34,63 @@
     (is (= (util/value-map ex-map-vec :map :odd) [nil nil]))))
 
 ;; TODO Test edn-to-json and read-json
+
+(deftest split-json-path-test
+  (testing "split-json-path test: given a string of multiple JSONPaths, split
+           them along the pipe character."
+    (is (= (util/split-json-path "$.foo") ["$.foo"]))
+    (is (= (util/split-json-path "$.foo | $.bar") ["$.foo" "$.bar"]))
+    (is (= (util/split-json-path "$.foo|$.bar.baz") ["$.foo" "$.bar.baz"]))
+    ;; Don't split among pipe chars within brackets
+    (is (= (util/split-json-path "$.foo[*] | $.bar.['b|ah']")
+           ["$.foo[*]" "$.bar.['b|ah']"]))
+    (is (= (util/split-json-path "$.foo | $['bar']") ["$.foo" "$['bar']"]))))
+
+(def edn-example {:store
+                  {:book
+                   [{:category "reference"
+                     :author "Nigel Rees"
+                     :title "Sayings of the Century"
+                     :price 8.95}
+                    {:category "fiction"
+                     :author "Evelyn Waugh"
+                     :title "Sword of Honour"
+                     :price 12.99}]}})
+
+(deftest prepare-path-test
+  (testing "prepare-path test: given a JSONPath using bracket notation,
+           convert it to dot notation"
+    (is (= (util/prepare-path "$['store']['book'][*]['category']")
+           "$.store.book[*].category"))
+    (is (= (util/prepare-path "$['store']['book'][0]['category']")
+           "$.store.book[0].category"))))
+
+(util/read-json edn-example "$.store.book[2]")
+;; TODO: These test cases should pass, but don't (because read-json is a piece
+;; of garbage)
+;; "$.*" -> Doesn't return entire structure; returns one level down
+;; "$..path" -> Throws an exception
+;; "$.store.book[0,1] -> Only returns first item in array
+;; "$.store.book[2] -> Out of bounds, throws an exception 
+(deftest read-json-test
+  (testing "read-json test: given a JSONPath, correctly evaluate a EDN data
+           structure."
+    (is (= (util/read-json edn-example "$.store.book[*].author")
+           ["Nigel Rees" "Evelyn Waugh"]))
+    (is (= (util/read-json edn-example "$.store.book[0].author")
+           ["Nigel Rees"]))
+    (is (= (util/read-json edn-example "$.store.book[*].price")
+           [8.95 12.99]))
+    (is (= (util/read-json edn-example "$.store.book[*]")
+           [{:category "reference" :author "Nigel Rees"
+             :title "Sayings of the Century" :price 8.95}
+            {:category "fiction" :author "Evelyn Waugh"
+             :title "Sword of Honour" :price 12.99}]))
+    (is (= (util/read-json edn-example "$.store.book[0]")
+           [{:category "reference" :author "Nigel Rees"
+             :title "Sayings of the Century" :price 8.95}]))
+    (is (= (util/read-json edn-example "$.non-existent")
+
+           []))))
+
+; (util/read-json edn-example "$.store.book[*]..price")

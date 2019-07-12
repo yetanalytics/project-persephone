@@ -47,11 +47,11 @@
    :contextGroupingActivityType ["http://foo.org/cgat1" "http://foo.org/cgat2"]
    :contextParentActivityType ["http://foo.org/cpat1" "http://foo.org/cpat2"]
    :contextOtherActivityType ["http://foo.org/coat1" "http://foo.org/coat2"]
-   :contextCategoryActivityType ["http://foo.org/ccat1" "http://ccat2"]
+   :contextCategoryActivityType ["http://foo.org/ccat1" "http://foo.org/ccat2"]
    :attachmentUsageType ["http://foo.org/aut1" "http://foo.org/aut2"]
-   ;; Statement Reference Templates*
-   :objectStatementRefTemplate ["http://foo.org/templates/template1"
-                                "http://foo.org/templates/template2"]
+   ;; Statement Reference Templates
+   ;; Because our activity must be of Activity type, we can't have a object-
+   ;; StatementRefTemplate
    :contextStatementRefTemplate ["http://foo.org/templates/template3"
                                  "http://foo.org/templates/template4"]
    ;; Rules
@@ -69,9 +69,41 @@
             :selector "$.mbox_sha1sum"
             :presence "excluded"}]})
 
-;; *Note that having both objectActivityType and objectStatementRefTemplate
-;; is actually illegal (since an Object can't be an Activity or a Statement-
-;; Ref at the same time), but we'll bend the rules for our test cases.
+;; Statement that conforms to ex-template
+;; Not a complete Statement, but has the minimum for validation
+(def ex-statement-0
+  {:id "some-uuid"
+   :actor {:objectType "Agent"
+           :name "Yet Analytics Dev Team"
+           :mbox "mailto:email@yetanalytics.io"
+           :member [{:name "Will Hoyt"}
+                    {:name "Milt Reder"}
+                    {:name "John Newman"}
+                    {:name "Henk Reder"}
+                    {:name "Erika Lee"}
+                    {:name "Boris Boiko"}]}
+   :verb {:id "http://foo.org/verb"}
+   :object {:id "http://www.example.com/object"
+            :definition {:type "http://foo.org/oat"}}
+   :context {:contextActivities
+             {:parent [{:id "http://foo.org/ca1"
+                        :definition {:type "http://foo.org/cpat1"}}
+                       {:id "http://foo.org/ca2"
+                        :definition {:type "http://foo.org/cpat2"}}]
+              :grouping [{:id "http://foo.org/ca3"
+                          :definition {:type "http://foo.org/cgat1"}}
+                         {:id "http://foo.org/ca4"
+                          :definition {:type "http://foo.org/cgat2"}}]
+              :category [{:id "http://foo.org/ca5"
+                          :definition {:type "http://foo.org/ccat1"}}
+                         {:id "http://foo.org/ca6"
+                          :definition {:type "http://foo.org/ccat2"}}]
+              :other [{:id "http://foo.org/ca7"
+                       :definition {:type "http://foo.org/coat1"}}
+                      {:id "http://foo.org/ca8"
+                       :definition {:type "http://foo.org/coat2"}}]}}
+   :attachments [{:usageType "http://foo.org/aut1"}
+                 {:usageType "http://foo.org/aut2"}]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties predicate tests.
@@ -204,11 +236,35 @@
     (is (not (tv/attachment-usage-types? nil ex-statement-4)))
     (is (not (tv/attachment-usage-types? nil ex-statement-1)))))
 
+(deftest create-det-properties-spec-test
+  (testing "create-det-properties-spec function:
+           Create a spec that validates Statement against Template"
+    (is (s/valid? (tv/create-det-properties-spec ex-template)
+                  ex-statement-0))
+    (is (not (s/valid? (tv/create-det-properties-spec ex-template) {})))
+    ;; Fail on the verb
+    (is (not (s/valid? (tv/create-det-properties-spec ex-template)
+                       (assoc ex-statement-0
+                              :verb {:id "http://foo.org/verb2"}))))
+    ;; Fail on contextParentActivityType
+    (is (not (s/valid?
+              (tv/create-det-properties-spec ex-template)
+              (update-in ex-statement-0 [:context :contextActivities :parent]
+                         #(conj % {:id "http://foo.org/ca0"
+                                   :definition
+                                   {:type "http://foo.org/cpat3"}})))))
+    ;; Removing a value is okay
+    (is (s/valid? (tv/create-det-properties-spec ex-template)
+                  (update-in ex-statement-0
+                             [:context :contextActivities :parent] pop)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicate tests.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; name-values = ["Andrew Downes" "Toby "Nichols" "Ena Hills"]
+
+
 (def name-values (-> ex-statement-3 :actor :member (util/value-map :name)))
 
 (deftest any-valid?-test

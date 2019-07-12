@@ -87,7 +87,6 @@
     (and (not (empty? s-auts))
          (cset/subset? (set s-auts) (set t-auts)))))
 
-;; TODO Write test for this
 (defn create-det-properties-spec
   "Given a Statement Template as an argument, return a spec for the Template's
   Determing Properties."

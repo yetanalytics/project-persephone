@@ -20,11 +20,11 @@
     pred-fn
     (constantly true)))
 
-(defn partial-on-val
+(defn cond-partial
   "Compose Clojure's partial function with util/cond-on-val.
   The predicate is only considered when its first argument isn't nil."
   [pred-fn v]
-  (partial (cond-on-val v pred-fn) v))
+  (cond-on-val (partial pred-fn v) v))
 
 (defn value-map
   "Given an array of keys (each corresponding to a level of map nesting),

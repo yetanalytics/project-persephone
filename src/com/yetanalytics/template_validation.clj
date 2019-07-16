@@ -71,12 +71,12 @@
 ;; If presence is 'included', location and selector MUST return at least one
 ;; value (ie. MUST include at least one matchable value and MUST NOT include
 ;; any unmatchable values). 
-(defn create-included-pred
+(defn create-included-spec
   "Returns a predicate for when presence is 'included.'"
-  [rule]
-  (let [rule-any? (util/cond-partial any-values rule)
-        rule-all? (util/cond-partial all-values rule)
-        rule-none? (util/cond-partial none-values rule)]
+  [{:keys [any all none]}]
+  (let [rule-any? (util/cond-partial any-values any)
+        rule-all? (util/cond-partial all-values all)
+        rule-none? (util/cond-partial none-values none)]
     (s/and all-matchable?
            rule-any?
            rule-all?
@@ -84,7 +84,7 @@
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
-(defn create-excluded-pred
+(defn create-excluded-spec
   "Returns a predicate for when presence is 'excluded.'"
   [_]
   (s/and none-matchable?))
@@ -93,21 +93,21 @@
 ;; conform to the 'any', 'all' and 'none' specs (but there are no additional
 ;; restrictions).
 ;; 'recommended' allows profile authors to not have any/all/none in a rule.
-(defn create-default-pred
+(defn create-default-spec
   "Returns a predicate for when presence is 'recommended' or is missing."
-  [rule]
-  (let [rule-any? (util/cond-partial any-values rule)
-        rule-all? (util/cond-partial all-values rule)
-        rule-none? (util/cond-partial none-values rule)]
-    (s/or :empty none-matchable?
-          :not-empty (s/and any-matchable?
-                            rule-any?
-                            rule-all?
-                            rule-none?))))
+  [{:keys [any all none]}]
+  (let [rule-any? (util/cond-partial any-values any)
+        rule-all? (util/cond-partial all-values all)
+        rule-none? (util/cond-partial none-values none)]
+    (s/or :missing none-matchable?
+          :not-missing (s/and any-matchable?
+                              rule-any?
+                              rule-all?
+                              rule-none?))))
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
-(s/def ::presence
+(s/def ::rule
   (s/or :missing
         (fn [r] (and (not (contains? r :presence))
                      (or (contains? r :any)
@@ -116,22 +116,16 @@
         :not-missing
         (fn [r] (#{"included" "excluded" "recommended"} (:presence r)))))
 
-;; Helper function that throws an exception if rule is invalid.
-(fn check-rule
-  [rule]
-  (s/check-asserts true)
-  (s/assert ::rule rule)
-  (s/check-asserts false))
-
 (defn create-rule-spec
   "Given a rule, create a spec that will validate a Statement against it."
   [{:keys [presence] :as rule}]
-  (check-rule rule)
-  (case presence
-    "included" (create-included-pred rule)
-    "excluded" (create-excluded-pred rule)
-    "recommended" (create-default-pred rule)
-    nil (create-default-pred rule)))
+  (if (s/valid? ::rule rule)
+    (case presence
+      "included" (create-included-spec rule)
+      "excluded" (create-excluded-spec rule)
+      "recommended" (create-default-spec rule)
+      nil (create-default-spec rule))
+    (throw (ex-info "Invalid Rule" (s/explain-data ::rule rule)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -149,9 +143,10 @@
   values from a Statement as a vector."
   [statement location & selector]
   (let [locations (util/split-json-path location)
+        selectors (first selector)
         values (evaluate-paths statement locations)]
     ;; If there's a selector, re-evaulate the previously evaluated values
-    (if (some? selector)
+    (if (some? selectors)
       (find-values values
                    (-> selector first (string/replace #"(\$)" "$1[*]")))
       values)))
@@ -163,7 +158,7 @@
 ;; be rewritten as such.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn add-rules-spec
+(defn add-det-properties
   "Convert Determining Properties into rules and add them to the Template's
   rules. Returns the modified rules vector."
   [{:keys [verb
@@ -174,46 +169,49 @@
            contextCategoryActivityType
            attachmentUsageType
            rules]}]
-  (cond-> rules
-    verb
-    (conj {:location "$.id.verb"
-           :presence "included"
-           :all [verb]
-           :determiningProperty "Verb"})
-    objectActivityType
-    (conj {:location "$.object.definition.type"
-           :presence "included"
-           :all "objectActivityType"
-           :determiningProperty "objectActivityType"})
-    contextParentActivityType
-    (conj {:location "$.context.contextActivities.parent[*].definition.type"
-           :presence "included"
-           :all contextParentActivityType
-           :determiningProperty "contextParentActivityType"})
-    contextGroupingActivityType
-    (conj {:location "$.context.contextActivities.grouping[*].definition.type"
-           :presence "included"
-           :all contextGroupingActivityType
-           :determiningProperty "contextGroupingActivityType"})
-    contextCategoryActivityType
-    (conj {:location "$.context.contextActivities.categoryk[*].definition.type"
-           :presence "included"
-           :all contextCategoryActivityType
-           :determiningProperty "contextCategoryActivityType"})
-    contextOtherActivityType
-    (conj {:location "$.context.contextActivities.other[*].definition.type"
-           :presence "included"
-           :all contextOtherActivityType
-           :determiningProperty "contextOtherActivityType"})
-    attachmentUsageType
-    (conj {:location "$.attachments[*].usageType"
-           :presence "included"
-           :all attachmentUsageType
-           :determiningProperty "attachmentUsageType"})))
+  (into
+   (cond-> []
+     verb
+     (conj {:location "$.verb.id"
+            :presence "included"
+            :all [verb]
+            :determiningProperty "Verb"})
+     objectActivityType
+     (conj {:location "$.object.definition.type"
+            :presence "included"
+            :all [objectActivityType]
+            :determiningProperty "objectActivityType"})
+     contextParentActivityType
+     (conj {:location "$.context.contextActivities.parent[*].definition.type"
+            :presence "included"
+            :all contextParentActivityType
+            :determiningProperty "contextParentActivityType"})
+     contextGroupingActivityType
+     (conj {:location "$.context.contextActivities.grouping[*].definition.type"
+            :presence "included"
+            :all contextGroupingActivityType
+            :determiningProperty "contextGroupingActivityType"})
+     contextCategoryActivityType
+     (conj {:location "$.context.contextActivities.category[*].definition.type"
+            :presence "included"
+            :all contextCategoryActivityType
+            :determiningProperty "contextCategoryActivityType"})
+     contextOtherActivityType
+     (conj {:location "$.context.contextActivities.other[*].definition.type"
+            :presence "included"
+            :all contextOtherActivityType
+            :determiningProperty "contextOtherActivityType"})
+     attachmentUsageType
+     (conj {:location "$.attachments[*].usageType"
+            :presence "included"
+            :all attachmentUsageType
+            :determiningProperty "attachmentUsageType"}))
+   rules))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bringing it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defn create-rule-validator
   "Given a rule, create a function that will validate new Statements against
@@ -221,19 +219,25 @@
   [{:keys [location selector] :as rule}]
   (let [rule-spec (create-rule-spec rule)]
     (fn [statement]
+      (s/describe rule-spec)
       (let [values (find-values statement location selector)]
+
         (s/explain-data rule-spec values)))))
 
-(defn create-rules-pred
-  "Given a Statement Template, return a vector of predicates representing its
+(defn create-rule-validators
+  "Given a Statement Template, return a vector of validators representing its
   rules, including its Determining Properties."
   [template]
-  (let [new-rules (add-det-property-rules template)]
+  (let [new-rules (add-det-properties template)]
     (mapv create-rule-validator new-rules)))
 
+;; TODO Print error messages as a side effect
 (defn validate-statement
   "Given a Statement and a array of validation functions (created from a
   Statement Template), validate the Statement.
-  Return an array of all the spec errors encountered."
+  Returns true if Statement is valid, false otherwise."
   [validator-arr statement]
-  (filterv some? (map #(% statement) validator-arr)))
+  (let [error-vec (map #(% statement) validator-arr)]
+    (if (none-matchable? error-vec)
+      true
+      (do (print error-vec) false))))

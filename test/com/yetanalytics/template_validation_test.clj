@@ -13,27 +13,6 @@
 (def ex-statement-4
   (util/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
 
-;; Not a complete statement; only has context
-(def ex-context-statement
-  {:context
-   {:contextActivities
-    {:parent [{:id "http://foo.org/parent-activity"
-               :definition {:type "http://foo.org/parent-activity-type"}}
-              {:id "http://foo.org/parent-activity-2"
-               :definition {:type "http://foo.org/parent-activity-type"}}]
-     :grouping [{:id "http://foo.org/grouping-activity"
-                 :definition {:type "http://foo.org/grouping-activity-type"}}
-                {:id "http://foo.org/grouping-activity-2"
-                 :definition {:type "http://foo.org/grouping-activity-type"}}]
-     :category [{:id "http://foo.org/category-activity"
-                 :definition {:type "http://foo.org/category-activity-type"}}
-                {:id "http://foo.org/category-activity-2"
-                 :definition {:type "http://foo.org/category-activity-type"}}]
-     :other [{:id "http://foo.org/other-activity"
-              :definition {:type "http://foo.org/other-activity-type"}}
-             {:id "http://foo.org/other-activity-2"
-              :definition {:type "http://foo.org/other-activity-type"}}]}}})
-
 ;; Example template
 (def ex-template
   {:id "http://foo.org/example/template"
@@ -114,157 +93,29 @@
                  {:usageType "http://foo.org/aut2"}]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Determining Properties predicate tests.
+;; Util function tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(deftest all-matchable?-test
+  (testing "all-matchable? function: return true iff every value is matchable."
+    (is (tv/all-matchable? ["foo" "bar" "stan loona"]))
+    (is (not (tv/all-matchable? [])))
+    (is (not (tv/all-matchable? [nil nil nil])))
+    (is (not (tv/all-matchable? [nil nil "what the pineapple"])))))
 
-(deftest verb?-test
-  (testing "verb? predicate: 
-           Statement MUST include Verb of Statement Template"
-    (is (tv/verb? "http://example.com/xapi/verbs#sent-a-statement"
-                  ex-statement-1))
-    (is (tv/verb? "http://adlnet.gov/expapi/verbs/attempted"
-                  ex-statement-2))
-    (is (tv/verb? "http://adlnet.gov/expapi/verbs/attended"
-                  ex-statement-3))
-    (is (tv/verb? "http://adlnet.gov/expapi/verbs/experienced"
-                  ex-statement-4))
-    (is (not (tv/verb? "https://foo.org/bar" ex-statement-1)))
-    (is (not (tv/verb? "https://foo.org/bar"
-                       {:key "What the pineapple"})))
-    ;; Don't cheat by passing in nil
-    (is (not (tv/verb? nil ex-statement-1)))
-    (is (not (tv/verb? nil {:key "Stan Lonna"})))))
+(deftest none-matchable?-test
+  (testing "none-matchable? function: return true iff no value is matchable."
+    (is (tv/none-matchable? []))
+    (is (tv/none-matchable? [nil nil nil]))
+    (is (not (tv/none-matchable? ["foo" "bar"])))
+    (is (not (tv/none-matchable? [nil nil "what the pineapple"])))))
 
-(deftest object-activity-type?-test
-  (testing "object-activity-type? predicate:
-           Statement MUST include objectActivityType of Template."
-    (is (tv/object-activity-type? "http://adlnet.gov/expapi/activities/meeting"
-                                  ex-statement-3))
-    (is (not (tv/object-activity-type? "http://foo.org/nonexistent/activity"
-                                       ex-statement-1)))
-    (is (not (tv/object-activity-type? "http://foo.org/nonexistent/activity"
-                                       ex-statement-2)))
-    (is (not (tv/object-activity-type? "http://foo.org/nonexistent/activity"
-                                       ex-statement-4)))
-    ;; Don't cheat by passing in nil
-    (is (not (tv/object-activity-type? nil ex-statement-1)))
-    ;; Check internal functioning of predicate
-    (is (nil? (-> ex-statement-4 :object :definition :type)))))
-
-(deftest context-parent-activity-types?-test
-  (testing "context-parent-activity-types? predicate:
-           Statement MUST include contextParentActivityType of Template."
-    (is (tv/context-parent-activity-types?
-         ["http://foo.org/parent-activity-type"] ex-context-statement))
-    (is (not (tv/context-parent-activity-types?
-              ["http://foo.org/parent/activity-type-2"] ex-context-statement)))
-    ;; Superset is okay
-    (is (tv/context-parent-activity-types?
-         ["http://foo.org/parent-activity-type"
-          "http://foo.org/parent/activity-type-2"] ex-context-statement))
-    (is (not (tv/context-parent-activity-types?
-              ["http://example.com/expapi/activities/meetingcategory"]
-              ex-statement-3)))
-    (is (not (tv/context-parent-activity-types? [] ex-statement-1)))
-    (is (not (tv/context-parent-activity-types? nil ex-statement-1)))))
-
-(deftest context-grouping-activity-types?-test
-  (testing "context-grouping-activity-types? predicate:
-           Statement MUST include contextGroupingActivityType of Template."
-    (is (tv/context-grouping-activity-types?
-         ["http://foo.org/grouping-activity-type"] ex-context-statement))
-    (is (not (tv/context-grouping-activity-types?
-              ["http://foo.org/grouping/activity-type-2"] ex-context-statement)))
-    ;; Superset is okay
-    (is (tv/context-grouping-activity-types?
-         ["http://foo.org/grouping-activity-type"
-          "http://foo.org/grouping/activity-type-2"] ex-context-statement))
-    (is (not (tv/context-grouping-activity-types?
-              ["http://example.com/expapi/activities/meetingcategory"]
-              ex-statement-3)))
-    (is (not (tv/context-grouping-activity-types? [] ex-statement-1)))
-    (is (not (tv/context-grouping-activity-types? nil ex-statement-1)))))
-
-(deftest context-category-activity-types?-test
-  (testing "context-category-activity-types? predicate:
-           Statement MUST include contextCategoryActivityType of Template."
-    (is (tv/context-category-activity-types?
-         ["http://foo.org/category-activity-type"] ex-context-statement))
-    (is (not (tv/context-category-activity-types?
-              ["http://foo.org/category/activity-type-2"] ex-context-statement)))
-    ;; Superset is okay
-    (is (tv/context-category-activity-types?
-         ["http://foo.org/category-activity-type"
-          "http://foo.org/category/activity-type-2"] ex-context-statement))
-    ;; Only instance where a contextActivity actually has a type in ADL 
-    ;; examples
-    (is (tv/context-category-activity-types?
-         ["http://example.com/expapi/activities/meetingcategory"]
-         ex-statement-3))
-    (is (not (tv/context-category-activity-types? [] ex-statement-1)))
-    (is (not (tv/context-category-activity-types? nil ex-statement-1)))))
-
-(deftest context-other-activity-types?-test
-  (testing "context-other-activity-types? predicate:
-           Statement MUST include contextOtherActivityType of Template."
-    (is (tv/context-other-activity-types?
-         ["http://foo.org/other-activity-type"] ex-context-statement))
-    (is (not (tv/context-other-activity-types?
-              ["http://foo.org/other/activity-type-2"] ex-context-statement)))
-    ;; Superset is okay
-    (is (tv/context-other-activity-types?
-         ["http://foo.org/other-activity-type"
-          "http://foo.org/other/activity-type-2"] ex-context-statement))
-    (is (not (tv/context-other-activity-types?
-              ["http://example.com/expapi/activities/meetingcategory"]
-              ex-statement-3)))
-    (is (not (tv/context-other-activity-types? [] ex-statement-1)))
-    (is (not (tv/context-other-activity-types? nil ex-statement-1)))))
-
-(deftest attachment-usage-types?-test
-  (testing "attachment-usage-types? predicate:
-           Statement MUST include attachmentUsageType of Template."
-    (is (tv/attachment-usage-types?
-         ["http://adlnet.gov/expapi/attachments/signature"] ex-statement-4))
-    (is (not (tv/attachment-usage-types?
-              ["http://adlnet.gov/expapi/attachments/signature"]
-              ex-statement-1)))
-    (is (not (tv/attachment-usage-types?
-              ["http://adlnet.gov/expapi/attachments/signature"]
-              ex-statement-2)))
-    (is (not (tv/attachment-usage-types?
-              ["http://adlnet.gov/expapi/attachments/signature"]
-              ex-statement-3)))
-    ;; Superset is okay
-    (is (tv/attachment-usage-types?
-         ["http://adlnet.gov/expapi/attachments/signature"
-          "http://foo.org/some-other-usage-type"] ex-statement-4))
-    (is (not (tv/attachment-usage-types? [] ex-statement-4)))
-    (is (not (tv/attachment-usage-types? nil ex-statement-4)))
-    (is (not (tv/attachment-usage-types? nil ex-statement-1)))))
-
-(deftest create-det-properties-spec-test
-  (testing "create-det-properties-spec function:
-           Create a spec that validates Statement against Template"
-    (is (s/valid? (tv/create-det-properties-spec ex-template)
-                  ex-statement-0))
-    (is (not (s/valid? (tv/create-det-properties-spec ex-template) {})))
-    ;; Fail on the verb
-    (is (not (s/valid? (tv/create-det-properties-spec ex-template)
-                       (assoc ex-statement-0
-                              :verb {:id "http://foo.org/verb2"}))))
-    ;; Fail on contextParentActivityType
-    (is (not (s/valid?
-              (tv/create-det-properties-spec ex-template)
-              (update-in ex-statement-0 [:context :contextActivities :parent]
-                         #(conj % {:id "http://foo.org/ca0"
-                                   :definition
-                                   {:type "http://foo.org/cpat3"}})))))
-    ;; Removing a value is okay
-    (is (s/valid? (tv/create-det-properties-spec ex-template)
-                  (update-in ex-statement-0
-                             [:context :contextActivities :parent] pop)))))
+(deftest any-matchable?-test
+  (testing "any-matchable? function: return true if some values are matchable."
+    (is (tv/any-matchable? [nil nil "still good"]))
+    (is (tv/any-matchable? ["foo" "bar" "all good"]))
+    (is (not (tv/any-matchable? [])))
+    (is (not (tv/any-matchable? [nil nil nil])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicate tests.
@@ -273,124 +124,104 @@
 ;; name-values = ["Andrew Downes" "Toby "Nichols" "Ena Hills"]
 (def name-values (-> ex-statement-3 :actor :member (util/value-map :name)))
 
-(deftest any-valid?-test
-  (testing "any-valid? function: values MUST include at least one value that is
+(deftest any-values-test
+  (testing "any-values function: values MUST include at least one value that is
            given by 'any', ie. the collections need to intersect."
-    (is (tv/any-valid? ["Andrew Downes" "Toby Nichols"] name-values))
-    (is (tv/any-valid? ["Andrew Downes" "Will Hoyt"] name-values))
-    (is (not (tv/any-valid? ["Will Hoyt" "Milt Reder"] name-values)))
-    (is (not (tv/any-valid? [] name-values)))
-    ;; any-valid? is undefined if there are no matchable values
-    (is (not (tv/any-valid? [] [])))
-    (is (not (tv/any-valid? ["Andrew Downes"] [nil])))
-    (is (tv/any-valid? [nil] [nil]))))
+    (is (tv/any-values ["Andrew Downes" "Toby Nichols"] name-values))
+    (is (tv/any-values ["Andrew Downes" "Will Hoyt"] name-values))
+    (is (not (tv/any-values ["Will Hoyt" "Milt Reder"] name-values)))
+    (is (not (tv/any-values [] name-values)))
+    ;; any-values is undefined if there are no matchable values
+    (is (not (tv/any-values [] [])))
+    (is (not (tv/any-values ["Andrew Downes"] [nil])))
+    (is (tv/any-values [nil] [nil]))))
 
-(deftest all-valid?-test
-  (testing "all-valid? function: values MUST all be from the values given by
+(deftest all-values-test
+  (testing "all-values function: values MUST all be from the values given by
            'all'."
-    (is (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+    (is (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills"]
                        name-values))
     ;; Superset is okay
-    (is (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
+    (is (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
                        name-values))
-    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols"] name-values)))
-    (is (not (tv/all-valid? [] name-values)))
+    (is (not (tv/all-values ["Andrew Downes" "Toby Nichols"] name-values)))
+    (is (not (tv/all-values [] name-values)))
     ;; MUST NOT include any unmatchable values 
-    (is (not (tv/all-valid? ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))
-    (is (not (tv/all-valid? ["Andrew Downes"] [nil nil])))
-    (is (not (tv/all-valid? [nil] [nil nil])))))
+    (is (not (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))
+    (is (not (tv/all-values ["Andrew Downes"] [nil nil])))
+    (is (not (tv/all-values [nil] [nil nil])))))
 
-(deftest none-valid?-test
-  (testing "none-valid? function: values MUST NOT be included in the set given
+(deftest none-values-test
+  (testing "none-values function: values MUST NOT be included in the set given
            by 'none'."
-    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] name-values))
-    (is (not (tv/none-valid? ["Andrew Downes"] name-values)))
-    (is (not (tv/none-valid? ["Will Hoyt" "Milt Reder" "Ena Hills"]
+    (is (tv/none-values ["Will Hoyt" "Milt Reder"] name-values))
+    (is (not (tv/none-values ["Andrew Downes"] name-values)))
+    (is (not (tv/none-values ["Will Hoyt" "Milt Reder" "Ena Hills"]
                              name-values)))
-    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] []))
-    (is (tv/none-valid? ["Will Hoyt" "Milt Reder"] [nil]))
-    (is (not (tv/none-valid? [nil] [nil])))
+    (is (tv/none-values ["Will Hoyt" "Milt Reder"] []))
+    (is (tv/none-values ["Will Hoyt" "Milt Reder"] [nil]))
+    (is (not (tv/none-values [nil] [nil])))
     ;; If there is nothing to exclude, we should be okay
-    (is (tv/none-valid? [] name-values))
-    (is (tv/none-valid? [] []))))
+    (is (tv/none-values [] name-values))
+    (is (tv/none-values [] []))))
 
-(deftest any-all-none?-test
-  (testing "any-all-none?: Super-predicate over any-valid?, all-valid? and
-           none-valid?."
-    (is (tv/any-all-none? {:any ["Andrew Downes" "Will Hoyt"]
-                           :all ["Andrew Downes" "Toby Nichols" "Ena Hills"]
-                           :none ["Milt Reder"]}
-                          name-values))
-    (is (tv/any-all-none? {:any ["Andrew Downes"]} name-values))
-    (is (not (tv/any-all-none? {:any ["Will Hoyt"]} name-values)))
-    (is (not (tv/any-all-none? {:any ["Andrew Downes" "Will Hoyt"]
-                                :none ["Ena Hills"]}
-                               name-values)))
-    (is (tv/any-all-none? {} name-values))))
+;; Predicates for our next tests
+(def included-spec (tv/create-included-spec {:presence "included"
+                                             :any ["Andrew Downes"]}))
+(def excluded-spec (tv/create-excluded-spec {:presence "excluded"}))
+(def recommended-spec (tv/create-default-spec {:presence "recommended"
+                                               :any ["Andrew Downes"]}))
 
-(deftest included?-test
-  (testing "included? function: values MUST have at least one matchable value
-           (and no unmatcable values) and MUST follow any/all/none reqs."
-    (is (tv/included? {:presence "included" :any ["Andrew Downes"]}
-                      name-values))
-    (is (not (tv/included? {:presence "included" :any ["Will Hoyt"]}
-                           name-values)))
-    (is (not (tv/included? {:presence "recommended" :any ["Andrew Downes"]}
-                           name-values)))
-    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]} [])))
-    (is (not (tv/included? {:presence "included" :any ["Andrew Downes"]}
-                           ["Andrew Downes" nil])))))
+(deftest create-included-spec-test
+  (testing "create-included-spec function: create a predicate when presence is
+           'included'. Values MUST have at least one matchable value (and no
+           unmatchable values) and MUST follow any/all/none reqs."
+    (is (= (s/describe included-spec) '(and all-matchable?
+                                            rule-any? rule-all? rule-none?)))
+    (is (s/valid? included-spec name-values))
+    (is (not (s/valid? included-spec ["Will Hoyt"])))
+    (is (not (s/valid? included-spec [])))
+    (is (not (s/valid? included-spec ["Andrew Downes" nil])))))
 
-(deftest excluded?-test
-  (testing "excluded? function: MUST NOT have any matchable values."
-    (is (tv/excluded? {:presence "excluded"} []))
-    (is (tv/excluded? {:presence "excluded"} [nil nil]))
-    (is (not (tv/excluded? {:presence "excluded"} name-values)))
-    (is (not (tv/excluded? {:presence "included"} [])))))
+(deftest create-excluded-spec-test
+  (testing "create-excluded-spec function: create a predicate when presence is
+           'excluded.' There MUST NOT be any matchable values."
+    (is (= (s/describe excluded-spec) '(and none-matchable?)))
+    (is (s/valid? excluded-spec []))
+    (is (s/valid? excluded-spec [nil nil]))
+    (is (not (s/valid? excluded-spec name-values)))
+    (is (not (s/valid? excluded-spec (conj name-values nil))))))
 
-(deftest recommended?-test
-  (testing "recommended? function: MUST follow any/all/none reqs."
-    (is (tv/recommended? {:presence "recommended" :any ["Andrew Downes"]}
-                         name-values))
-    (is (tv/recommended? {:presence "recommended"} name-values))
-    (is (not (tv/recommended? {:presence "recommended" :any ["Will Hoyt"]}
-                              name-values)))
-    (is (not (tv/recommended? {:presence "included" :any ["Andrew Downes"]}
-                              name-values)))))
+;; The test for when presence is missing is pretty much the same. 
+(deftest create-recommended-spec-test
+  (testing "create-recommended-spec function: create a predicate when presence
+           is 'recommended'. MUST follow any/all/none reqs."
+    (is (= (s/describe recommended-spec))
+        '(or :missing none-matchable
+             :not-missing (and any-matchable? rule-any? rule-all? rule-none?)))
+    (is (s/valid? recommended-spec name-values))
+    (is (not (s/valid? recommended-spec ["Will Hoyt"])))))
 
-(deftest missing?-test
-  (testing "missing? function: MUST follow any/all/none reqs."
-    (is (tv/missing? {:any ["Andrew Downes"]} name-values))
-    (is (not (tv/missing? {:presence "included" :any ["Andrew Downes"]}
-                          name-values)))
-    ;; The key itself has to be missing 
-    (is (not (tv/missing? {:presence nil :any ["Andrew Downes"]} name-values)))
-    (is (not (tv/missing? {:any ["Will Hoyt"]} name-values)))))
+(deftest create-rule-spec-test
+  (testing "create-rule-spec function: Given a rule, create a spec."
+    (is (= (s/describe included-spec)
+           (s/describe (tv/create-rule-spec {:presence "included"
+                                             :any ["Andrew Downes"]}))))
+    (is (= (s/describe excluded-spec)
+           (s/describe (tv/create-rule-spec {:presence "excluded"}))))
+    (is (= (s/describe recommended-spec)
+           (s/describe (tv/create-rule-spec {:presence "recommended"
+                                             :any ["Andrew Downes"]}))))
+    (is (= (s/describe recommended-spec)
+           (s/describe (tv/create-rule-spec {:any ["Andrew Downes"]}))))
+    (is (= "Exception!" (try (tv/create-rule-spec {:presence "foobar"})
+                             (catch Exception e (str "Exception!")))))
+    (is (= "Exception!" (try (tv/create-rule-spec {})
+                             (catch Exception e (str "Exception!")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftest create-rules-spec-test
-  (testing "create-rule-spec function: Create spec from a rule."
-    (is (vector? (tv/create-rules-spec ex-template)))
-    (is (= 5 (count (tv/create-rules-spec ex-template))))
-    ;; Pretend we already utilized our JSONPaths
-    (is (every? true? (map s/valid? (tv/create-rules-spec ex-template)
-                           [["Agent"]
-                            ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
-                            ["mailto:email@yetanalytics.io"]
-                            []
-                            ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
-                             "Activity" "Activity" "Activity"]])))
-    (is (= (mapv s/valid? (tv/create-rules-spec ex-template)
-                 [["Agent"]
-                  ["Mary Poppins"]
-                  ["mailto:email@yetanalytics.io"]
-                  []
-                  ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
-                   "Activity" "Activity" "Activity"]])
-           [true false true true true]))))
 
 (deftest evaluate-paths-test
   (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get
@@ -416,11 +247,15 @@
 (deftest find-values-test
   (testing "find-values: given a statement, location and selector, find the
           values evaluated by the JSONPath strings."
+    (is (= (tv/find-values ex-statement-0 "$.verb.id")
+           ["http://foo.org/verb"]))
     (is (= (tv/find-values ex-statement-0 "$.actor.objectType")
            ["Agent"]))
     (is (= (tv/find-values ex-statement-0 "$.actor.member[*].name")
            ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]))
     (is (= (tv/find-values ex-statement-0 "$.actor.mbox")
+           ["mailto:email@yetanalytics.io"]))
+    (is (= (tv/find-values ex-statement-0 "$.actor.mbox" nil)
            ["mailto:email@yetanalytics.io"]))
     (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox")
            ["mailto:email@yetanalytics.io"]))
@@ -475,32 +310,92 @@
 ;; (tv/find-values ex-statement-0 "$..raw") will throw an exception
 ;; Either switch to a more robust lib or warn the user about it
 
-(deftest locator-maps-test
-  (testing "locator-map test: Dissassociate the rules s.t. we only have the
-          locator and selector."
-    (is (= (tv/locator-maps ex-template)
-           [{:location "$.actor.objectType"}
-            {:location "$.actor.member[*].name"}
+;; Determining Properties test
+(deftest add-det-properties
+  (testing "add-det-properties function: Add the Determining Properties as 
+           rules."
+    (is (= (tv/add-det-properties ex-template)
+           [{:location "$.verb.id"
+             :presence "included"
+             :all ["http://foo.org/verb"]
+             :determiningProperty "Verb"}
+            {:location "$.object.definition.type"
+             :presence "included"
+             :all ["http://foo.org/oat"]
+             :determiningProperty "objectActivityType"}
+            {:location "$.context.contextActivities.parent[*].definition.type"
+             :presence "included"
+             :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+             :determiningProperty "contextParentActivityType"}
+            {:location "$.context.contextActivities.grouping[*].definition.type"
+             :presence "included"
+             :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+             :determiningProperty "contextGroupingActivityType"}
+            {:location "$.context.contextActivities.category[*].definition.type"
+             :presence "included"
+             :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
+             :determiningProperty "contextCategoryActivityType"}
+            {:location "$.context.contextActivities.other[*].definition.type"
+             :presence "included"
+             :all ["http://foo.org/coat1" "http://foo.org/coat2"]
+             :determiningProperty "contextOtherActivityType"}
+            {:location "$.attachments[*].usageType"
+             :presence "included"
+             :all ["http://foo.org/aut1" "http://foo.org/aut2"]
+             :determiningProperty "attachmentUsageType"}
+            {:location "$.actor.objectType" :presence "included"}
+            {:location "$.actor.member[*].name" :presence "included"
+             :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
+                   "Erika Lee" "Boris Boiko"]
+             :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
+                    "Jeremy Gardner"]}
             {:location "$.actor"
-             :selector "$.mbox"}
+             :selector "$.mbox"
+             :presence "included"}
             {:location "$.actor"
-             :selector "$.mbox_sha1sum"}
+             :selector "$.mbox_sha1sum"
+             :presence "excluded"}
             {:location
-             "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"}]))))
+             "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
+             :presence "included"
+             :all ["Activity"]}]))))
 
-(deftest rules-valid?-test
-  (testing "rules-valid? test: Given a template and its rules, evaluate values
-           and validate them against the rules."
-    (is (tv/rules-valid? ex-template ex-statement-0))
-    (is (not (tv/rules-valid? ex-template ex-statement-1)))))
+(deftest create-rule-validator-test
+  (testing "create-rule-validator function: Given a rule, create a validation
+           function that accepts Statements"
+    (is (function? (tv/create-rule-validator {:presence "included"
+                                              :all ["Andrew Downes"]})))
+    (is (nil? ((tv/create-rule-validator {:location "$.foo.bar"
+                                          :presence "included" :any ["baz"]})
+               {:foo {:bar "baz"}})))))
 
-(deftest create-template-spec-test
-  (testing "create-template-spec function"
-    (is (fn? (tv/create-template-spec ex-template)))))
+(deftest create-rule-validators-test
+  (testing "create-rule-validators function: Create a vector of validation
+           functions based off of a Template."
+    (is (s/valid? (s/coll-of fn? :kind vector?)
+                  (tv/create-rule-validators ex-template)))
+    (is (= 12 (count (tv/create-rule-validators ex-template))))))
 
-(deftest valid-statement?-test
-  (testing "valid-statment? function"
-    (is (tv/valid-statement? (tv/create-template-spec ex-template)
-                             ex-statement-0))
-    (is (not (tv/valid-statement? (tv/create-template-spec ex-template)
-                                  ex-statement-1)))))
+(deftest validate-statement-test
+  (testing "validate-statement function: Validate an entire Statement!"
+    (is (tv/validate-statement (tv/create-rule-validators ex-template)
+                               ex-statement-0))
+    (is (tv/validate-statement
+         (tv/create-rule-validators
+          {:verb "http://example.com/xapi/verbs#sent-a-statement"})
+         ex-statement-1))
+    (is (tv/validate-statement
+         (tv/create-rule-validators
+          {:verb "http://adlnet.gov/expapi/verbs/attempted"})
+         ex-statement-2))
+    (is (tv/validate-statement
+         (tv/create-rule-validators
+          {:verb "http://adlnet.gov/expapi/verbs/attended"
+           :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+           :contextCategoryActivityType
+           ["http://example.com/expapi/activities/meetingcategory"]})
+         ex-statement-3))
+    (is (tv/validate-statement
+         (tv/create-rule-validators
+          {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+         ex-statement-4))))

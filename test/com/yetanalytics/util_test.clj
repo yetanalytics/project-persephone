@@ -7,13 +7,23 @@
 
 (deftest cond-on-val-test
   (testing "cond-on-val function test: if the value is nil, ignore predicate."
-    (is (function? (util/cond-on-val "some" some?)))
-    (is (function? (util/cond-on-val nil some?)))
-    (is (function? (util/cond-on-val "some" (partial ex-predicate "foo"))))
-    (is (function? (util/cond-on-val nil (partial ex-predicate "foo"))))
-    (is (true? ((util/cond-on-val 2 (partial ex-predicate "foo")) "foo")))
-    (is (false? ((util/cond-on-val 2 (partial ex-predicate "foo")) "bar")))
-    (is (true? ((util/cond-on-val nil (partial ex-predicate "foo")) "bar")))))
+    (is (function? (util/cond-on-val some? "some")))
+    (is (function? (util/cond-on-val some? nil)))
+    (is (function? (util/cond-on-val (partial ex-predicate "foo") "some")))
+    (is (function? (util/cond-on-val (partial ex-predicate "foo") nil)))
+    (is (true? ((util/cond-on-val (partial ex-predicate "foo") 2) "foo")))
+    (is (false? ((util/cond-on-val (partial ex-predicate "foo") 2) "bar")))
+    (is (true? ((util/cond-on-val (partial ex-predicate "foo") nil) "bar")))))
+
+(deftest cond-partial-test
+  (testing "cond-partial function test: if the value is not nil, consider
+           function and make it into a one-arg predicate."
+    (is (function? (util/cond-partial ex-predicate "foo")))
+    (is (function? (util/cond-partial ex-predicate nil)))
+    (is (true? ((util/cond-partial ex-predicate "foo") "foo")))
+    (is (false? ((util/cond-partial ex-predicate "foo") "bar")))
+    (is (true? ((util/cond-partial ex-predicate nil) "bar")))
+    (is (true? ((util/cond-partial ex-predicate nil) nil)))))
 
 (def ex-map-vec [{:odd 1 :even 2} {:odd 3 :even 4}])
 (def ex-map-vec-2 [{:map {:odd 1 :even 2}} {:map {:odd 3 :even 4}}])

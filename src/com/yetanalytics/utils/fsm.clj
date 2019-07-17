@@ -36,6 +36,10 @@
   Used to create new node names."
   [] (java.util.UUID/randomUUID))
 
+(defn epsilon
+  "Predicate that always returns true. Used for epsilon transitions."
+  [_] true)
+
 ;; Basic transition:
 ;;    A
 ;; x ---> a
@@ -46,11 +50,11 @@
   (let [start (new-node)
         accept (new-node)]
     {:symbols {fn-symbol fun
-               :epsilon (constantly true)}
+               :epsilon epsilon}
      :start start
      :accept accept
      :states #{start accept}
-     :graph (-> (uber/graph)
+     :graph (-> (uber/multidigraph)
                 (uber/add-nodes start)
                 (uber/add-nodes accept)
                 (uber/add-edges [start accept {:symbol fn-symbol}]))}))

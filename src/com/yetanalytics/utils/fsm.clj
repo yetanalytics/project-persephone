@@ -49,8 +49,7 @@
   [fn-symbol fun]
   (let [start (new-node)
         accept (new-node)]
-    {:symbols {fn-symbol fun
-               :epsilon epsilon}
+    {:symbols {fn-symbol fun}
      :start start
      :accept accept
      :states #{start accept}
@@ -100,7 +99,7 @@
                :start start
                :accept accept
                :states (cset/union (:states next-machine) #{start accept})
-               :graph (-> (:graph current-machine)
+               :graph (-> (:graph next-machine)
                           (uber/add-nodes start accept)
                           (uber/add-edges [start (:start next-machine)
                                            {:symbol :epsilon}])
@@ -110,8 +109,8 @@
         (assoc current-machine
                :states (cset/union (:states current-machine)
                                    (:states next-machine))
-               :symbols (merge {:symbols current-machine}
-                               {:symbols next-machine})
+               :symbols (merge (:symbols current-machine)
+                               (:symbols next-machine))
                :graph (-> (:graph current-machine)
                           (uber/build-graph (:graph next-machine))
                           (uber/add-edges [(:start current-machine)
@@ -141,8 +140,8 @@
            :graph (-> (:graph zero-or-more)
                       (uber/add-edges [start (:start zero-or-more)
                                        {:symbol :epsilon}])
-                      (uber/add-edges [(:accept zero-or-more) accept]
-                                      {:symbol :epsilon})
+                      (uber/add-edges [(:accept zero-or-more) accept
+                                       {:symbol :epsilon}])
                       (uber/add-edges [start accept {:symbol :epsilon}])
                       (uber/add-edges [(:accept zero-or-more)
                                        (:start zero-or-more)
@@ -179,19 +178,19 @@
   "Apply the oneOrMore pattern, ie. A+, to an FSM; return a new state machine."
   [one-or-more]
   (let [start (new-node)
-        accept (new-node)])
-  (assoc one-or-more
-         :start start
-         :accept accept
-         :states (cset/union (:states one-or-more) #{start accept})
-         :graph (-> (:graph one-or-more)
-                    (uber/add-edges [start (:start one-or-more)
-                                     {:symbol :epsilon}])
-                    (uber/add-edges [(:accept one-or-more) accept
-                                     {:symbol :epsilon}])
-                    (uber/add-edges [(:accept one-or-more)
-                                     (:start one-or-more)
-                                     {:symbol :epsilon}]))))
+        accept (new-node)]
+    (assoc one-or-more
+           :start start
+           :accept accept
+           :states (cset/union (:states one-or-more) #{start accept})
+           :graph (-> (:graph one-or-more)
+                      (uber/add-edges [start (:start one-or-more)
+                                       {:symbol :epsilon}])
+                      (uber/add-edges [(:accept one-or-more) accept
+                                       {:symbol :epsilon}])
+                      (uber/add-edges [(:accept one-or-more)
+                                       (:start one-or-more)
+                                       {:symbol :epsilon}])))))
 
 ;; TODO Add optimization function
 

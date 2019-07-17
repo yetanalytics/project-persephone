@@ -241,3 +241,10 @@
     (if (none-matchable? error-vec)
       true
       (do (print error-vec) false))))
+
+(defn validate-statement-2
+  [template statement]
+  (let [new-rules (add-det-properties template)
+        validators (mapv create-rule-validator new-rules)
+        error-vec (map #(% statement) validators)]
+    (none-matchable? error-vec)))

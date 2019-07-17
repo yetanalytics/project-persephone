@@ -1,8 +1,11 @@
 {:paths ["resources" "src"]
  :deps {org.clojure/clojure {:mvn/version "RELEASE"}
+        org.clojure/core.match {:mvn/version "0.3.0"}
         com.jayway.jsonpath/json-path {:mvn/version "2.4.0"}
         json-path {:mvn/version "1.0.1"}
-        cheshire {:mvn/version "5.8.1"}}
+        cheshire {:mvn/version "5.8.1"}
+        ubergraph {:mvn/version "0.5.3"}
+        }
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {org.clojure/test.check {:mvn/version "RELEASE"}}}

@@ -127,43 +127,43 @@
 (deftest any-values-test
   (testing "any-values function: values MUST include at least one value that is
            given by 'any', ie. the collections need to intersect."
-    (is (tv/any-values ["Andrew Downes" "Toby Nichols"] name-values))
-    (is (tv/any-values ["Andrew Downes" "Will Hoyt"] name-values))
-    (is (not (tv/any-values ["Will Hoyt" "Milt Reder"] name-values)))
-    (is (not (tv/any-values [] name-values)))
+    (is (tv/any-values? ["Andrew Downes" "Toby Nichols"] name-values))
+    (is (tv/any-values? ["Andrew Downes" "Will Hoyt"] name-values))
+    (is (not (tv/any-values? ["Will Hoyt" "Milt Reder"] name-values)))
+    (is (not (tv/any-values? [] name-values)))
     ;; any-values is undefined if there are no matchable values
-    (is (not (tv/any-values [] [])))
-    (is (not (tv/any-values ["Andrew Downes"] [nil])))
-    (is (tv/any-values [nil] [nil]))))
+    (is (not (tv/any-values? [] [])))
+    (is (not (tv/any-values? ["Andrew Downes"] [nil])))
+    (is (tv/any-values? [nil] [nil]))))
 
 (deftest all-values-test
   (testing "all-values function: values MUST all be from the values given by
            'all'."
-    (is (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+    (is (tv/all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
                        name-values))
     ;; Superset is okay
-    (is (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
+    (is (tv/all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
                        name-values))
-    (is (not (tv/all-values ["Andrew Downes" "Toby Nichols"] name-values)))
-    (is (not (tv/all-values [] name-values)))
+    (is (not (tv/all-values? ["Andrew Downes" "Toby Nichols"] name-values)))
+    (is (not (tv/all-values? [] name-values)))
     ;; MUST NOT include any unmatchable values 
-    (is (not (tv/all-values ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))
-    (is (not (tv/all-values ["Andrew Downes"] [nil nil])))
-    (is (not (tv/all-values [nil] [nil nil])))))
+    (is (not (tv/all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills"] [])))
+    (is (not (tv/all-values? ["Andrew Downes"] [nil nil])))
+    (is (not (tv/all-values? [nil] [nil nil])))))
 
 (deftest none-values-test
   (testing "none-values function: values MUST NOT be included in the set given
            by 'none'."
-    (is (tv/none-values ["Will Hoyt" "Milt Reder"] name-values))
-    (is (not (tv/none-values ["Andrew Downes"] name-values)))
-    (is (not (tv/none-values ["Will Hoyt" "Milt Reder" "Ena Hills"]
+    (is (tv/none-values? ["Will Hoyt" "Milt Reder"] name-values))
+    (is (not (tv/none-values? ["Andrew Downes"] name-values)))
+    (is (not (tv/none-values? ["Will Hoyt" "Milt Reder" "Ena Hills"]
                              name-values)))
-    (is (tv/none-values ["Will Hoyt" "Milt Reder"] []))
-    (is (tv/none-values ["Will Hoyt" "Milt Reder"] [nil]))
-    (is (not (tv/none-values [nil] [nil])))
+    (is (tv/none-values? ["Will Hoyt" "Milt Reder"] []))
+    (is (tv/none-values? ["Will Hoyt" "Milt Reder"] [nil]))
+    (is (not (tv/none-values? [nil] [nil])))
     ;; If there is nothing to exclude, we should be okay
-    (is (tv/none-values [] name-values))
-    (is (tv/none-values [] []))))
+    (is (tv/none-values? [] name-values))
+    (is (tv/none-values? [] []))))
 
 ;; Predicates for our next tests
 (def included-spec (tv/create-included-spec {:presence "included"
@@ -186,7 +186,7 @@
 (deftest create-excluded-spec-test
   (testing "create-excluded-spec function: create a predicate when presence is
            'excluded.' There MUST NOT be any matchable values."
-    (is (= (s/describe excluded-spec) '(and none-matchable?)))
+    (is (= (s/describe excluded-spec) 'none-matchable?))
     (is (s/valid? excluded-spec []))
     (is (s/valid? excluded-spec [nil nil]))
     (is (not (s/valid? excluded-spec name-values)))
@@ -196,9 +196,9 @@
 (deftest create-recommended-spec-test
   (testing "create-recommended-spec function: create a predicate when presence
            is 'recommended'. MUST follow any/all/none reqs."
-    (is (= (s/describe recommended-spec))
-        '(or :missing none-matchable
-             :not-missing (and any-matchable? rule-any? rule-all? rule-none?)))
+    (is (= (s/describe recommended-spec)
+           '(or :missing none-matchable?
+                :not-missing (and any-matchable? rule-any? rule-all? rule-none?))))
     (is (s/valid? recommended-spec name-values))
     (is (not (s/valid? recommended-spec ["Will Hoyt"])))))
 
@@ -366,7 +366,8 @@
     (is (function? (tv/create-rule-validator {:presence "included"
                                               :all ["Andrew Downes"]})))
     (is (nil? ((tv/create-rule-validator {:location "$.foo.bar"
-                                          :presence "included" :any ["baz"]})
+                                          :presence "included"
+                                          :any ["baz"]})
                {:foo {:bar "baz"}})))))
 
 (deftest create-rule-validators-test

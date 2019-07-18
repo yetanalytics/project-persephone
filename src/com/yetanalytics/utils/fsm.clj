@@ -31,14 +31,19 @@
 ;; additional nodes and transitions to. This is NOT a very efficient algorithm,
 ;; but it is correct and leaves room for optimization.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Constructing Finite State Machines
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn states
+  "Return all states in an FSM."
+  [fsm]
+  (-> fsm :graph uber/nodes set))
+
 (defn new-node
   "Wrapper function to generate a random UUID (using Java's UUID class).
   Used to create new node names."
   [] (java.util.UUID/randomUUID))
-
-(defn epsilon
-  "Predicate that always returns true. Used for epsilon transitions."
-  [_] true)
 
 ;; Basic transition:
 ;;    A
@@ -51,8 +56,7 @@
         accept (new-node)]
     {:symbols {fn-symbol fun}
      :start start
-     :accept accept
-     :states #{start accept}
+     :accept #{accept}
      :graph (-> (uber/multidigraph)
                 (uber/add-nodes start)
                 (uber/add-nodes accept)
@@ -60,143 +64,178 @@
 
 ;; Concatenation
 ;     A      e      B
-;; y ---> z ---> w ---> a
+;; s ---> a ---> s ---> a
 (defn sequence-fsm
   "Apply the sequence pattern, ie. ABC, to a sequence of FSMs; return a new
   state machine."
-  [seqn]
-  (let [next-machine (peek seqn)]
-    (if (empty? (pop seqn))
-      next-machine ;; Base case: sequence of 1
-      (let [current-machine (sequence-fsm (pop seqn))]
-        (assoc current-machine
-               :accept (:accept next-machine)
-               :states (cset/union (:states current-machine)
-                                   (:states next-machine))
-               :symbols (merge (:symbols current-machine)
-                               (:symbols next-machine))
-               :graph (-> (:graph current-machine)
-                          (uber/build-graph (:graph next-machine))
-                          (uber/add-edges [(:accept current-machine)
-                                           (:start next-machine)
-                                           {:symbol :epsilon}])))))))
+  [fsm-arr]
+  (let [next-fsm (peek fsm-arr)]
+    (if (empty? (pop fsm-arr))
+      next-fsm ;; Base case: sequence of 1
+      (let [curr-fsm (sequence-fsm (pop fsm-arr))]
+        (assoc curr-fsm
+               :accept (:accept next-fsm)
+               :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
+               :graph
+               (->
+                (:graph curr-fsm)
+                (uber/build-graph (:graph next-fsm))
+                (uber/add-edges*
+                 (mapv (fn [as]
+                         [as (:start next-fsm) {:symbol :epsilon}])
+                       (:accept curr-fsm)))))))))
 
 ;; Union:
-;;    e        A        e
-;; +-----> y -----> z -----v
-;; x                       a
-;; +-----> y -----> z -----^
-;;    e        B        e 
+;;    e      A
+;; + ---> s ---> a
+;; s
+;; + ---> s ---> a
+;;    e      B
 (defn alternates-fsm
-  "Apply the alternates pattern, ie. A|B|C, to a set of FSMs; return a new
-  state machine."
-  [alternates]
-  (let [next-machine (peek alternates)]
-    (if (empty? (pop alternates)) ;; Base case: one FSM left
-      (let [start (new-node)
-            accept (new-node)]
-        (assoc next-machine
+  "Apply the fsm-arr pattern, ie. A|B|C, to a set of FSMs; return a new
+  state fsm."
+  [fsm-arr]
+  (let [next-fsm (peek fsm-arr)]
+    (if (empty? (pop fsm-arr)) ;; Base case: one FSM left
+      (let [start (new-node)]
+        (assoc next-fsm
                :start start
-               :accept accept
-               :states (cset/union (:states next-machine) #{start accept})
-               :graph (-> (:graph next-machine)
+               :graph (-> (:graph next-fsm)
                           (uber/add-nodes start accept)
-                          (uber/add-edges [start (:start next-machine)
-                                           {:symbol :epsilon}])
-                          (uber/add-edges [(:accept next-machine) accept
-                                           {:symbol :epsilon}]))))
-      (let [current-machine (alternates-fsm (pop alternates))]
-        (assoc current-machine
-               :states (cset/union (:states current-machine)
-                                   (:states next-machine))
-               :symbols (merge (:symbols current-machine)
-                               (:symbols next-machine))
-               :graph (-> (:graph current-machine)
-                          (uber/build-graph (:graph next-machine))
-                          (uber/add-edges [(:start current-machine)
-                                           (:start next-machine)
-                                           {:symbol :epsilon}])
-                          (uber/add-edges [(:accept next-machine)
-                                           (:accept current-machine)
-                                           {:symbol :epsilon}])))))))
+                          (uber/add-edges
+                           [start (:start next-fsm) {:symbol :epsilon}]))))
+      (let [curr-fsm (alternates-fsm (pop fsm-arr))]
+        (assoc curr-fsm
+               :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
+               :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
+               :graph
+               (->
+                (:graph curr-fsm)
+                (uber/build-graph (:graph next-fsm))
+                (uber/add-edges
+                 [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}])))))))
 
 ;; Kleene Star:
 ;;           e
-;; +--------------------+
-;; |  e      A      e   v
-;; x ---> y ---> z ---> a
-;;        ^  e   +
-;;        +------+ 
+;;        +------+
+;;    e   v  A   |
+;; + ---> s ---> a
+;; s  e
+;; + ---> a
 (defn zero-or-more-fsm
   "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
   machine."
-  [zero-or-more]
-  (let [start (new-node)
-        accept (new-node)]
-    (assoc zero-or-more
+  [sub-fsm]
+  (let [start (new-node) accept (new-node)]
+    (assoc sub-fsm
            :start start
-           :accept accept
-           :states (cset/union (:states zero-or-more) #{start accept})
-           :graph (-> (:graph zero-or-more)
-                      (uber/add-edges [start (:start zero-or-more)
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [(:accept zero-or-more) accept
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [start accept {:symbol :epsilon}])
-                      (uber/add-edges [(:accept zero-or-more)
-                                       (:start zero-or-more)
-                                       {:symbol :epsilon}])))))
+           :accept (cset/merge (:accept sub-fsm) #{accept})
+           :graph
+           (->
+            (:graph sub-fsm)
+            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
+            (uber/add-edges [start accept {:symbol :epsilon}])
+            (uber/add-edges* (mapv (fn [as]
+                                     [as (:start sub-fsm) {:symbol :epsilon}])
+                                   (:accept sub-fsm)))))))
 
 ;; Union with epsilon transition
-;;    e        A        e
-;; +-----> y -----> z -----v
-;; x                       a
-;; +-----------------------k^
-;;             e 
+;;    e      A
+;; + ---> s ---> a
+;; s
+;; + ---> a
+;;    e
 (defn optional-fsm
-  "Apply the optional pattern, ie. A?, to an FSM; return a new state machine."
-  [optional]
-  (let [start (new-node)
-        accept (new-node)]
-    (assoc optional
+  "Apply the sub-fsm pattern, ie. A?, to an FSM; return a new state machine."
+  [sub-fsm]
+  (let [start (new-node) accept (new-node)]
+    (assoc sub-fsm
            :start start
-           :accept accept
-           :states (cset/union (:states optional) #{start accept})
-           :graph (-> (:graph optional)
-                      (uber/add-edges [start (:start optional)
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [(:accept optional) accept
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [start accept {:symbol :epsilon}])))))
+           :accept (cset/merge (:accept sub-fsm) #{accept})
+           :graph
+           (->
+            (:graph sub-fsm)
+            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
+            (uber/add-edges [start accept] {:symbol :epsilon})))))
 
 ;; Kleene Plus (ie. Kleen Star w/ concat):
-;     e      A      e
-;; x ---> y ---> z ---> a
-;;        ^  e   +
-;;        +------+ 
+;;           e
+;;        + ---- +
+;;    e   v  A   |
+;; s ---> s ---> a
 (defn one-or-more-fsm
   "Apply the oneOrMore pattern, ie. A+, to an FSM; return a new state machine."
-  [one-or-more]
-  (let [start (new-node)
-        accept (new-node)]
-    (assoc one-or-more
+  [sub-fsm]
+  (let [start (new-node)]
+    (assoc sub-fsm
            :start start
-           :accept accept
-           :states (cset/union (:states one-or-more) #{start accept})
-           :graph (-> (:graph one-or-more)
-                      (uber/add-edges [start (:start one-or-more)
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [(:accept one-or-more) accept
-                                       {:symbol :epsilon}])
-                      (uber/add-edges [(:accept one-or-more)
-                                       (:start one-or-more)
-                                       {:symbol :epsilon}])))))
+           :graph
+           (->
+            (:graph sub-fsm)
+            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
+            (uber/add-edges* (mapv (fn [as]
+                                     [as (:start sub-fsm) {:symbol :epsilon}])
+                                   {:accept sub-fsm}))))))
 
-;; TODO Add optimization function
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Using Finite State Machines
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn all-deltas
+  "For a given FSM and an input state, return a table relating inputs and the
+  set of result states. Equivalent to returning a row in a transition table
+  (with transitions that output the empty set removed)."
+  [fsm state]
+  (let [graph (:graph fsm)
+        out-edges (uber/out-edges graph state)
+        trans-vec (mapv (fn [edge] {:input (-> edge uber/attrs :symbol)
+                                    :output (uber/dest edge)}) out-edges)]
+    (reduce-kv (fn [m input output]
+                 (cset/union (get m input #{}) #{output})) {} trans-vec)))
+
+(defn epsilon-closure
+  "Return the epsilon closure of a state, ie. the set of states that can be
+  reached by the state using only epsilon transitions (including itself)."
+  [fsm state]
+  (let [deltas (all-deltas fsm state)
+        epsilons (:epsilon deltas)]
+    ;; Implictly perform a breadth-first search, where state is the item
+    ;; removed from the queue, and epsilons the states that are added.
+    (if (nil? epsilons)
+      #{state}
+      (apply cset/union #{state}
+             (mapv (partial epsilon-clojure fsm) epsilons)))))
+
+(defn slurp-transition [fsm input state-set in-symbol]
+  "Let an FSM read an incoming symbol against a single edge transition.
+  Return the set of nodes that is the result of the transition function.
+  If the empty set is returned, that means the input is not accepted against
+  this transition."
+  (let [inputs (keys deltas) next-states (vals deltas)
+        pred-fn (-> fsm :symbols input)]
+    (if (pred-fn in-symbol)
+      state-set ;; If transition accepts, return new states; else kill path
+      #{})))
+
+(defn slurp-symbol
+  "Given an FSM, a single state and an incoming symbol, find the set of states
+  given by all accepting transitions (excluding epsilon transitions)."
+  [fsm state in-symbol]
+  (let [deltas (all-deltas fsm state)
+        inputs (keys deltas) next-states (vals deltas)]
+    (apply cset/union
+           (mapv (fn [input state-set]
+                   (slurp-transition fsm input state-set in-symbol))
+                 inputs next-states))))
 
 (defn read-next
-  "Given a FSM and its current state, read the next symbol given.
-  Return the updated state(s) if reading the symbol was successful, nil if
-  reading was unsuccessful."
-  [fsm curr-state next-symb]
-  nil) ;; FIXME
+  "Let an FSM, given a current state, read a new symbol."
+  [fsm curr-state in-symbol]
+  (let [e-closure (set (map (partial epsilon-closure) curr-state))
+        new-state (apply cset/union (mapv #(slurp-symbol fsm % in-symbol)
+                                          e-closure))]
+    (if (empty? new-states)
+      ;; FSM does not accept symbol; backtrack to previous state
+      curr-state
+      ;; FSM accept symbol; return new state
+      new-state)))

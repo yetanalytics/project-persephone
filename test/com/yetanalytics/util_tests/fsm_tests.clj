@@ -1,5 +1,6 @@
 (ns com.yetanalytics.util-tests.fsm-tests
   (:require [clojure.test :refer :all]
+            [clojure.set :as cset]
             [ubergraph.core :as uber]
             [com.yetanalytics.utils.fsm :as fsm]))
 
@@ -19,26 +20,24 @@
 (def one-or-more-odd (fsm/one-or-more-fsm single-odd-fsm))
 
 (deftest transition-fsm-test
-  (testing "transition-fsm function"
-    (is (and (contains? single-odd-fsm :start)
-             (contains? single-odd-fsm :accept)
-             (contains? single-odd-fsm :states)
-             (contains? single-odd-fsm :symbols)
-             (contains? single-odd-fsm :graph)))
-    (is (= (:states single-odd-fsm)
-           #{(:start single-odd-fsm) (:accept single-odd-fsm)}))
+  (testing "transition-fsm: create a basic FSM with one transition edge."
     (is (= {"o" odd?} (:symbols single-odd-fsm)))
-    (is (= 2 (count (uber/nodes (:graph single-odd-fsm)))))
-    (is (= 1 (count (uber/edges (:graph single-odd-fsm)))))
-    (is (= (:accept single-odd-fsm)
-           (-> (uber/out-edges (:graph single-odd-fsm) (:start single-odd-fsm))
-               first uber/dest)))
-    (is (= (:start single-odd-fsm)
-           (-> (uber/in-edges (:graph single-odd-fsm) (:accept single-odd-fsm))
-               first uber/src)))
-    (is (= {:symbol "o"} (uber/attrs (:graph single-odd-fsm)
-                                     (:start single-odd-fsm)
-                                     (:accept single-odd-fsm))))))
+    (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
+           (fsm/states single-odd-fsm)))
+    (is (= {"o" (:accept single-odd-fsm)}
+           (fsm/all-deltas single-odd-fsm (:start single-odd-fsm))))
+    (is (= #{(:start single-odd-fsm)}
+           (fsm/epsilon-closure single-odd-fsm (:start single-odd-fsm))))))
+
+(deftest sequence-fsm-test
+  (testing "sequence-fsm function"
+    (is (= {"o" odd? "e" even?} (:symbols odd-then-even)))
+    (is (= (cset/union (fsm/states single-odd-fsm) (fsm/states single-even-fsm))
+           (fsm/states odd-then-even)))
+    (is (every? true? (map #(= {:symbol :epsilon} (uber/attrs (:graph odd-then-even) % (:start single-even-fsm)) (:accept single-odd-fsm)))))
+    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-then-even)
+                                          (:accept single-odd-fsm)
+                                          (:start single-even-fsm))))))
 
 (deftest sequence-fsm-test
   (testing "sequence-fsm"

@@ -82,23 +82,7 @@
     (if (empty? queue)
       curr-fsm
       (let [next-fsm (peek queue)]
-        (recur (concat-to-fsm next-fsm curr-fsm) (pop queue)))))
-
-  #_(let [next-fsm (peek fsm-arr)]
-      (if (empty? (pop fsm-arr))
-        next-fsm ;; Base case: sequence of 1 
-        (let [curr-fsm (sequence-fsm (pop fsm-arr))]
-          (assoc curr-fsm
-                 :accept (:accept next-fsm)
-                 :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-                 :graph
-                 (->
-                  (:graph curr-fsm)
-                  (uber/build-graph (:graph next-fsm))
-                  (uber/add-edges*
-                   (mapv (fn [as]
-                           [as (:start next-fsm) {:symbol :epsilon}])
-                         (:accept curr-fsm)))))))))
+        (recur (concat-to-fsm next-fsm curr-fsm) (pop queue))))))
 
 (defn concat-to-fsm
   "Helper function for sequence-fsm. Attaches a new FSM to the start of the
@@ -244,11 +228,8 @@
         out-edges (-> graph (uber/out-edges state) vec)]
     (reduce-kv (fn [prev index edge]
                  (let [input (uber/attr graph edge :symbol)
-                       dest (uber/dest edge)
-                       prev-dests (get input prev nil)]
-                   (if (some? prev-dests)
-                     (update prev input (conj prev-dests dest))
-                     (assoc prev input #{dest}))))
+                       dest (uber/dest edge)]
+                   (update prev input #(cset/union % #{dest}))))
                {} out-edges)))
 
 (defn epsilon-closure
@@ -307,7 +288,8 @@
         new-state (read-next* fsm curr-state in-symbol)]
     (if (empty? new-state)
       ;; FSM does not accept symbol; backtrack to previous state
-      (do (print "Reading failed!") curr-state)
+      ;; FIXME Print error log
+      (do #_(print "Reading failed!") curr-state)
       ;; FSM accepts symbol; return new state
       new-state)))
 

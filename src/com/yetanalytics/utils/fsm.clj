@@ -119,27 +119,7 @@
       (if (empty? queue)
         curr-fsm
         (let [next-fsm (peek queue)]
-          (recur (union-with-fsm next-fsm curr-fsm) (pop queue))))))
-
-  #_(let [next-fsm (peek fsm-arr)]
-      (if (empty? (pop fsm-arr)) ;; Base case: one FSM left
-        (let [start (new-node)]
-          (assoc next-fsm
-                 :start start
-                 :graph (-> (:graph next-fsm)
-                            (uber/add-nodes start)
-                            (uber/add-edges
-                             [start (:start next-fsm) {:symbol :epsilon}]))))
-        (let [curr-fsm (alternates-fsm (pop fsm-arr))]
-          (assoc curr-fsm
-                 :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
-                 :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-                 :graph
-                 (->
-                  (:graph curr-fsm)
-                  (uber/build-graph (:graph next-fsm))
-                  (uber/add-edges
-                   [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}])))))))
+          (recur (union-with-fsm next-fsm curr-fsm) (pop queue)))))))
 
 (defn union-with-fsm
   [next-fsm curr-fsm]
@@ -158,8 +138,6 @@
 ;; + ---> s ---> a
 ;; s  e
 ;; + ---> a
-
-
 (defn zero-or-more-fsm
   "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
   machine."
@@ -213,7 +191,7 @@
             (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
             (uber/add-edges* (mapv (fn [as]
                                      [as (:start sub-fsm) {:symbol :epsilon}])
-                                   {:accept sub-fsm}))))))
+                                   (:accept sub-fsm)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Using Finite State Machines

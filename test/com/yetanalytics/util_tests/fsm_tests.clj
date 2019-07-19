@@ -15,8 +15,8 @@
 ;; Composite FSMs
 (def odd-then-even (fsm/sequence-fsm [single-odd-fsm single-even-fsm]))
 (def odd-or-even (fsm/alternates-fsm [single-odd-fsm single-even-fsm]))
-(def maybe-one-odd (fsm/optional-fsm single-odd-fsm))
 (def zero-or-more-odd (fsm/zero-or-more-fsm single-odd-fsm))
+(def maybe-one-odd (fsm/optional-fsm single-odd-fsm))
 (def one-or-more-odd (fsm/one-or-more-fsm single-odd-fsm))
 
 (deftest single-odd-test
@@ -127,100 +127,77 @@
              (-> #{} (odd-or-even-fn 1) (odd-or-even-fn 2)
                  (odd-or-even-fn 4) (odd-or-even-fn 5)))))))
 
-(deftest alternates-fsm-test
-  (testing "alternates-fsm"
-    (is (and (contains? odd-or-even :start)
-             (contains? odd-or-even :accept)
-             (contains? odd-or-even :states)
-             (contains? odd-or-even :symbols)
-             (contains? odd-or-even :graph)))
-    (is (= (:states odd-or-even)
-           #{(:start odd-or-even) (:accept odd-or-even)
-             (:start single-odd-fsm) (:accept single-odd-fsm)
-             (:start single-even-fsm) (:accept single-even-fsm)}))
-    (is (= (:symbols odd-or-even) {"o" odd? "e" even?}))
-    (is (= 2 (uber/out-degree (:graph odd-or-even) (:start odd-or-even))))
-    (is (= 2 (uber/in-degree (:graph odd-or-even) (:accept odd-or-even))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-or-even)
-                                          (:start odd-or-even)
-                                          (:start single-odd-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-or-even)
-                                          (:start odd-or-even)
-                                          (:start single-even-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-or-even)
-                                          (:accept single-odd-fsm)
-                                          (:accept odd-or-even))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-or-even)
-                                          (:accept single-even-fsm)
-                                          (:accept odd-or-even))))))
+(deftest zero-or-more-odd-test
+  (testing "zero-or-more fsm: Test functionality when using the Kleene star
+           operator on an FSM. Accepts zero or more odd numbers."
+    (is (= {"o" odd?} (:symbols zero-or-more-odd)))
+    (is (cset/subset? (:accept single-odd-fsm) (:accept zero-or-more-odd)))
+    (is (= 2 (count (:accept zero-or-more-odd))))
+    (is (= 4 (count (fsm/states zero-or-more-odd))))
+    (is (= (cset/union (fsm/states single-odd-fsm) #{(:start zero-or-more-odd)}
+                       (:accept zero-or-more-odd))
+           (fsm/states zero-or-more-odd)))
+    (is (= {:epsilon #{(:start single-odd-fsm)}}
+           (fsm/all-deltas zero-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= {:epsilon (cset/union #{(:start single-odd-fsm)}
+                                 (cset/difference (:accept zero-or-more-odd)
+                                                  (:accept single-odd-fsm)))}
+           (fsm/all-deltas zero-or-more-odd (:start zero-or-more-odd))))
+    (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
+           (fsm/epsilon-closure zero-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= (cset/union #{(:start zero-or-more-odd) (:start single-odd-fsm)}
+                       (cset/difference (:accept zero-or-more-odd)
+                                        (:accept single-odd-fsm)))
+           (fsm/epsilon-closure zero-or-more-odd (:start zero-or-more-odd))))
+    (is (= (:accept single-odd-fsm)
+           (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)} 1)))
+    (is (= #{}
+           (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)}
 
-(deftest optional-fsm-test
-  (testing "optional-fsm"
-    (is (and (contains? maybe-one-odd :start)
-             (contains? maybe-one-odd :accept)
-             (contains? maybe-one-odd :states)
-             (contains? maybe-one-odd :symbols)
-             (contains? maybe-one-odd :graph)))
-    (is (= (:states maybe-one-odd) #{(:start maybe-one-odd)
-                                     (:accept maybe-one-odd)
-                                     (:start single-odd-fsm)
-                                     (:accept single-odd-fsm)}))
-    (is (= (:symbols maybe-one-odd) {"o" odd?}))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph maybe-one-odd)
-                                          (:start maybe-one-odd)
-                                          (:start single-odd-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph maybe-one-odd)
-                                          (:accept single-odd-fsm)
-                                          (:accept maybe-one-odd))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph maybe-one-odd)
-                                          (:start maybe-one-odd)
-                                          (:accept maybe-one-odd))))))
+                           2)))))
 
-(deftest zero-or-more-fsm-test
-  (testing "zero-or-more-fsm"
-    (is (and (contains? zero-or-more-odd :start)
-             (contains? zero-or-more-odd :accept)
-             (contains? zero-or-more-odd :states)
-             (contains? zero-or-more-odd :symbols)
-             (contains? zero-or-more-odd :graph)))
-    (is (= (:states zero-or-more-odd) #{(:start zero-or-more-odd)
-                                        (:accept zero-or-more-odd)
-                                        (:start single-odd-fsm)
-                                        (:accept single-odd-fsm)}))
-    (is (= (:symbols zero-or-more-odd) {"o" odd?}))
-    (is (= 2 (uber/in-degree (:graph zero-or-more-odd) (:start single-odd-fsm))))
-    (is (= 2 (uber/out-degree (:graph zero-or-more-odd) (:accept single-odd-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph zero-or-more-odd)
-                                          (:start zero-or-more-odd)
-                                          (:start single-odd-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph zero-or-more-odd)
-                                          (:accept single-odd-fsm)
-                                          (:accept zero-or-more-odd))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph zero-or-more-odd)
-                                          (:start zero-or-more-odd)
-                                          (:accept zero-or-more-odd))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph zero-or-more-odd)
-                                          (:accept single-odd-fsm)
-                                          (:start single-odd-fsm))))))
+(deftest maybe-one-odd-test
+  (testing "maybe-one-odd fsm: Test functionality when unioning the FSM with an
+           epsilon transition. Accepts either one or one odd number."
+    (is (= {"o" odd?} (:symbols maybe-one-odd)))
+    (is (cset/subset? (:accept single-odd-fsm) (:accept maybe-one-odd)))
+    (is (= 2 (count (:accept maybe-one-odd))))
+    (is (= 4 (count (fsm/states maybe-one-odd))))
+    (is (= (cset/union (fsm/states single-odd-fsm) #{(:start maybe-one-odd)}
+                       (:accept maybe-one-odd))
+           (fsm/states maybe-one-odd)))
+    (is (= {:epsilon (cset/union #{(:start single-odd-fsm)}
+                                 (cset/difference (:accept maybe-one-odd)
+                                                  (:accept single-odd-fsm)))}
+           (fsm/all-deltas maybe-one-odd (:start maybe-one-odd))))
+    (is (= (cset/union #{(:start maybe-one-odd) (:start single-odd-fsm)}
+                       (cset/difference (:accept maybe-one-odd)
+                                        (:accept single-odd-fsm)))
+           (fsm/epsilon-closure maybe-one-odd (:start maybe-one-odd))))
+    (is (= (:accept single-odd-fsm)
+           (fsm/read-next* maybe-one-odd #{(:start maybe-one-odd)} 1)))
+    (is (= #{}
+           (fsm/read-next* maybe-one-odd #{(:start maybe-one-odd)} 2)))))
 
-(deftest one-or-more-fsm-test
-  (testing "one-or-more-fsm"
-    (is (and (contains? one-or-more-odd :start)
-             (contains? one-or-more-odd :accept)
-             (contains? one-or-more-odd :states)
-             (contains? one-or-more-odd :accept)
-             (contains? one-or-more-odd :graph)))
-    (is (= (:states one-or-more-odd) #{(:start one-or-more-odd)
-                                       (:accept one-or-more-odd)
-                                       (:start single-odd-fsm)
-                                       (:accept single-odd-fsm)}))
-    (is (= (:symbols one-or-more-odd) {"o" odd?}))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph one-or-more-odd)
-                                          (:start one-or-more-odd)
-                                          (:start single-odd-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph one-or-more-odd)
-                                          (:accept single-odd-fsm)
-                                          (:accept one-or-more-odd))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph one-or-more-odd)
-                                          (:accept single-odd-fsm)
-                                          (:start single-odd-fsm))))))
+(deftest one-or-more-odd-test
+  (testing
+   "one-or-more-odd fsm: Test functionality when performing the
+           'Kleen plus' operation. Accepts one or more odd numbers."
+    (is (= {"o" odd?} (:symbols one-or-more-odd)))
+    (is (= (:accept single-odd-fsm) (:accept one-or-more-odd)))
+    (is (= (cset/union #{(:start one-or-more-odd)} (fsm/states single-odd-fsm))
+           (fsm/states one-or-more-odd)))
+    (is (= {:epsilon #{(:start single-odd-fsm)}}
+           (fsm/all-deltas one-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= {:epsilon #{(:start single-odd-fsm)}}
+           (fsm/all-deltas one-or-more-odd (:start one-or-more-odd))))
+    (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
+           (fsm/epsilon-closure one-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= #{(:start single-odd-fsm) (:start one-or-more-odd)}
+           (fsm/epsilon-closure one-or-more-odd (:start one-or-more-odd))))
+    (is (= (:accept one-or-more-odd)
+           (fsm/read-next* one-or-more-odd #{(:start one-or-more-odd)} 1)))
+    (is (= #{}
+           (fsm/read-next* one-or-more-odd #{(:start one-or-more-odd)} 2)))))
+
+;; TODO Add even more tests with crazy compositions

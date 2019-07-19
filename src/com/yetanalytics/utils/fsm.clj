@@ -77,10 +77,8 @@
   "Apply the sequence pattern, ie. ABC, to a sequence of FSMs; return a new
   state machine."
   [fsm-arr]
-  (loop [curr-fsm (assoc {}
-                         :start nil :accept #{} :symbols {}
-                         :graph (uber/multidigraph))
-         queue fsm-arr]
+  (loop [curr-fsm (peek fsm-arr)
+         queue (pop fsm-arr)]
     (if (empty? queue)
       curr-fsm
       (let [next-fsm (peek queue)]
@@ -103,6 +101,8 @@
                          (:accept curr-fsm)))))))))
 
 (defn concat-to-fsm
+  "Helper function for sequence-fsm. Attaches a new FSM to the start of the
+  main FSM."
   [next-fsm curr-fsm]
   (assoc curr-fsm
          :start (:start next-fsm)
@@ -269,11 +269,12 @@
   Return the set of nodes that is the result of the transition function.
   If the empty set is returned, that means the input is not accepted against
   this transition."
-  (let [inputs (keys deltas) next-states (vals deltas)
-        pred-fn (-> fsm :symbols input)]
+  (if-let [pred-fn (-> fsm :symbols (get input))]
     (if (pred-fn in-symbol)
       state-set ;; If transition accepts, return new states; else kill path
-      #{})))
+      #{})
+    ;; Epsilon transitions don't count (since we've already read them) 
+    #{}))
 
 (defn slurp-symbol
   "Given an FSM, a single state and an incoming symbol, find the set of states
@@ -281,19 +282,37 @@
   [fsm state in-symbol]
   (let [deltas (all-deltas fsm state)
         inputs (keys deltas) next-states (vals deltas)]
+    #_(print deltas)
     (apply cset/union
            (mapv (fn [input state-set]
                    (slurp-transition fsm input state-set in-symbol))
                  inputs next-states))))
 
+(defn read-next*
+  "Let an FSM, given a current state, read a new symbol.
+  Unlike the non-star version, this function returns the empty map on failure
+  instead of resetting the state, making it unsutiable for composition (but
+  useful for debug purposes)."
+  [fsm curr-state in-symbol]
+  (let [e-closure (apply cset/union
+                         (mapv (partial epsilon-closure fsm) curr-state))
+        new-state (apply cset/union
+                         (mapv #(slurp-symbol fsm % in-symbol) e-closure))]
+    new-state))
+
 (defn read-next
   "Let an FSM, given a current state, read a new symbol."
   [fsm curr-state in-symbol]
-  (let [e-closure (set (map (partial epsilon-closure) curr-state))
-        new-state (apply cset/union (mapv #(slurp-symbol fsm % in-symbol)
-                                          e-closure))]
-    (if (empty? new-states)
+  (let [curr-state (if (empty? curr-state) #{(:start fsm)} curr-state)
+        new-state (read-next* fsm curr-state in-symbol)]
+    (if (empty? new-state)
       ;; FSM does not accept symbol; backtrack to previous state
       (do (print "Reading failed!") curr-state)
       ;; FSM accepts symbol; return new state
       new-state)))
+
+(defn fsm-function
+  "Create a function out of an FSM that accepts a state and inputs, for our
+  convenience (eg. in threading macros)."
+  [fsm]
+  (partial read-next fsm))

@@ -19,45 +19,71 @@
 (def zero-or-more-odd (fsm/zero-or-more-fsm single-odd-fsm))
 (def one-or-more-odd (fsm/one-or-more-fsm single-odd-fsm))
 
-(deftest transition-fsm-test
-  (testing "transition-fsm: create a basic FSM with one transition edge."
+(deftest single-odd-test
+  (testing "single-odd-fsm: Test functionality of a single FSM with exactly
+           one transition edge. Accepts a single odd number."
     (is (= {"o" odd?} (:symbols single-odd-fsm)))
     (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
            (fsm/states single-odd-fsm)))
     (is (= {"o" (:accept single-odd-fsm)}
            (fsm/all-deltas single-odd-fsm (:start single-odd-fsm))))
     (is (= #{(:start single-odd-fsm)}
-           (fsm/epsilon-closure single-odd-fsm (:start single-odd-fsm))))))
+           (fsm/epsilon-closure single-odd-fsm (:start single-odd-fsm))))
+    (is (= (:accept single-odd-fsm)
+           (fsm/slurp-transition single-odd-fsm "o" (:accept single-odd-fsm) 1)))
+    (is (= (:accept single-odd-fsm)
+           (fsm/slurp-symbol single-odd-fsm (:start single-odd-fsm) 1)))
+    (is (= (:accept single-odd-fsm)
+           (fsm/read-next* single-odd-fsm #{(:start single-odd-fsm)} 1)))
+    (is (= #{}
+           (fsm/read-next* single-odd-fsm #{(:start single-odd-fsm)} 2)))
+    (is (= (:accept single-odd-fsm)
+           (let [single-odd-fn (fsm/fsm-function single-odd-fsm)]
+             (-> {} (single-odd-fn 1) (single-odd-fn 2)))))))
 
-(deftest sequence-fsm-test
-  (testing "sequence-fsm function"
+(deftest odd-then-even-test
+  (testing "odd-then-even fsm: Test functionality of the concatenation of two
+           FSMs. Accepts one odd number, then one even number."
     (is (= {"o" odd? "e" even?} (:symbols odd-then-even)))
-    (is (= (cset/union (fsm/states single-odd-fsm) (fsm/states single-even-fsm))
+    (is (= (:start single-odd-fsm) (:start odd-then-even)))
+    (is (= (:accept single-even-fsm) (:accept odd-then-even)))
+    (is (= (cset/union #{(:start single-odd-fsm) (:start single-even-fsm)}
+                       (:accept single-odd-fsm) (:accept single-even-fsm))
            (fsm/states odd-then-even)))
-    (is (every? true? (map #(= {:symbol :epsilon} (uber/attrs (:graph odd-then-even) % (:start single-even-fsm)) (:accept single-odd-fsm)))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-then-even)
-                                          (:accept single-odd-fsm)
-                                          (:start single-even-fsm))))))
-
-(deftest sequence-fsm-test
-  (testing "sequence-fsm"
-    (is (and (contains? odd-then-even :start)
-             (contains? odd-then-even :accept)
-             (contains? odd-then-even :states)
-             (contains? odd-then-even :symbols)
-             (contains? odd-then-even :graph)))
-    (is (= (:start odd-then-even) (:start single-odd-fsm)))
-    (is (= (:accept odd-then-even) (:accept single-even-fsm)))
-    (is (= (:states odd-then-even) #{(:start single-odd-fsm)
-                                     (:accept single-odd-fsm)
-                                     (:start single-even-fsm)
-                                     (:accept single-even-fsm)}))
-    (is (= (:symbols odd-then-even) {"o" odd? "e" even?}))
-    (is (= 1 (uber/out-degree (:graph odd-then-even) (:accept single-odd-fsm))))
-    (is (= 1 (uber/in-degree (:graph odd-then-even) (:start single-even-fsm))))
-    (is (= {:symbol :epsilon} (uber/attrs (:graph odd-then-even)
-                                          (:accept single-odd-fsm)
-                                          (:start single-even-fsm))))))
+    (is (= {"o" (:accept single-odd-fsm)}
+           (fsm/all-deltas odd-then-even (:start single-odd-fsm))))
+    (is (= {"e" (:accept single-even-fsm)}
+           (fsm/all-deltas odd-then-even (:start single-even-fsm))))
+    (is (= {:epsilon #{(:start single-even-fsm)}}
+           (fsm/all-deltas odd-then-even (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= {:epsilon #{(:start single-even-fsm)}}
+           (fsm/all-deltas odd-then-even (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= (cset/union (:accept single-odd-fsm)
+                       #{(:start single-even-fsm)})
+           (fsm/epsilon-closure odd-then-even
+                                (-> single-odd-fsm :accept vec (get 0)))))
+    (is (= #{(:start single-odd-fsm)}
+           (fsm/epsilon-closure odd-then-even (:start odd-then-even))))
+    (is (= #{(:start single-even-fsm)}
+           (fsm/epsilon-closure odd-then-even (:start single-even-fsm))))
+    (is (= (:accept single-odd-fsm)
+           (fsm/read-next* odd-then-even #{(:start odd-then-even)} 1)))
+    (is (= (:accept single-even-fsm)
+           (fsm/read-next* odd-then-even #{(:start single-even-fsm)} 2)))
+    (is (= (:accept odd-then-even)
+           (fsm/read-next* odd-then-even (:accept single-odd-fsm) 2)))
+    (is (= #{}
+           (fsm/read-next* odd-then-even #{(:start odd-then-even)} 2)))
+    (is (= #{}
+           (fsm/read-next* odd-then-even #{(:start single-even-fsm)} 1)))
+    (is (= #{}
+           (fsm/read-next* odd-then-even (:accept single-odd-fsm) 1)))
+    (is (= (:accept odd-then-even)
+           (let [odd-then-even-fn (fsm/fsm-function odd-then-even)]
+             (-> {} (odd-then-even-fn 1) (odd-then-even-fn 2)))))
+    (is (= (:accept odd-then-even)
+           (let [odd-then-even-fn (fsm/fsm-function odd-then-even)]
+             (-> {} (odd-then-even-fn 1) (odd-then-even-fn 3) (odd-then-even-fn 2)))))))
 
 (deftest alternates-fsm-test
   (testing "alternates-fsm"

@@ -58,18 +58,21 @@
                 (uber/add-nodes start accept)
                 (uber/add-edges [start accept {:symbol fn-symbol}]))}))
 
-(defn int-string
-  [int-vec]
-  (loop [curr-str ""
-         int-queue int-vec]
-    (if (empty? int-queue)
-      curr-str
-      (let [next-str (peek int-queue)]
-        (print int-queue)
-        (recur (str next-str " " curr-str) (pop int-queue))))))
-
-(int-string [3 2 1])
-
+;; Concatenation helper
+(defn concat-to-fsm
+  "Helper function for sequence-fsm. Attaches a new FSM to the start of the
+  main FSM."
+  [next-fsm curr-fsm]
+  (assoc curr-fsm
+         :start (:start next-fsm)
+         :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
+         :graph (->
+                 (:graph curr-fsm)
+                 (uber/build-graph (:graph next-fsm))
+                 (uber/add-edges*
+                  (mapv (fn [as]
+                          [as (:start curr-fsm) {:symbol :epsilon}])
+                        (:accept next-fsm))))))
 ;; Concatenation
 ;     A      e      B
 ;; s ---> s ---> s ---> a
@@ -84,22 +87,17 @@
       (let [next-fsm (peek queue)]
         (recur (concat-to-fsm next-fsm curr-fsm) (pop queue))))))
 
-(defn concat-to-fsm
-  "Helper function for sequence-fsm. Attaches a new FSM to the start of the
-  main FSM."
+;; Union helper
+(defn union-with-fsm
   [next-fsm curr-fsm]
   (assoc curr-fsm
-         :start (:start next-fsm)
+         :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
          :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-         :graph
-         (->
-          (:graph curr-fsm)
-          (uber/build-graph (:graph next-fsm))
-          (uber/add-edges*
-           (mapv (fn [as]
-                   [as (:start curr-fsm) {:symbol :epsilon}])
-                 (:accept next-fsm))))))
-
+         :graph (->
+                 (:graph curr-fsm)
+                 (uber/build-graph (:graph next-fsm))
+                 (uber/add-edges
+                  [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}]))))
 ;; Union:
 ;;    e      A
 ;; + ---> s ---> a
@@ -120,16 +118,6 @@
         curr-fsm
         (let [next-fsm (peek queue)]
           (recur (union-with-fsm next-fsm curr-fsm) (pop queue)))))))
-
-(defn union-with-fsm
-  [next-fsm curr-fsm]
-  (assoc curr-fsm
-         :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
-         :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-         :graph (-> (:graph curr-fsm)
-                    (uber/build-graph (:graph next-fsm))
-                    (uber/add-edges
-                     [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}]))))
 
 ;; Kleene Star:
 ;;           e
@@ -241,7 +229,6 @@
   [fsm state in-symbol]
   (let [deltas (all-deltas fsm state)
         inputs (keys deltas) next-states (vals deltas)]
-    #_(print deltas)
     (apply cset/union
            (mapv (fn [input state-set]
                    (slurp-transition fsm input state-set in-symbol))
@@ -260,7 +247,8 @@
     new-state))
 
 (defn read-next
-  "Let an FSM, given a current state, read a new symbol."
+  "Let an FSM, given a current state, read a new symbol.
+  If the given state is nil or empty, start at the FSM's start state."
   [fsm curr-state in-symbol]
   (let [curr-state (if (empty? curr-state) #{(:start fsm)} curr-state)
         new-state (read-next* fsm curr-state in-symbol)]

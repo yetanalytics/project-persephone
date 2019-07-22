@@ -25,8 +25,8 @@
 
 (defn mapify-all
   "Put all Templates and Patterns of a profile into a unified map."
-  [{:keys [patterns templates]}]
-  (merge (mapify-patterns patterns) (mapify-templates templates)))
+  [profile]
+  (merge (mapify-patterns profile) (mapify-templates profile)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Object maps -> tree data structure -> FSM
@@ -38,17 +38,36 @@
   (letfn [(branch? [node] (contains? #{"Pattern"} (:type node)))
           (children [branch]
                     (m/match [branch]
+                      [{:type ""}]
                       [(_ :guard #(contains? % :sequence))]
-                      (:sequence branch)
+                      (-> branch :sequence seq)
                       [(_ :guard #(contains? % :alternates))]
-                      (:alternates branch)
+                      (-> branch :alternates seq)
                       [(_ :guard #(contains? % :optional))]
-                      (:optional branch)
+                      (if (map? (:optional branch))
+                        (-> branch :optional :id list)
+                        (-> branch :optional seq))
                       [(_ :guard #(contains? % :oneOrMore))]
-                      (:oneOrMore branch)
+                      (if (map? (:oneOrMore branch))
+                        (-> branch :oneOrMore :id list)
+                        (-> branch :oneOrMore seq))
                       [(_ :guard #(contains? % :zeroOrMore))]
-                      (:zeroOrMore branch)))
-          (make-node [_ _] (constantly nil))]
+                      (if (map? (:zeroOrMore branch))
+                        (-> branch :zeroOrMore :id list)
+                        (-> branch :zeroOrMore seq))))
+          (make-node [node children-seq]
+                     (let [children-vec (vec children-seq)]
+                       (m/match [node]
+                         [(_ :guard #(contains? % :sequence))]
+                         (assoc node :sequence children-vec)
+                         [(_ :guard #(contains? % :alternates))]
+                         (assoc node :alternates children-vec)
+                         [(_ :guard #(contains? % :optional))]
+                         (assoc node :optional children-vec)
+                         [(_ :guard #(contains? % :oneOrMore))]
+                         (assoc node :oneOrMore children-vec)
+                         [(_ :guard #(contains? % :zeroOrMore))]
+                         (assoc node :zeroOrMore children-vec))))]
     (zip/zipper branch? children make-node pattern)))
 
 (defn update-children
@@ -56,34 +75,23 @@
   Patterns), replace the identifiers with their respective objects (either
   a Template map, a Pattern, or an array of Patterns)."
   [pattern-loc objects-map]
-  (letfn [(extract-vec [node k] (mapv (partial get objects-map) (get node k)))
-          (extract-map [node k] (->> node k :id (get objects-map)))]
-    (if (zip/branch? pattern-loc)
-      (zip/edit pattern-loc
-                (fn [node]
-                  (m/match [node]
-                    [(_ :guard #(contains? % :sequence))]
-                    (assoc node :sequence (extract-vec node :sequence))
-                    [(_ :guard #(contains? % :alternates))]
-                    (assoc node :alternates (extract-vec node :alternates))
-                    [(_ :guard #(contains? % :optional))]
-                    (assoc node :optional (extract-map node :optional))
-                    [(_ :guard #(contains? % :oneOrMore))]
-                    (assoc node :oneOrMore (extract-map node :oneOrMore))
-                    [(_ :guard #(contains? % :zeroOrMore))]
-                    (assoc node :zeroOrMore (extract-map node :zerOrMore))
-                    :else node)))
-      ;; Can't change children if they dont' exist  
-      pattern-loc)))
+  (if (zip/branch? pattern-loc)
+    (zip/replace pattern-loc (zip/make-node pattern-loc
+                                            (zip/node pattern-loc)
+                                            (map (partial get objects-map)
+                                                 (zip/children pattern-loc))))
+    ;; Can't change children if they dont' exist  
+    pattern-loc))
 
 (defn grow-pattern-tree
   "Build a tree data structure out of a Pattern using zippers. Each internal
   node is a Pattern and each leaf node is a Statement Template."
   [pattern objects-map]
-  (loop [pattern-loc (zip-pattern pattern)]
+  (loop [pattern-loc (create-zipper pattern)]
     (if (zip/end? pattern-loc)
       (zip/node pattern-loc) ;; Return the root
-      (let [new-loc (map-children pattern-loc objects-map)]
+      (let [new-loc (update-children pattern-loc objects-map)]
+        #_(println new-loc)
         (recur (zip/next new-loc))))))
 
 (defn build-node-fsm
@@ -92,11 +100,16 @@
   nodes."
   [node]
   (m/match [node]
-    [{:type "Pattern" :sequence _}] (fsm/sequence-fsm (:sequence node))
-    [{:type "Pattern" :alternates _}] (fsm/alternates-fsm (:alternates node))
-    [{:type "Pattern" :optional _}] (fsm/optional-fsm  (:optional node))
-    [{:type "Pattern" :zeroOrMore _}] (fsm/zero-or-more-fsm (:zeroOrMore node))
-    [{:type "Pattern" :oneOrMore _}] (fsm/one-or-more-fsm (:oneOrMore node))
+    [{:type "Pattern" :sequence _}]
+    (-> node :sequence fsm/sequence-fsm)
+    [{:type "Pattern" :alternates _}]
+    (-> node :alternates fsm/alternates-fsm)
+    [{:type "Pattern" :optional _}]
+    (-> node :optional first fsm/optional-fsm)
+    [{:type "Pattern" :zeroOrMore _}]
+    (-> node :zeroOrMore first fsm/zero-or-more-fsm)
+    [{:type "Pattern" :oneOrMore _}]
+    (-> node :oneOrMore first fsm/one-or-more-fsm)
     [{:type "StatementTemplate"}]
     (fsm/transition-fsm (:id node) (partial tv/validate-statement-2 node))
     ;; Node is not a map
@@ -107,3 +120,17 @@
   traversal."
   [pattern-tree]
   (w/postwalk build-node-fsm pattern-tree))
+
+(defn profile-to-fsm
+  [profile]
+  (let [objects-map (mapify-all profile)]
+    (-> profile
+        create-zipper (grow-pattern-tree objects-map) mechanize-pattern)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Statement Reading 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(read-next-statement
+ [statement]
+ (fsm/read-next statement))

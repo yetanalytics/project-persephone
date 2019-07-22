@@ -38,7 +38,6 @@
   (letfn [(branch? [node] (contains? #{"Pattern"} (:type node)))
           (children [branch]
                     (m/match [branch]
-                      [{:type ""}]
                       [(_ :guard #(contains? % :sequence))]
                       (-> branch :sequence seq)
                       [(_ :guard #(contains? % :alternates))]

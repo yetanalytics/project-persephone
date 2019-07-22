@@ -4,10 +4,6 @@
             [ubergraph.core :as uber]
             [com.yetanalytics.utils.fsm :as fsm]))
 
-; (defn vowel? [c] (contains? #{\a \e \i \o \u} c))
-; (defn consonant? [c] (contains? #{\b \c \d \f \g \h \j \k \l \m \n \p \q \r \s
-;                                   \t \v \w \x \y \z} c))
-
 ;; Base FSMs
 (def single-odd-fsm (fsm/transition-fsm "o" odd?))
 (def single-even-fsm (fsm/transition-fsm "e" even?))
@@ -37,9 +33,10 @@
            (fsm/read-next* single-odd-fsm #{(:start single-odd-fsm)} 1)))
     (is (= #{}
            (fsm/read-next* single-odd-fsm #{(:start single-odd-fsm)} 2)))
-    (is (= (:accept single-odd-fsm)
-           (let [single-odd-fn (fsm/fsm-function single-odd-fsm)]
-             (-> #{} (single-odd-fn 1) (single-odd-fn 2)))))))
+    (is (not (empty? (:accept-states (fsm/read-next single-odd-fsm 1)))))
+    (is (:rejected-last (->> #{}
+                             (fsm/read-next single-odd-fsm 1)
+                             (fsm/read-next single-odd-fsm 2))))))
 
 (deftest odd-then-even-test
   (testing "odd-then-even fsm: Test functionality of the concatenation of two
@@ -81,16 +78,26 @@
            (fsm/read-next* odd-then-even #{(:start single-even-fsm)} 1)))
     (is (= #{}
            (fsm/read-next* odd-then-even (:accept single-odd-fsm) 1)))
-    (is (= (:accept odd-then-even)
-           (let [odd-then-even-fn (fsm/fsm-function odd-then-even)]
-             (-> #{} (odd-then-even-fn 1) (odd-then-even-fn 2)))))
-    (is (= (:accept odd-then-even)
-           (let [odd-then-even-fn (fsm/fsm-function odd-then-even)]
-             (-> #{} (odd-then-even-fn 1) (odd-then-even-fn 3) (odd-then-even-fn 2)))))
-    (is (= (:accept odd-then-even)
-           (let [odd-then-even-fn (fsm/fsm-function odd-then-even)]
-             (-> #{} (odd-then-even-fn 1) (odd-then-even-fn 2)
-                 (odd-then-even-fn 4) (odd-then-even-fn 5)))))))
+    (is (not (:rejected-last (->> #{}
+                                  (fsm/read-next odd-then-even 1)
+                                  (fsm/read-next odd-then-even 2)))))
+    (is (:rejected-last (->> #{}
+                             (fsm/read-next odd-then-even 1)
+                             (fsm/read-next odd-then-even 3))))
+    (is (not (:rejected-last (->> #{}
+                                  (fsm/read-next odd-then-even 1)
+                                  (fsm/read-next odd-then-even 3)
+                                  (fsm/read-next odd-then-even 2)))))
+    (is (:rejected-last (->> #{}
+                             (fsm/read-next odd-then-even 1)
+                             (fsm/read-next odd-then-even 2)
+                             (fsm/read-next odd-then-even 4)
+                             (fsm/read-next odd-then-even 5))))
+    (is (not (empty? (:accept-states (->> #{}
+                                          (fsm/read-next odd-then-even 1)
+                                          (fsm/read-next odd-then-even 2)
+                                          (fsm/read-next odd-then-even 4)
+                                          (fsm/read-next odd-then-even 5))))))))
 
 (deftest odd-or-even-test
   (testing "odd-or-even fsm: Test functionality of the union of two FSMs.
@@ -119,13 +126,15 @@
     (is (= (:accept single-even-fsm)
            (fsm/read-next* odd-or-even #{(:start single-even-fsm)} 2)))
     (is (= (:accept single-odd-fsm)
-           (fsm/read-next odd-or-even nil 1)))
+           (fsm/read-next* odd-or-even #{(:start odd-or-even)} 1)))
     (is (= (:accept single-even-fsm)
-           (fsm/read-next odd-or-even nil 2)))
-    (is (= (:accept single-odd-fsm)
-           (let [odd-or-even-fn (fsm/fsm-function odd-or-even)]
-             (-> #{} (odd-or-even-fn 1) (odd-or-even-fn 2)
-                 (odd-or-even-fn 4) (odd-or-even-fn 5)))))))
+           (fsm/read-next* odd-or-even #{(:start odd-or-even)} 2)))
+    (is (not (:rejected-last (fsm/read-next odd-or-even 1))))
+    (is (:rejected-last (->> #{}
+                             (fsm/read-next odd-or-even 1)
+                             (fsm/read-next odd-or-even 2)
+                             (fsm/read-next odd-or-even 4)
+                             (fsm/read-next odd-or-even 5))))))
 
 (deftest zero-or-more-odd-test
   (testing "zero-or-more fsm: Test functionality when using the Kleene star
@@ -152,9 +161,7 @@
     (is (= (:accept single-odd-fsm)
            (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)} 1)))
     (is (= #{}
-           (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)}
-
-                           2)))))
+           (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)} 2)))))
 
 (deftest maybe-one-odd-test
   (testing "maybe-one-odd fsm: Test functionality when unioning the FSM with an

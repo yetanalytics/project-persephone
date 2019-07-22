@@ -249,15 +249,21 @@
 (defn read-next
   "Let an FSM, given a current state, read a new symbol.
   If the given state is nil or empty, start at the FSM's start state."
-  [fsm curr-state in-symbol]
-  (let [curr-state (if (empty? curr-state) #{(:start fsm)} curr-state)
-        new-state (read-next* fsm curr-state in-symbol)]
-    (if (empty? new-state)
+  [fsm in-symbol & [curr-state]]
+  (let [{:keys [start accept]} fsm
+        curr-state (if (empty? curr-state)
+                     {:states-set #{start}
+                      :rejected-last false
+                      :accept-states (get accept start)}
+                     curr-state)
+        {:keys [states-set rejected-last accept-states]} curr-state
+        new-states (read-next* fsm states-set in-symbol)]
+    (if (empty? new-states)
       ;; FSM does not accept symbol; backtrack to previous state
-      ;; FIXME Print error log
-      (do #_(print "Reading failed!") curr-state)
+      {:states-set states-set :rejected-last true :accept-states accept-states}
       ;; FSM accepts symbol; return new state
-      new-state)))
+      {:states-set new-states :rejected-last false
+       :accept-states (not-empty (cset/intersection accept new-states))})))
 
 (defn fsm-function
   "Create a function out of an FSM that accepts a state and inputs, for our

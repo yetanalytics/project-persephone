@@ -123,22 +123,19 @@
 ;;           e
 ;;        +------+
 ;;    e   v  A   |
-;; + ---> s ---> a
-;; s  e
-;; + ---> a
+;; a ---> s ---> a
 (defn zero-or-more-fsm
   "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
   machine."
   [sub-fsm]
-  (let [start (new-node) accept (new-node)]
+  (let [node (new-node)]
     (assoc sub-fsm
-           :start start
-           :accept (cset/union (:accept sub-fsm) #{accept})
+           :start node
+           :accept (cset/union (:accept sub-fsm) #{node})
            :graph
            (->
             (:graph sub-fsm)
-            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
-            (uber/add-edges [start accept {:symbol :epsilon}])
+            (uber/add-edges [node (:start sub-fsm) {:symbol :epsilon}])
             (uber/add-edges* (mapv (fn [as]
                                      [as (:start sub-fsm) {:symbol :epsilon}])
                                    (:accept sub-fsm)))))))

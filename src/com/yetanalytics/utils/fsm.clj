@@ -192,11 +192,10 @@
   [fsm state]
   (let [graph (:graph fsm)
         out-edges (-> graph (uber/out-edges state) vec)]
-    (reduce-kv (fn [prev index edge]
-                 (let [input (uber/attr graph edge :symbol)
-                       dest (uber/dest edge)]
-                   (update prev input #(cset/union % #{dest}))))
-               {} out-edges)))
+    (reduce (fn [accum edge]
+              (let [input (uber/attr graph edge :symbol)
+                    dest (uber/dest edge)]
+                (update accum input #(cset/union % #{dest})))) {} out-edges)))
 
 (defn epsilon-closure
   "Return the epsilon closure of a state, ie. the set of states that can be

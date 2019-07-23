@@ -35,7 +35,7 @@
     (is (= {"o" (:accept single-odd-fsm)}
            (fsm/all-deltas single-odd-fsm (:start single-odd-fsm))))
     (is (= #{(:start single-odd-fsm)}
-           (fsm/epsilon-closure single-odd-fsm (:start single-odd-fsm))))
+           (fsm/epsilon-closure single-odd-fsm #{(:start single-odd-fsm)})))
     (is (= (:accept single-odd-fsm)
            (fsm/slurp-transition single-odd-fsm "o" (:accept single-odd-fsm) 1)))
     (is (= (:accept single-odd-fsm)
@@ -68,15 +68,13 @@
            (fsm/all-deltas odd-then-even (-> single-odd-fsm :accept vec (get 0)))))
     (is (= (cset/union (:accept single-odd-fsm)
                        #{(:start single-even-fsm)})
-           (fsm/epsilon-closure odd-then-even
-                                (-> single-odd-fsm :accept vec (get 0)))))
+           (fsm/epsilon-closure odd-then-even (:accept single-odd-fsm :accept))))
     (is (= (:accept odd-then-even)
-           (fsm/epsilon-closure odd-then-even
-                                (-> single-even-fsm :accept vec (get 0)))))
+           (fsm/epsilon-closure odd-then-even (:accept single-even-fsm))))
     (is (= #{(:start single-odd-fsm)}
-           (fsm/epsilon-closure odd-then-even (:start odd-then-even))))
+           (fsm/epsilon-closure odd-then-even #{(:start odd-then-even)})))
     (is (= #{(:start single-even-fsm)}
-           (fsm/epsilon-closure odd-then-even (:start single-even-fsm))))
+           (fsm/epsilon-closure odd-then-even #{(:start single-even-fsm)})))
     (is (= (:accept single-odd-fsm)
            (fsm/read-next* odd-then-even #{(:start odd-then-even)} 1)))
     (is (= (:accept single-even-fsm)
@@ -131,7 +129,7 @@
     (is (= {}
            (fsm/all-deltas odd-or-even (-> odd-or-even :accept vec (get 0)))))
     (is (= #{(:start odd-or-even) (:start single-odd-fsm) (:start single-even-fsm)}
-           (fsm/epsilon-closure odd-or-even (:start odd-or-even))))
+           (fsm/epsilon-closure odd-or-even #{(:start odd-or-even)})))
     (is (= (:accept single-odd-fsm)
            (fsm/read-next* odd-or-even #{(:start single-odd-fsm)} 1)))
     (is (= (:accept single-even-fsm)
@@ -164,11 +162,11 @@
                                                   (:accept single-odd-fsm)))}
            (fsm/all-deltas zero-or-more-odd (:start zero-or-more-odd))))
     (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
-           (fsm/epsilon-closure zero-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+           (fsm/epsilon-closure zero-or-more-odd (:accept single-odd-fsm))))
     (is (= (cset/union #{(:start zero-or-more-odd) (:start single-odd-fsm)}
                        (cset/difference (:accept zero-or-more-odd)
                                         (:accept single-odd-fsm)))
-           (fsm/epsilon-closure zero-or-more-odd (:start zero-or-more-odd))))
+           (fsm/epsilon-closure zero-or-more-odd #{(:start zero-or-more-odd)})))
     (is (= (:accept single-odd-fsm)
            (fsm/read-next* zero-or-more-odd #{(:start zero-or-more-odd)} 1)))
     (is (= #{}
@@ -191,7 +189,7 @@
     (is (= (cset/union #{(:start maybe-one-odd) (:start single-odd-fsm)}
                        (cset/difference (:accept maybe-one-odd)
                                         (:accept single-odd-fsm)))
-           (fsm/epsilon-closure maybe-one-odd (:start maybe-one-odd))))
+           (fsm/epsilon-closure maybe-one-odd #{(:start maybe-one-odd)})))
     (is (= (:accept single-odd-fsm)
            (fsm/read-next* maybe-one-odd #{(:start maybe-one-odd)} 1)))
     (is (= #{}
@@ -209,9 +207,9 @@
     (is (= {:epsilon #{(:start single-odd-fsm)}}
            (fsm/all-deltas one-or-more-odd (:start one-or-more-odd))))
     (is (= (cset/union #{(:start single-odd-fsm)} (:accept single-odd-fsm))
-           (fsm/epsilon-closure one-or-more-odd (-> single-odd-fsm :accept vec (get 0)))))
+           (fsm/epsilon-closure one-or-more-odd (:accept single-odd-fsm))))
     (is (= #{(:start single-odd-fsm) (:start one-or-more-odd)}
-           (fsm/epsilon-closure one-or-more-odd (:start one-or-more-odd))))
+           (fsm/epsilon-closure one-or-more-odd #{(:start one-or-more-odd)})))
     (is (= (:accept one-or-more-odd)
            (fsm/read-next* one-or-more-odd #{(:start one-or-more-odd)} 1)))
     (is (= #{}
@@ -338,6 +336,15 @@
 (deftest odd-star-inception-test
   (testing "odd-star-inception fsm: The single-odd-transition with the Kleene
            star applied three times."
-    (is (not (:rejected-last (fsm/read-next odd-star-inception 1))))))
-
-(run-tests)
+    (is (not (:rejected-last (fsm/read-next odd-star-inception 1))))
+    (is (not (:rejected-last (->> #{}
+                                  (fsm/read-next odd-star-inception 1)
+                                  (fsm/read-next odd-star-inception 3)
+                                  (fsm/read-next odd-star-inception 5)))))
+    (is (:rejected-last (fsm/read-next odd-star-inception 2)))
+    (is (not (empty? (:accept-states (fsm/read-next odd-star-inception 1)))))
+    (is (not (empty?
+              (:accept-states (->> #{}
+                                   (fsm/read-next odd-star-inception 1)
+                                   (fsm/read-next odd-star-inception 3)
+                                   (fsm/read-next odd-star-inception 5))))))))

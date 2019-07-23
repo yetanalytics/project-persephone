@@ -201,15 +201,18 @@
 (defn epsilon-closure
   "Return the epsilon closure of a state, ie. the set of states that can be
   reached by the state using only epsilon transitions (including itself)."
-  [fsm state]
-  (let [deltas (all-deltas fsm state)
-        epsilons (:epsilon deltas)]
-    ;; Implictly perform a breadth-first search, where state is the item
-    ;; removed from the queue, and epsilons the states that are added.
-    (if (nil? epsilons)
-      #{state}
-      (apply cset/union #{state}
-             (mapv (partial epsilon-closure fsm) epsilons)))))
+  [fsm states]
+  ;; Perform BFS using a queue, while also using a set as a state accumulator.
+  ;; Important to not consider states already in the set, or else we would get
+  ;; stuck in infinite cycles.
+  (loop [state-set states
+         state-queue states]
+    (let [deltas (apply merge (mapv (partial all-deltas fsm) state-queue))
+          epsilons (cset/difference (:epsilon deltas) state-set)
+          new-states (cset/union epsilons state-set)]
+      (if (nil? epsilons)
+        new-states
+        (recur new-states epsilons)))))
 
 (defn slurp-transition [fsm input state-set in-symbol]
   "Let an FSM read an incoming symbol against a single edge transition.
@@ -240,11 +243,8 @@
   instead of resetting the state, making it unsutiable for composition (but
   useful for debug purposes)."
   [fsm curr-state in-symbol]
-  (let [e-closure (apply cset/union
-                         (mapv (partial epsilon-closure fsm) curr-state))
-        new-state (apply cset/union
-                         (mapv #(slurp-symbol fsm % in-symbol) e-closure))]
-    new-state))
+  (let [e-closure (epsilon-closure fsm curr-state)]
+    (apply cset/union (mapv #(slurp-symbol fsm % in-symbol) e-closure))))
 
 (defn read-next
   "Let an FSM, given a current state, read a new symbol.

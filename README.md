@@ -2,58 +2,55 @@
 
 A Clojure library for validating xAPI Statements against xAPI Profiles. 
 
-## Gameplan
+## Usage 
 
-### Profile Input Processing
+Given a profile, use the `convert-profile` function in the core namespace
+to convert a Profile (in JSON-LD or EDN format) into a finite state machine
+that can be used by the library.
 
-1. Convert from JSON to EDN.
-2. Convert Statement Templates into specs/patterns/data/..., which can be
-used to validate.
-3. Convert Patterns into Dativity rules/finite state machines, whose
-transitions are Statement Templates.
-
-### Statement Input Processing
-
-Here, we also convert from JSON to EDN, which can be used by our validator in
-a machine-readable format. Statements MUST be matched greedily by our Patterns,
-in temporal order (ie. by timestamp); there is also additional grouping
-requirements given by the `registration` and `subregistration` properties. 
-Alternatively individual Statements MUST be matched by individual Statement
-Templates.
+The FSM can now read, one at a time, Statements, and update its current
+state. It will also return whether the Statement was accepted by the FSM and
+whether the FSM is at an accept state.
 
 ### Validation on Statement Template
 
-Validating a Statement against a Statement Template involves several aspects:
+Validating a Statement against a Statement Template involves three main 
+aspects:
+- Validating against Rules. To do so, we need to use the JSONPath given by
+`location` (and possibly `selector`) to return a set of values from within the
+Statement and match these values against the `presence`, `any`, `all` and
+`none` property. More information can be found in the docstrings and the xAPI
+Profile spec.
 - Validating aginst Determining Properties (the verb, the object activity type,
-and the four context activity types). There are all IRIs or arrays of IRIs, so
-we only need to do a string comparison (more or less).
+and the four context activity types). They can be expressed as rules in which
+the respective values from the Statement MUST be included and given by the
+Statement Template.
 - Validating against StatementRefs (object and context StatementRefTemplates).
 These are arrays of StatementTemplate IRIs, which point to _more_ Statement
 Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
-- Validating against Rules. To do so, we need to use the JSONPath given by
-`location` (and possibly `selector`) and match against `presence` keywords,
-`any`, `all` and `none`.
 
 ### Validation on Pattern
 
-Every pattern is basically a regular expression on a sequence of Statements,
-which can be represented by a finite state machine (FSM). Each pattern type
-is simply a regular expression (which we can then compose):
+Every pattern is represented as a regular expression on a sequence of 
+Statements, which can be represented by a finite state machine (FSM). Each 
+pattern type is simply a regular expression (which we can then compose):
 - `sequence`: ABC
 - `alternates`: A|B|C
 - `optional`: A?
 - `oneOrMore`: A+
 - `zeroOrMore`: A\*
 
-To build our FSM, we will use a Dativity process model (because Will likes it),
-where we have one Role - the Pattern - whose Actions are each Statement 
-Templates (once expanded out). Each Data point is equivalent to a node in an
-FSM (preceding nodes = "required" data; succeeding nodes = "produced" data).
+## TODO
 
-An additional challenge is that we may need to query external profiles for
-Patterns and Statement Templates.
+- Deal with profile-external Templates and Patterns (requires a triple store)
+- Deal with StatementRef properties.
+- Deal with subtleties of reading Statements:
+    - Statements MUST be read in timestamp order.
+    - Statements have additional grouping requirements given by the
+    `registration` and `subregistration` properties.
+- Create a demo of the library with a Profile and a set of Statements.
 
 ## License
 

@@ -215,7 +215,6 @@
     (is (= #{}
            (fsm/read-next* one-or-more-odd #{(:start one-or-more-odd)} 2)))))
 
-;; TODO Add even more tests with crazy compositions
 (deftest odd-star-then-even-test
   (testing "odd-star-then-even fsm: Accepts zero or more odd numbers, then one
            even number."

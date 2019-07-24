@@ -10,10 +10,15 @@
 ;; Util functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(comment
+  ;; example usage of not-empty
+  (nil? (not-empty []))
+  (= ["foo"] (not-empty ["foo"])))
+
 (defn all-matchable?
   "Returns true if every value is matchable, ie. not nil; false otherwise."
   [coll]
-  (and (not (empty? coll))
+  (and (not-empty coll)
        (every? some? coll)))
 
 (defn none-matchable?
@@ -33,36 +38,50 @@
 ;; A Statement MUST follow all the rules in the Statement Template.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn presence-predicate-fn
+  "pulls out the functionality common to the -values? functions
+
+  `pred-fn` should be a fn of 2 arity
+  - first arg = `presence` ie. any | all | none
+  - second arg = `values`"
+  [{:keys [presence values pred-fn]}]
+  (pred-fn (set presence) (set values)))
+
 ;; If 'any' is provided, evaluated values MUST include at least one value
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
-(defn any-values
+(defn any-values?
   "Return true if there's at least one value in 'any'; false otherwise."
   [any values]
-  (let [any-set (set any)
-        values-set (set values)]
-    (not (empty? (cset/intersection values-set any-set)))))
+  (presence-predicate-fn
+   {:presence any
+    :values values
+    ;; must return bool
+    :pred-fn (fn [p v] (-> v (cset/intersection p) empty? not))}))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'
 ;; and MUST NOT include any unmatchable values. In other words, the set of
 ;; 'all' MUST be a superset of the evaluated values.
-(defn all-values
+(defn all-values?
   "Return true is every value is in 'all'; false otherwise."
   [all values]
-  (let [all-set (set all)
-        values-set (set values)]
-    (and (all-matchable? values)
-         (cset/subset? values-set all-set))))
+  (if-not (all-matchable? values)
+    false
+    (presence-predicate-fn
+     {:presence all
+      :values values
+      :pred-fn (fn [p v] (cset/subset? v p))})))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
 ;; intersect.
-(defn none-values
+(defn none-values?
   "Return true if there are no values in 'none'; false otherwise."
   [none values]
-  (let [none-set (set none)
-        values-set (set values)]
-    (empty? (cset/intersection values-set none-set))))
+  (presence-predicate-fn
+   {:presence none
+    :values values
+    :pred-fn (fn [p v] (empty? (cset/intersection v p)))}))
 
 ;; MUST apply the 'any', 'all' and 'none' requirements if presence is missing,
 ;; 'included' or 'recommended' (ie. not 'excluded') and any matchable values
@@ -72,11 +91,11 @@
 ;; value (ie. MUST include at least one matchable value and MUST NOT include
 ;; any unmatchable values). 
 (defn create-included-spec
-  "Returns a predicate for when presence is 'included.'"
+  "Returns a clojure spec for when presence is 'included.'"
   [{:keys [any all none]}]
-  (let [rule-any? (util/cond-partial any-values any)
-        rule-all? (util/cond-partial all-values all)
-        rule-none? (util/cond-partial none-values none)]
+  (let [rule-any? (util/cond-partial any-values? any)
+        rule-all? (util/cond-partial all-values? all)
+        rule-none? (util/cond-partial none-values? none)]
     (s/and all-matchable?
            rule-any?
            rule-all?
@@ -85,9 +104,10 @@
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
 (defn create-excluded-spec
-  "Returns a predicate for when presence is 'excluded.'"
+  "Returns a clojure spec for when presence is 'excluded.'"
   [_]
-  (s/and none-matchable?))
+  ;; the creation of a spec directly from a function is done using `s/spec`
+  (s/spec none-matchable?))
 
 ;; If presence is 'recommended' or is missing, the evaluated values MUST 
 ;; conform to the 'any', 'all' and 'none' specs (but there are no additional
@@ -96,9 +116,9 @@
 (defn create-default-spec
   "Returns a predicate for when presence is 'recommended' or is missing."
   [{:keys [any all none]}]
-  (let [rule-any? (util/cond-partial any-values any)
-        rule-all? (util/cond-partial all-values all)
-        rule-none? (util/cond-partial none-values none)]
+  (let [rule-any? (util/cond-partial any-values? any)
+        rule-all? (util/cond-partial all-values? all)
+        rule-none? (util/cond-partial none-values? none)]
     (s/or :missing none-matchable?
           :not-missing (s/and any-matchable?
                               rule-any?
@@ -135,21 +155,43 @@
   "Given a vector of JSONPath strings and a statement, return a flattened
   vector of evaluated values."
   [statement json-paths]
-  (vec (mapcat identity
-               (mapv (fn [loc] (util/read-json statement loc)) json-paths))))
+  (letfn [(collify [maybe-coll]
+            ;; ensure proper processing within `util/read-json`
+            ;; - no other enformcent that `json-paths` is a coll
+            (if (coll? maybe-coll) maybe-coll [maybe-coll]))
+          (get-by-loc [loc]
+            ;; query `statement` based on `loc`
+            (util/read-json statement loc))
+          (mapcatv [f & colls]
+            ;; semi silly refactor
+            ;; - more concise/effecient than previous version
+            ;; - TODO: worth porting to util?
+            (->> colls (apply mapcat f) vec))]
+    (->> json-paths
+         collify
+         (mapcatv get-by-loc))))
+
+;; in clojure, the special form `recur` handles resource management under the hood
+;; - in the previous form of `find-values`, recursion without recur was used
+;; -- wasn't actually dangerous but this pattern should be avoided when possible
 
 (defn find-values
   "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
   values from a Statement as a vector."
-  [statement location & selector]
+  [statement location & [selector]]
   (let [locations (util/split-json-path location)
-        selectors (first selector)
         values (evaluate-paths statement locations)]
-    ;; If there's a selector, re-evaulate the previously evaluated values
-    (if (some? selectors)
-      (find-values values
-                   (-> selector first (string/replace #"(\$)" "$1[*]")))
-      values)))
+    (if-not (some? selector)
+      values
+      ;; there's a selector
+      (letfn [(format-selector [sel]
+                ;; format for use within `evaluate-paths`
+                (-> sel (string/replace #"(\$)" "$1[*]") util/split-json-path))]
+        (->> selector
+             format-selector
+             ;; dive one level deeper into original location query results
+             ;; - navigate into the results given selector location string
+             (evaluate-paths values))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
@@ -169,49 +211,51 @@
            contextCategoryActivityType
            attachmentUsageType
            rules]}]
-  (into
-   (cond-> []
-     verb
-     (conj {:location "$.verb.id"
-            :presence "included"
-            :all [verb]
-            :determiningProperty "Verb"})
-     objectActivityType
-     (conj {:location "$.object.definition.type"
-            :presence "included"
-            :all [objectActivityType]
-            :determiningProperty "objectActivityType"})
-     contextParentActivityType
-     (conj {:location "$.context.contextActivities.parent[*].definition.type"
-            :presence "included"
-            :all contextParentActivityType
-            :determiningProperty "contextParentActivityType"})
-     contextGroupingActivityType
-     (conj {:location "$.context.contextActivities.grouping[*].definition.type"
-            :presence "included"
-            :all contextGroupingActivityType
-            :determiningProperty "contextGroupingActivityType"})
-     contextCategoryActivityType
-     (conj {:location "$.context.contextActivities.category[*].definition.type"
-            :presence "included"
-            :all contextCategoryActivityType
-            :determiningProperty "contextCategoryActivityType"})
-     contextOtherActivityType
-     (conj {:location "$.context.contextActivities.other[*].definition.type"
-            :presence "included"
-            :all contextOtherActivityType
-            :determiningProperty "contextOtherActivityType"})
-     attachmentUsageType
-     (conj {:location "$.attachments[*].usageType"
-            :presence "included"
-            :all attachmentUsageType
-            :determiningProperty "attachmentUsageType"}))
-   rules))
+  (letfn [(build-det-props [accum]
+            (cond-> accum
+              verb
+              (conj {:location "$.verb.id"
+                     :presence "included"
+                     :all [verb]
+                     :determiningProperty "Verb"})
+              objectActivityType
+              (conj {:location "$.object.definition.type"
+                     :presence "included"
+                     :all [objectActivityType]
+                     :determiningProperty "objectActivityType"})
+              contextParentActivityType
+              (conj {:location "$.context.contextActivities.parent[*].definition.type"
+                     :presence "included"
+                     :all contextParentActivityType
+                     :determiningProperty "contextParentActivityType"})
+              contextGroupingActivityType
+              (conj {:location "$.context.contextActivities.grouping[*].definition.type"
+                     :presence "included"
+                     :all contextGroupingActivityType
+                     :determiningProperty "contextGroupingActivityType"})
+              contextCategoryActivityType
+              (conj {:location "$.context.contextActivities.category[*].definition.type"
+                     :presence "included"
+                     :all contextCategoryActivityType
+                     :determiningProperty "contextCategoryActivityType"})
+              contextOtherActivityType
+              (conj {:location "$.context.contextActivities.other[*].definition.type"
+                     :presence "included"
+                     :all contextOtherActivityType
+                     :determiningProperty "contextOtherActivityType"})
+              attachmentUsageType
+              (conj {:location "$.attachments[*].usageType"
+                     :presence "included"
+                     :all attachmentUsageType
+                     :determiningProperty "attachmentUsageType"})))]
+    ;; refactor makes the process more clear, via seperation of concerns
+    ;; - build rule config from template definition
+    ;; - aggregate all rules together into a single coll
+    (-> [] build-det-props (into rules))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bringing it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 (defn create-rule-validator
   "Given a rule, create a function that will validate new Statements against
@@ -220,8 +264,11 @@
   (let [rule-spec (create-rule-spec rule)]
     (fn [statement]
       (s/describe rule-spec)
+      ;; ^ is this needed to initialize the spec prior to its use?
+      ;; - or is it left over dev code?
       (let [values (find-values statement location selector)]
-
+        ;; nil indicates success
+        ;; spec error data the opposite
         (s/explain-data rule-spec values)))))
 
 (defn create-rule-validators
@@ -232,6 +279,7 @@
     (mapv create-rule-validator new-rules)))
 
 ;; TODO Print error messages as a side effect
+
 (defn validate-statement
   "Given a Statement and a array of validation functions (created from a
   Statement Template), validate the Statement.

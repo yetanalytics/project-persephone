@@ -32,12 +32,6 @@
   [map-vec & ks]
   (mapv #(get-in % ks) map-vec))
 
-(defn predicate
-  "Create a predicate from a 2-arg function and its first argument; the
-  predicate is ignored if said argument is nil."
-  [func value]
-  (cond-on-val value (partial func value)))
-
 (defn json-to-edn
   "Convert a JSON data structure to EDN."
   [js]
@@ -70,6 +64,9 @@
   Queries that cannot be matched will evaluate to a nil value (or values)."
   [json json-path]
   (let [result-map (try (jpath/query (prepare-path json-path) json)
+                        ;; TODO: I think this try/catch is whats preventing
+                        ;;       spec from saying more in its error messages.
+                        ;;       - all other information is lost once the catch returns nil
                         (catch Exception e nil))]
     (if (seq? result-map)
       (mapv :value result-map)

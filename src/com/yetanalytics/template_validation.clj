@@ -161,12 +161,12 @@
             (if (coll? maybe-coll) maybe-coll [maybe-coll]))
           (get-by-loc [loc]
             ;; query `statement` based on `loc`
-            (util/read-json statement loc))
+                      (util/read-json statement loc))
           (mapcatv [f & colls]
             ;; semi silly refactor
             ;; - more concise/effecient than previous version
             ;; - TODO: worth porting to util?
-            (->> colls (apply mapcat f) vec))]
+                   (->> colls (apply mapcat f) vec))]
     (->> json-paths
          collify
          (mapcatv get-by-loc))))
@@ -263,9 +263,6 @@
   [{:keys [location selector] :as rule}]
   (let [rule-spec (create-rule-spec rule)]
     (fn [statement]
-      (s/describe rule-spec)
-      ;; ^ is this needed to initialize the spec prior to its use?
-      ;; - or is it left over dev code?
       (let [values (find-values statement location selector)]
         ;; nil indicates success
         ;; spec error data the opposite
@@ -279,18 +276,9 @@
     (mapv create-rule-validator new-rules)))
 
 ;; TODO Print error messages as a side effect
-
 (defn validate-statement
-  "Given a Statement and a array of validation functions (created from a
-  Statement Template), validate the Statement.
+  "Given a Statement and a Statement Template, validate the Statement.
   Returns true if Statement is valid, false otherwise."
-  [validator-arr statement]
-  (let [error-vec (map #(% statement) validator-arr)]
-    (if (none-matchable? error-vec)
-      true
-      (do (print error-vec) false))))
-
-(defn validate-statement-2
   [template statement]
   (let [new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)

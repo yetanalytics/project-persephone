@@ -144,11 +144,11 @@
            {:id "http://foo.org/p3"
             :type "Pattern"
             :primary true
-            :oneOrMore {:id "http://foo.org/p1"
-                        :type "Pattern"
-                        :primary true
-                        :alternates ["http://foo.org/p2"
-                                     "http://foo.org/t1"]}}))))
+            :oneOrMore [{:id "http://foo.org/p1"
+                         :type "Pattern"
+                         :primary true
+                         :alternates ["http://foo.org/p2"
+                                      "http://foo.org/t1"]}]}))))
 
 (deftest grow-pattern-tree-test
   (testing "grow-pattern-tree function (implicitly also tests update-children)"

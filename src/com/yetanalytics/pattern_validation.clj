@@ -110,7 +110,7 @@
     [{:type "Pattern" :oneOrMore _}]
     (-> node :oneOrMore first fsm/one-or-more-fsm)
     [{:type "StatementTemplate"}]
-    (fsm/transition-fsm (:id node) (partial tv/validate-statement-2 node))
+    (fsm/transition-fsm (:id node) (partial tv/validate-statement node))
     ;; Node is not a map
     :else node))
 
@@ -121,15 +121,13 @@
   (w/postwalk build-node-fsm pattern-tree))
 
 (defn profile-to-fsm
+  "Pipeline function that turns a Profile into a FSM that can perform
+  Statement validation."
   [profile]
   (let [objects-map (mapify-all profile)]
     (-> profile
         create-zipper (grow-pattern-tree objects-map) mechanize-pattern)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Statement Reading 
+;; TODO Statement Reading 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(read-next-statement
- [statement]
- (fsm/read-next statement))

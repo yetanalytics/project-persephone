@@ -140,10 +140,10 @@
   (testing "all-values function: values MUST all be from the values given by
            'all'."
     (is (tv/all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
-                       name-values))
+                        name-values))
     ;; Superset is okay
     (is (tv/all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
-                       name-values))
+                        name-values))
     (is (not (tv/all-values? ["Andrew Downes" "Toby Nichols"] name-values)))
     (is (not (tv/all-values? [] name-values)))
     ;; MUST NOT include any unmatchable values 
@@ -157,7 +157,7 @@
     (is (tv/none-values? ["Will Hoyt" "Milt Reder"] name-values))
     (is (not (tv/none-values? ["Andrew Downes"] name-values)))
     (is (not (tv/none-values? ["Will Hoyt" "Milt Reder" "Ena Hills"]
-                             name-values)))
+                              name-values)))
     (is (tv/none-values? ["Will Hoyt" "Milt Reder"] []))
     (is (tv/none-values? ["Will Hoyt" "Milt Reder"] [nil]))
     (is (not (tv/none-values? [nil] [nil])))
@@ -379,24 +379,19 @@
 
 (deftest validate-statement-test
   (testing "validate-statement function: Validate an entire Statement!"
-    (is (tv/validate-statement (tv/create-rule-validators ex-template)
-                               ex-statement-0))
+    (is (tv/validate-statement ex-template ex-statement-0))
     (is (tv/validate-statement
-         (tv/create-rule-validators
-          {:verb "http://example.com/xapi/verbs#sent-a-statement"})
+         {:verb "http://example.com/xapi/verbs#sent-a-statement"}
          ex-statement-1))
     (is (tv/validate-statement
-         (tv/create-rule-validators
-          {:verb "http://adlnet.gov/expapi/verbs/attempted"})
+         {:verb "http://adlnet.gov/expapi/verbs/attempted"}
          ex-statement-2))
     (is (tv/validate-statement
-         (tv/create-rule-validators
-          {:verb "http://adlnet.gov/expapi/verbs/attended"
-           :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-           :contextCategoryActivityType
-           ["http://example.com/expapi/activities/meetingcategory"]})
+         {:verb "http://adlnet.gov/expapi/verbs/attended"
+          :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+          :contextCategoryActivityType
+          ["http://example.com/expapi/activities/meetingcategory"]}
          ex-statement-3))
     (is (tv/validate-statement
-         (tv/create-rule-validators
-          {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+         {:verb "http://adlnet.gov/expapi/verbs/experienced"}
          ex-statement-4))))

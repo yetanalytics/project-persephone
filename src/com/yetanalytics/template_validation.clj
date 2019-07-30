@@ -2,6 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
+            [clojure.tools.logging :as log]
             [clojure.walk :as w]
             [com.yetanalytics.util :as util]))
 
@@ -286,7 +287,9 @@
   (let [new-rules (add-det-properties template)]
     (mapv create-rule-validator new-rules)))
 
-;; Error messages
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Error messages 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def error-msgs
   {"all-matchable?" "predicate all-matchable? failed: Not all values at the given location were matchable."
@@ -297,16 +300,22 @@
    "rule-none?" "property 'none' failed: None of the values given by 'none' must exist at the location."})
 
 (defn prettify-values
+  "Create a pretty-print string representation of a vector, where each entry
+  is on a new line."
   [val-arr]
   (string/join "\n" (mapv #(str "\t" %) val-arr)))
 
 (defn prettify-eval-values
+  "Either return a pretty-print representation of a vector, or a message if
+  there are no non-nil vals in the vector."
   [val-arr]
   (if (none-matchable? val-arr)
     "\tno matchable values were found at the given location."
     (prettify-values val-arr)))
 
 (defn prettify-rule
+  "Create a pretty-print string representation of a rule, with each property
+  and its value on a new line."
   [rule]
   (let [rule-str (->> rule
                       (w/stringify-keys)
@@ -314,6 +323,7 @@
     (subs rule-str 0 (count rule-str))))
 
 (defn prettify-error
+  "Create a pretty error log output when a property or rule is not followed."
   [{:keys [error rule values]}]
   (let [det-prop (:determiningProperty rule)
         pred (-> error :pred name)]
@@ -331,16 +341,9 @@
            "evaluated values:\n"
            (prettify-eval-values values) "\n"))))
 
-(defn print-all
-  [str-queue]
-  (if (empty? str-queue)
-    nil
-    (do (print (first str-queue))
-        (recur (rest str-queue)))))
-
-;; Validate statement
-;; TODO Print error messages as a side effect
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validate statement 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn validate-statement
   "Given a Statement and a Statement Template, validate the Statement.
@@ -350,6 +353,6 @@
         validators (mapv create-rule-validator new-rules)
         error-vec (map #(% statement) validators)]
     (if-not (none-matchable? error-vec)
-      (do (print-all (map prettify-error (filter some? error-vec)))
+      (do (print (string/join (map prettify-error (filter some? error-vec))))
           false)
       true)))

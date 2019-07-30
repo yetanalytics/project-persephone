@@ -2,6 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
+            [clojure.walk :as w]
             [com.yetanalytics.util :as util]))
 
 ;; TODO StatementRefTemplate predicates
@@ -224,27 +225,32 @@
                      :all [objectActivityType]
                      :determiningProperty "objectActivityType"})
               contextParentActivityType
-              (conj {:location "$.context.contextActivities.parent[*].definition.type"
+              (conj {:location
+                     "$.context.contextActivities.parent[*].definition.type"
                      :presence "included"
                      :all contextParentActivityType
                      :determiningProperty "contextParentActivityType"})
               contextGroupingActivityType
-              (conj {:location "$.context.contextActivities.grouping[*].definition.type"
+              (conj {:location
+                     "$.context.contextActivities.grouping[*].definition.type"
                      :presence "included"
                      :all contextGroupingActivityType
                      :determiningProperty "contextGroupingActivityType"})
               contextCategoryActivityType
-              (conj {:location "$.context.contextActivities.category[*].definition.type"
+              (conj {:location
+                     "$.context.contextActivities.category[*].definition.type"
                      :presence "included"
                      :all contextCategoryActivityType
                      :determiningProperty "contextCategoryActivityType"})
               contextOtherActivityType
-              (conj {:location "$.context.contextActivities.other[*].definition.type"
+              (conj {:location
+                     "$.context.contextActivities.other[*].definition.type"
                      :presence "included"
                      :all contextOtherActivityType
                      :determiningProperty "contextOtherActivityType"})
               attachmentUsageType
-              (conj {:location "$.attachments[*].usageType"
+              (conj {:location
+                     "$.attachments[*].usageType"
                      :presence "included"
                      :all attachmentUsageType
                      :determiningProperty "attachmentUsageType"})))]
@@ -263,10 +269,15 @@
   [{:keys [location selector] :as rule}]
   (let [rule-spec (create-rule-spec rule)]
     (fn [statement]
-      (let [values (find-values statement location selector)]
+      (let [values (find-values statement location selector)
+            error-data (s/explain-data rule-spec values)]
         ;; nil indicates success
         ;; spec error data the opposite
-        (s/explain-data rule-spec values)))))
+        (if-not (nil? error-data)
+          {:error (-> error-data ::s/problems first)
+           :values values
+           :rule rule}
+          nil)))))
 
 (defn create-rule-validators
   "Given a Statement Template, return a vector of validators representing its
@@ -275,7 +286,62 @@
   (let [new-rules (add-det-properties template)]
     (mapv create-rule-validator new-rules)))
 
+;; Error messages
+
+(def error-msgs
+  {"all-matchable?" "predicate all-matchable? failed: Not all values at the given location were matchable."
+   "none-matchable?" "predicate none-matchable? failed: All values at the location must be matchable."
+   "any-matchable?" "predicate any-matchable? failed: There must exist some matchable values at the location."
+   "rule-any?" "property 'any' failed: Values at the location must intersect with the values given by 'any'."
+   "rule-all?" "property 'all' failed: All values found at the location must match the values given by 'all'."
+   "rule-none?" "property 'none' failed: None of the values given by 'none' must exist at the location."})
+
+(defn prettify-values
+  [val-arr]
+  (string/join "\n" (mapv #(str "\t" %) val-arr)))
+
+(defn prettify-eval-values
+  [val-arr]
+  (if (none-matchable? val-arr)
+    "\tno matchable values were found at the given location."
+    (prettify-values val-arr)))
+
+(defn prettify-rule
+  [rule]
+  (let [rule-str (->> rule
+                      (w/stringify-keys)
+                      (reduce-kv (fn [s k v] (str s "\t" k ": " v "\n")) ""))]
+    (subs rule-str 0 (count rule-str))))
+
+(defn prettify-error
+  [{:keys [error rule values]}]
+  (let [det-prop (:determiningProperty rule)
+        pred (-> error :pred name)]
+    (if (some? det-prop)
+      (str "--> Statement Template " det-prop " property was not followed.\n"
+           (get error-msgs pred "an unknown error was encountered.") "\n"
+           "template values:\n "
+           (prettify-values (:all rule)) "\n"
+           "statement values:\n"
+           (prettify-eval-values values) "\n")
+      (str "--> Statement Template rule requirements were not followed.\n"
+           (get error-msgs pred "an unknown error was encountered.") "\n"
+           "rule:\n"
+           (prettify-rule rule)
+           "evaluated values:\n"
+           (prettify-eval-values values) "\n"))))
+
+(defn print-all
+  [str-queue]
+  (if (empty? str-queue)
+    nil
+    (do (print (first str-queue))
+        (recur (rest str-queue)))))
+
+;; Validate statement
 ;; TODO Print error messages as a side effect
+
+
 (defn validate-statement
   "Given a Statement and a Statement Template, validate the Statement.
   Returns true if Statement is valid, false otherwise."
@@ -283,4 +349,7 @@
   (let [new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)
         error-vec (map #(% statement) validators)]
-    (none-matchable? error-vec)))
+    (if-not (none-matchable? error-vec)
+      (do (print-all (map prettify-error (filter some? error-vec)))
+          false)
+      true)))

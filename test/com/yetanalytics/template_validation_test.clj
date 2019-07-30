@@ -395,3 +395,5 @@
     (is (tv/validate-statement
          {:verb "http://adlnet.gov/expapi/verbs/experienced"}
          ex-statement-4))))
+
+(tv/validate-statement ex-template ex-statement-1)

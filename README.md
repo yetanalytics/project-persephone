@@ -31,6 +31,37 @@ Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
 
+Upon validating a Statement, `validate-statement` will either return true on
+success or false on failure while printing an error message. The following is
+an example error messge:
+
+```
+----- Invalid Statement -----
+Statement ID: "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+
+Template Verb property was not matched.
+ template Verb:
+   http://foo.org/verb
+ statement Verb:
+   http://example.com/xapi/verbs#sent-a-statement
+
+Template rule was not followed:
+  {:location "$.actor.member[*].name",
+   :presence "included",
+   :any ["Will Hoyt" "Milt Reder" "John Newman"],
+   :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"]}
+ failed 'included': not all evaluated values were matchable
+ statement values:
+   no values found at location
+
+-----------------------------
+Total errors found: 2
+```
+
+The above error message indicates that the statement's Verb property has an
+incorrect ID and does not match the rule (which requires that the Statement
+have a name property for all of its actor members).
+
 ### Validation on Pattern
 
 Every pattern is represented as a regular expression on a sequence of 

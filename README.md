@@ -95,13 +95,14 @@ semantics library.
 
 ## TODO
 
-- Complete interface with outside world.
+- Complete interface with outside world (converting JSON to EDN, etc.)
 - Deal with profile-external Templates and Patterns (requires a triple store)
-- Deal with StatementRef properties.
+    - Deal with StatementRef properties.
 - Deal with subtleties of reading Statements:
     - Statements MUST be read in timestamp order.
     - Statements have additional grouping requirements given by the
     `registration` and `subregistration` properties.
+- Perform actual logging (rather than simply printing to the console)
 - Create a demo of the library with a Profile and a set of Statements.
 
 ## License

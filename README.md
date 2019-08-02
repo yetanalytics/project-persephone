@@ -31,9 +31,10 @@ Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
 
-Upon validating a Statement, `validate-statement` will either return true on
-success or false on failure while printing an error message. The following is
-an example error messge:
+A user (or a Pattern) will use the `validate-statment` method to validate. Upon
+validating a Statement, `validate-statement` will either return true on
+success, or return false on failure while printing an error message. The 
+following is an example error messge:
 
 ```
 ----- Invalid Statement -----
@@ -66,16 +67,35 @@ have a name property for all of its actor members).
 ### Validation on Pattern
 
 Every pattern is represented as a regular expression on a sequence of 
-Statements, which can be represented by a finite state machine (FSM). Each 
-pattern type is simply a regular expression (which we can then compose):
+Statements, which is internally represented by a finite state machine (FSM).
+All FSMs contain two important parts: a set of states and a set of transitions,
+the latter of which will be our Template-based validation predicates.
+
+Each pattern type is simply a regular expression (which we can then compose):
 - `sequence`: ABC
 - `alternates`: A|B|C
 - `optional`: A?
 - `oneOrMore`: A+
 - `zeroOrMore`: A\*
 
+A Pattern can then be used to validate a stream of Statements, which in the
+library can be done using the `read-next-statement` function. The FSM both
+accepts and returns a map that contains three things: a set of current FSM
+states, whether the last Statement read was accepted or rejected, or whether
+we are at a so-called accept state (which indicates whether we have reached the
+end of the Pattern).
+
+### What about Concepts?
+
+While Concepts are an integral part of most xAPI profiles, this library does
+not concern itself with them. This library is strictly focused on structural
+validation using Statement Templates and Patterns and not on any ontological
+meaning given by Concepts. In other words, this is a syntax library, not a
+semantics library.
+
 ## TODO
 
+- Complete interface with outside world.
 - Deal with profile-external Templates and Patterns (requires a triple store)
 - Deal with StatementRef properties.
 - Deal with subtleties of reading Statements:

@@ -396,4 +396,5 @@
          {:verb "http://adlnet.gov/expapi/verbs/experienced"}
          ex-statement-4))))
 
+;; TODO Turn this into a test
 (tv/validate-statement ex-template ex-statement-1)

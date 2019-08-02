@@ -38,6 +38,7 @@ an example error messge:
 ```
 ----- Invalid Statement -----
 Statement ID: "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+Template ID: http://foo.org/example/template
 
 Template Verb property was not matched.
  template Verb:

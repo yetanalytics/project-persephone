@@ -319,11 +319,7 @@
   "Create a pretty-print string representation of a rule, with each property
   and its value on a new line."
   [rule]
-  (str "  " (-> rule str (string/replace #", " ",\n   ")))
-  #_(let [rule-str (->> rule
-                        (w/stringify-keys)
-                        (reduce-kv (fn [s k v] (str s "\t" k ": " v "\n")) ""))]
-      (subs rule-str 0 (count rule-str))))
+  (str "  " (-> rule str (string/replace #", " ",\n   "))))
 
 (defn prop-error-str
   "Return an error message string for a Determining Property error. Format:
@@ -365,10 +361,11 @@
       (rule-error-str rule pred values))))
 
 (defn print-error
-  "Return an error message for all Template validation errors on a Statement."
-  [error-vec stmt]
+  "Prints an error message for all Template validation errors on a Statement."
+  [error-vec tid sid]
   (do (println (str "----- Invalid Statement -----\n"
-                    "Statement ID: " (-> stmt :id pr-str) "\n"))
+                    "Statement ID: " (pr-str sid) "\n"
+                    "Template ID: " (str tid)) "\n")
       (doseq [error error-vec]
         (println (error-msg-str error)))
       (print (str "-----------------------------\n"
@@ -378,14 +375,16 @@
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 (defn validate-statement
   "Given a Statement and a Statement Template, validate the Statement.
-  Returns true if Statement is valid, false otherwise."
+  Returns true if Statement is valid, false otherwise.
+  Print an error message if we have an invalid Statement."
   [template statement]
-  (let [new-rules (add-det-properties template)
+  (let [temp-id (:id template)
+        stmt-id (:id statement)
+        new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)
         error-vec (map #(% statement) validators)]
     (if-not (none-matchable? error-vec)
-      (do (print-error (filter some? error-vec) statement) false)
+      (do (print-error (filter some? error-vec) temp-id stmt-id) false)
       true)))

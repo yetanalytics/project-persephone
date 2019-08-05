@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.set :as cset]
             [clojure.zip :as zip]
+            [ubergraph.core :as uber]
             [com.yetanalytics.pattern-validation :as pv]
             [com.yetanalytics.utils.fsm :as fsm]))
 
@@ -88,6 +89,19 @@
             "http://foo.org/t3" {:id "http://foo.org/t3"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb3"}}))))
+
+(deftest primary-patterns-test
+  (testing "primary-patterns function: seq of primary patterns"
+    (is (= (pv/primary-patterns ex-profile)
+           '({:id "http://foo.org/p1"
+              :type "Pattern"
+              :primary true
+              :alternates ["http://foo.org/p2"
+                           "http://foo.org/t1"]}
+             {:id "http://foo.org/p3"
+              :type "Pattern"
+              :primary true
+              :oneOrMore {:id "http://foo.org/p1"}})))))
 
 (deftest create-zipper-test
   (testing "create-zipper function"
@@ -246,3 +260,17 @@
                            (fsm/read-next* pattern-2-fsm #{(:start pattern-2-fsm)}
                                            {:verb {:id "http://foo.org/verb1"}})
                            {:verb {:id "http://foo.org/verb9"}})))))
+
+(deftest profile-to-fsm-test
+  (testing "profile-to-fsm function"
+    (is (= 2 (count (pv/profile-to-fsm ex-profile))))
+    (is (every? #(contains? % :start) (pv/profile-to-fsm ex-profile)))
+    (is (every? #(contains? % :accept) (pv/profile-to-fsm ex-profile)))
+    (is (every? #(contains? % :symbols) (pv/profile-to-fsm ex-profile)))
+    (is (every? #(contains? % :graph) (pv/profile-to-fsm ex-profile)))
+    (is (every? #(-> % :graph uber/ubergraph?) (pv/profile-to-fsm ex-profile)))
+    (is (not (:rejected-last
+              (fsm/read-next
+               (first (pv/profile-to-fsm ex-profile))
+               {:id "some-stmt-uuid"
+                :verb {:id "http://foo.org/verb1"}}))))))

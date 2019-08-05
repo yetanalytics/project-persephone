@@ -396,13 +396,13 @@
          {:verb "http://adlnet.gov/expapi/verbs/experienced"}
          ex-statement-4))))
 
-;; TODO Turn this into a test
 (deftest error-msg-test
   (testing "error-message"
-    (is (= (with-out-str (tv/validate-statement ex-template ex-statement-1))
+    (is (= (with-out-str (tv/validate-statement ex-template ex-statement-1
+                                                :err-msg true))
            (str "----- Invalid Statement -----\n"
-                "Statement ID: \"fd41c918-b88b-4b20-a0a5-a4c32391aaa0\"\n"
-                "Template ID: http://foo.org/example/template \n"
+                "Statement ID: fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
+                "Template ID: http://foo.org/example/template\n"
                 "\n"
                 "Template Verb property was not matched.\n"
                 " template Verb:\n"
@@ -468,4 +468,4 @@
                 "   no values found at location\n"
                 "\n"
                 "-----------------------------\n"
-                "Total errors found: 9")))))
+                "Total errors found: 9\n\n")))))

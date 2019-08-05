@@ -6,7 +6,7 @@
             [com.yetanalytics.template-validation :as tv]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Object maps
+;; Object maps and seqs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TODO Patterns from external profiles 
@@ -27,6 +27,11 @@
   "Put all Templates and Patterns of a profile into a unified map."
   [profile]
   (merge (mapify-patterns profile) (mapify-templates profile)))
+
+(defn primary-patterns
+  "Get a sequence of all of the primary Patterns in a Profile."
+  [profile]
+  (->> profile :patterns (filter #(-> % :primary true?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Object maps -> tree data structure -> FSM
@@ -74,11 +79,13 @@
   Patterns), replace the identifiers with their respective objects (either
   a Template map, a Pattern, or an array of Patterns)."
   [pattern-loc objects-map]
+  #_(println (zip/branch? pattern-loc))
   (if (zip/branch? pattern-loc)
-    (zip/replace pattern-loc (zip/make-node pattern-loc
-                                            (zip/node pattern-loc)
-                                            (map (partial get objects-map)
-                                                 (zip/children pattern-loc))))
+    (zip/replace pattern-loc
+                 (zip/make-node pattern-loc
+                                (zip/node pattern-loc)
+                                (map (partial get objects-map)
+                                     (zip/children pattern-loc))))
     ;; Can't change children if they dont' exist  
     pattern-loc))
 
@@ -90,7 +97,6 @@
     (if (zip/end? pattern-loc)
       (zip/node pattern-loc) ;; Return the root
       (let [new-loc (update-children pattern-loc objects-map)]
-        #_(println new-loc)
         (recur (zip/next new-loc))))))
 
 (defn build-node-fsm
@@ -124,10 +130,6 @@
   "Pipeline function that turns a Profile into a FSM that can perform
   Statement validation."
   [profile]
-  (let [objects-map (mapify-all profile)]
-    (-> profile
-        create-zipper (grow-pattern-tree objects-map) mechanize-pattern)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TODO Statement Reading 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (let [o-map (mapify-all profile)
+        p-seq (primary-patterns profile)]
+    (map #(-> % (grow-pattern-tree o-map) mechanize-pattern) p-seq)))

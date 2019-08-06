@@ -244,7 +244,12 @@
 
 (defn read-next
   "Let an FSM, given a current state, read a new symbol.
-  If the given state is nil or empty, start at the FSM's start state."
+  If the given state is nil or empty, start at the FSM's start state.
+  Properties of curr-state map:
+  :states-set - The current set of state IDs.
+  :rejected-last - Whether the FSM has rejected the last input read.
+  :accept-states - The set of accept states the FSM has reached, or nil if it
+  has not reached any."
   [fsm in-symbol & [curr-state]]
   (let [{:keys [start accept]} fsm
         curr-state (if (empty? curr-state)

@@ -8,7 +8,9 @@
 ;; TODO Work with XML and Turtle Profiles
 ;; Also make Exception messages more specific
 (defn compile-profile
-  "Turn a JSON-LD profile into a format that can be used by project-persephone."
+  "Take a JSON-LD profile (or an equivalent EDN data structure) as an argument
+  and returns a sequence of compiled primary Patterns, which can then be used
+  in read-next-statement."
   [profile]
   (try
     (if (string? profile)
@@ -18,9 +20,10 @@
       (p/profile-to-fsm profile))
     (catch Exception e err/profile-exception-msg)))
 
-(defn check-individual-statement
-  "Check an individual Statement against an individual Statement Template.
-  Prints an error if the Statement is invalid."
+(defn validate-statement
+  "Takes in a Statement Template and a Statement as arguments, respectively,
+  and reutrns a boolean. If the function returns false, it prints an error
+  message detailing all validation errors."
   [template statement]
   (try
     (let [statement (if (string? statement) (u/json-to-edn statement) statement)]
@@ -28,9 +31,10 @@
     (catch Exception e err/profile-exception-msg)))
 
 (defn read-next-statement
-  "Use a compiled profile to validate the next Statement in a sequence.
-  Takes in an FSM state as an argument."
-  [pattern statement & [&  curr-state]]
+  "Uses a compiled Pattern and its current state to validate the next Statement
+  in a sequence. Returns a new state if validation is successful or the current
+  state if validation fails."
+  [pattern statement & [curr-state]]
   (try
     (let [statement (if (string? statement) (u/json-to-edn statement) statement)
           next-state (fsm/read-next pattern statement curr-state)]

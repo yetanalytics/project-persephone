@@ -9,9 +9,18 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 
 ## Usage 
 
-Given a profile, use the `convert-profile` function in the core namespace
-to convert a Profile (in JSON-LD or EDN format) into a finite state machine
-that can be used by the library.
+The `project-persephone` namespace has three methods:
+- `validate-statement`: Check an individual Statement against an
+  individual Statement Template.
+- `read-next-statement`: Read a Statement (which may be part of a stream)
+  against a compiled Pattern.
+- `compile-profile`: Compile all primary Patterns from a given Profile into
+  a form usable by the library.
+
+`check-individual-statement` returns a boolean while also printing on false.
+`read-next-statement` and `compile-profile` both return data structures that
+can be used later. It is _your_ responsibility as the user to store the
+returned structure as an atom or other stateful form in your application.
 
 The FSM can now read, one at a time, Statements, and update its current
 state. It will also return whether the Statement was accepted by the FSM and
@@ -36,10 +45,10 @@ Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
 
-A user (or a Pattern) will use the `validate-statment` method to validate. Upon
-validating a Statement, `validate-statement` will either return true on
+A user (or a Pattern) will use the `validate-statement` method to validate.
+Upon validating a Statement, `validate-statement` will either return true on
 success, or return false on failure while printing an error message. The 
-following is an example error messge:
+following is an example error messge from `validate-statement`:
 
 ```
 ----- Invalid Statement -----
@@ -71,24 +80,45 @@ have a name property for all of its actor members).
 
 ### Validation on Pattern
 
-Every pattern is represented as a regular expression on a sequence of 
-Statements, which is internally represented by a finite state machine (FSM).
-All FSMs contain two important parts: a set of states and a set of transitions,
-the latter of which will be our Template-based validation predicates.
+Each Pattern is essentially a regular expression on Statement Templates, which
+can be composed from other Patterns. Internally, after compilation using the
+`compile-profile` method, each Pattern is implemented as a finite state
+machine (FSM), which is mathematically equivalent to finite state machines.
 
-Each pattern type is simply a regular expression (which we can then compose):
-- `sequence`: ABC
-- `alternates`: A|B|C
-- `optional`: A?
-- `oneOrMore`: A+
-- `zeroOrMore`: A\*
+There are five different types of Patterns, based on which of the five
+following properties they have. The `sequence` and `alternates` properties are
+arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give
+a map of a single identifier. The following description are taken from the
+Profile section of the xAPI Profile spec (section 9.0):
+- `sequence`: The Pattern matches if the Patterns or Templates in the array 
+match in the order listed. Equivalent to the concatenation operation in a regex.
+- `alternates`: The Pattern matches if any of the Templates or Patterns in the
+array match. Equivalent to the union operator (`|` in a regex string).
+- `zeroOrMore`: The Pattern matches if the Template or Pattern matches one or
+more times, or is not matched against at all. Equivalent of the Kleene Star
+operation (`*` in a regex string).
+- `oneOrMore`: The Pattern matches if the Template or Pattern matches at least
+one time. Equivalent of the `+` operator in a regex.
+- `optional`: The Pattern matches if the Template or Pattern matches exactly
+once, or not at all. Equivalent of the `?` operator in a regex.
 
-A Pattern can then be used to validate a stream of Statements, which in the
-library can be done using the `read-next-statement` function. The FSM both
-accepts and returns a map that contains three things: a set of current FSM
-states, whether the last Statement read was accepted or rejected, or whether
-we are at a so-called accept state (which indicates whether we have reached the
-end of the Pattern).
+Using `read-next-statement`, a compiled Pattern can read a stream of Statements
+(e.g. from a Kafka stream); in addition to a Statement, the function also
+takes the Pattern state, which is a map of the following entires:
+- `:states-set` - The current set of states that the Pattern FSM is at (which
+is implemented as a set of UUIDs).
+- `rejected-last` - A boolean value that is false if the Pattern has accepted
+the previous Statement (and true if it didn't).
+- `accept-states` - The set of accept states that the Pattern has arrived at.
+All FSMs have a set of accept states, which usually (but not always) indicate
+that we have reached the final state of the FSM and cannot read more inputs.
+
+For more information about the technical details (including how the composition
+of FSMs and the reading of inputs is done), please check out the internal
+documentation, especially in the utils/fsm namespace. It is recommended that
+you also read up on the mathematical theory behind FSMs via Wikipedia and other
+resources; important concepts include non-deterministic finite automata,
+epsilon transitions, and Thompson's Algorithm for FSM composition.
 
 ### What about Concepts?
 
@@ -107,7 +137,10 @@ semantics library.
     - Statements MUST be read in timestamp order.
     - Statements have additional grouping requirements given by the
     `registration` and `subregistration` properties.
-- Perform actual logging (rather than simply printing to the console)
+- Work on error messaging/logging
+    - Perform actual logging (rather than simply printing to the console).
+    - Display better errors (rather than simply the Statement ID) if a Pattern
+    cannot accept a Statement.
 - Create a demo of the library with a Profile and a set of Statements.
 
 ## License

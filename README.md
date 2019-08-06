@@ -45,10 +45,10 @@ Templates that we need to validate against in a recursive manner. These
 additional Statements are referenced by StatementRefs in the original 
 Statement. This can potentially require quering this and other Profiles.
 
-A user (or a Pattern) will use the `validate-statement` method to validate.
-Upon validating a Statement, `validate-statement` will either return true on
-success, or return false on failure while printing an error message. The 
-following is an example error messge from `validate-statement`:
+A user will use the `validate-statement` method to validate. Upon validating a 
+Statement, `validate-statement` will either return true on success, or return 
+false on failure while printing an error message. The following is an example 
+error messge from `validate-statement`:
 
 ```
 ----- Invalid Statement -----
@@ -107,9 +107,9 @@ Using `read-next-statement`, a compiled Pattern can read a stream of Statements
 takes the Pattern state, which is a map of the following entires:
 - `:states-set` - The current set of states that the Pattern FSM is at (which
 is implemented as a set of UUIDs).
-- `rejected-last` - A boolean value that is false if the Pattern has accepted
+- `:rejected-last` - A boolean value that is false if the Pattern has accepted
 the previous Statement (and true if it didn't).
-- `accept-states` - The set of accept states that the Pattern has arrived at.
+- `:accept-states` - The set of accept states that the Pattern has arrived at.
 All FSMs have a set of accept states, which usually (but not always) indicate
 that we have reached the final state of the FSM and cannot read more inputs.
 

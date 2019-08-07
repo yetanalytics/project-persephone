@@ -49,10 +49,9 @@
   in a sequence. Returns a new state if validation is successful or the current
   state if validation fails."
   [pattern statement & [curr-state]]
-  (try
-    (let [statement (if (string? statement) (u/json-to-edn statement) statement)
-          next-state (fsm/read-next pattern statement curr-state)]
-      (if-not (false? (:rejected-last next-state))
-        (do (err/print-bad-statement statement) next-state)
-        next-state))
-    (catch Exception e (println err/statement-exception-msg) nil)))
+  (let [statement (if (string? statement) (u/json-to-edn statement) statement)
+        next-state (fsm/read-next pattern statement curr-state)]
+    (if-not (false? (:rejected-last next-state))
+      (do (err/print-bad-statement statement) next-state)
+      next-state))
+  #_(catch Exception e (println err/statement-exception-msg) nil))

@@ -200,7 +200,7 @@
                 },
                 {
                     "location": "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/sessionid']",
-                    "presence": "included"
+                    "presence": "recommended"
                 }
             ]
         }, {
@@ -230,22 +230,22 @@
                 },
                 {
                     "location": "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/launchmode']",
-                    "presence": "included",
+                    "presence": "recommended",
                     "all": ["Normal", "Browse", "Review"]
                 },
                 {
                     "location": "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/launchurl']",
-                    "presence": "included",
+                    "presence": "recommended",
                     "scopeNote": "The LMS MUST put a fully qualified URL equivalent to the one that the LMS used to launch the AU without the name/value pairs included as defined in section 8.1 in the context extensions of the 'Launched' statement."
                 },
                 {
                     "location": "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/moveon']",
-                    "presence": "included",
+                    "presence": "recommended",
                     "all": ["Passed", "Completed", "CompletedAndPassed", "CompletedOrPassed", "NotApplicable"]
                 },
                 {
                     "location": "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/launchparameters']",
-                    "presence": "included"
+                    "presence": "recommended"
                 }
             ]
         }, {
@@ -429,7 +429,7 @@
                 },
                 {
                     "location": "$.result['https://w3id.org/xapi/cmi5/result/extensions/reason']",
-                    "presence": "included"
+                    "presence": "recommended"
                 },
                 {
                     "location": "$.context.contextActivities.category[*].id",
@@ -511,7 +511,7 @@
                 "en": "Satisfieds"
             },
             "inScheme": "https://w3id.org/xapi/cmi5/v1.0",
-            "zeroOrMore": "https://w3id.org/xapi/cmi5#satisfied"
+            "zeroOrMore": {"id": "https://w3id.org/xapi/cmi5#satisfied"}
         },
         {
             "id": "https://w3id.org/xapi/cmi5#waivedsession",
@@ -646,7 +646,7 @@
                 "en": "Maybe Completed"
             },
             "inScheme": "https://w3id.org/xapi/cmi5/v1.0",
-            "optional": "https://w3id.org/xapi/cmi5#completed"
+            "optional": {"id": "https://w3id.org/xapi/cmi5#completed"}
         },
         {
             "id": "https://w3id.org/xapi/cmi5#typicalsession",
@@ -675,7 +675,7 @@
                 "en": "This pattern provides an option to use zero or more of the alernates for the Typical Session pattern."
             },
             "inScheme": "https://w3id.org/xapi/cmi5/v1.0",
-            "zeroOrMore": "https://w3id.org/xapi/cmi5#typicalsession"
+            "zeroOrMore": {"id": "https://w3id.org/xapi/cmi5#typicalsession"}
         },
         {
             "id": "https://w3id.org/xapi/cmi5#toplevel",
@@ -688,7 +688,7 @@
                 "en": "This pattern describes the sequence of statements sent over the an entire course registration."
             },
             "inScheme": "https://w3id.org/xapi/cmi5/v1.0",
-            "sequence": ["https://w3id.org/xapi/cmi5#satisfieds", "typicalsessions"]
+            "sequence": ["https://w3id.org/xapi/cmi5#satisfieds", "https://w3id.org/xapi/cmi5#typicalsessions"]
         }
 
 

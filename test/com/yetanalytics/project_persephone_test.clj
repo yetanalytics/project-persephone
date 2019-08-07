@@ -64,6 +64,7 @@
                     :min 0
                     :max 100}
             :success true
+            :completion true
             :response "Good job! Let's get dinner!"
             :timestamp "2019-08-10T12:18:00+00:00"}
    :context {:instructor {:objectType "Agent"
@@ -96,3 +97,115 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CMI Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def cmi-profile (slurp "resources/sample_profiles/cmi5.json"))
+(def cmi-fsm (first (compile-profile cmi-profile)))
+(validate-statement (get (profile-templates cmi-profile) 7)
+                    (-> ex-statement
+                        (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/waived")
+                        (update :result dissoc :score)
+                        (assoc-in [:context :contextActivities :category]
+                                  [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+
+(validate-statement (get (profile-templates cmi-profile) 1)
+                    (-> ex-statement
+                        (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/launched")
+                        (update :result dissoc :score)
+                        (update :result dissoc :success)
+                        (update :result dissoc :completion)))
+
+(validate-statement (get (profile-templates cmi-profile) 3)
+                    (-> ex-statement
+                        (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/initialized")
+                        (update :result dissoc :score)
+                        (update :result dissoc :success)
+                        (update :result dissoc :completion)))
+
+(validate-statement (get (profile-templates cmi-profile) 4)
+                    (-> ex-statement
+                        (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/passed")
+                        (update :result dissoc :completion)
+                        (assoc-in [:result :duration] "PT4H35M59.14S")
+                        (assoc-in [:context :contextActivities :category]
+                                  [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+
+(:start cmi-fsm)
+(uber/viz-graph (:graph cmi-fsm) {:auto-label true})
+(deftest pattern-validation-test
+  (testing "validate stream of statements"
+    (is (:rejected-last (read-next-statement cmi-fsm ex-statement)))
+    ;; Accepted by 'satisfied' Template
+    (is (not (:rejected-last
+              (read-next-statement
+               cmi-fsm
+               (-> ex-statement
+                   (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/satisfied")
+                   (update :result dissoc :score)
+                   (update :result dissoc :success)
+                   (update :result dissoc :completion)
+                   (assoc-in [:object :definition :type] "https://w3id.org/xapi/cmi5/activitytype/course"))))))
+    (is (:rejected-last
+         (read-next-statement
+          cmi-fsm
+          (-> ex-statement
+              (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/satisfied")))))
+    ;; Accepted by 'waived' Template
+    (is (not (:rejected-last
+              (read-next-statement
+               cmi-fsm
+               (-> ex-statement
+                   (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/waived")
+                   (update :result dissoc :score)
+                   (assoc-in [:context :contextActivities :category]
+                             [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))))
+    ;; Accepted by 'waived' Template, then 'launched' Template
+    (is '(1 2 3))
+    (is ((:rejected-last
+          (->> {}
+               (read-next-statement
+                cmi-fsm
+                (-> ex-statement
+                    (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/waived")
+                    (update :result dissoc :score)
+                    (assoc-in [:context :contextActivities :category]
+                              [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+               (read-next-statement
+                cmi-fsm
+                (-> ex-statement
+                    (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/launched")
+                    (update :result dissoc :score)
+                    (update :result dissoc :success)
+                    (update :result dissoc :completion)))
+               (read-next-statement
+                cmi-fsm
+                (-> ex-statement
+                    (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/initialized")
+                    (update :result dissoc :score)
+                    (update :result dissoc :success)
+                    (update :result dissoc :completion)))
+               #_(read-next-statement
+                  cmi-fsm
+                  (-> ex-statement
+                      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/passed")
+                      (update :result dissoc :completion)
+                      (assoc-in [:result :duration] "PT4H35M59.14S")
+                      (assoc-in [:context :contextActivities :category]
+                                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+               #_(read-next-statement
+                  cmi-fsm
+                  (-> ex-statement
+                      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/completed")
+                      (update :result dissoc :score)
+                      (update :result dissoc :success)
+                      (assoc-in [:result :duration] "PT4H35M59.14S")
+                      (assoc-in [:context :contextActivities :category]
+                                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+               ;; Skip satisfieds since it's a zeroOrMore 
+               #_(read-next-statement
+                  cmi-fsm
+                  (-> ex-statement
+                      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/terminated-or-abandoned")
+                      (update :result dissoc :score)
+                      (update :result dissoc :success)
+                      (update :result dissoc :completion)
+                      (assoc-in [:result :duration] "PT4H35M59.14S")))))))))

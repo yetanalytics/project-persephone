@@ -264,11 +264,24 @@
 ;; Bringing it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn normalize-rule
+  "Given a rule, normalize singleton values for 'any', 'all' and 'none' by
+  making them singleton-valued arrays, eg. 'foo' becomes ['foo']."
+  [rule]
+  (letfn [(normalize-vals [v] ;; Be careful not to normalize nils
+            (if (some? v) (if (coll? v) v [v])))]
+    (-> rule
+        (update :any normalize-vals)
+        (update :all normalize-vals)
+        (update :none normalize-vals))))
+
+;; TODO Normalize singleton values for 'any', 'all' and 'none' in rules by
+;; turning them into vectors.
 (defn create-rule-validator
   "Given a rule, create a function that will validate new Statements against
   the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec (create-rule-spec rule)]
+  (let [rule-spec (-> rule normalize-rule create-rule-spec)]
     (fn [statement]
       (let [values (find-values statement location selector)
             error-data (s/explain-data rule-spec values)]

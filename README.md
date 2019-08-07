@@ -131,6 +131,9 @@ semantics library.
 ## TODO
 
 - Complete interface with outside world (converting JSON to EDN, etc.)
+- Migrate JSONPath library to Jayway Java implementation
+    - Current lib fails when using recursive descent ("..") for numerical vals.
+    - Current lib does not support string-valued keys.
 - Deal with profile-external Templates and Patterns (requires a triple store)
     - Deal with StatementRef properties.
 - Deal with subtleties of reading Statements:

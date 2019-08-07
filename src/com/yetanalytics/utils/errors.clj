@@ -30,7 +30,7 @@
   "Create a pretty-print string representation of a rule, with each property
   and its value on a new line."
   [rule]
-  (str "  " (-> rule str (string/replace #", " ",\n   "))))
+  (str "  " (-> rule str (string/replace #", (?=:)" ",\n   "))))
 
 (defn prop-error-str
   "Return an error message string for a Determining Property error. Format:

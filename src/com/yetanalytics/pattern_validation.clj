@@ -132,4 +132,5 @@
   [profile]
   (let [o-map (mapify-all profile)
         p-seq (primary-patterns profile)]
-    (map #(-> % (grow-pattern-tree o-map) mechanize-pattern) p-seq)))
+    (not-empty
+     (map #(-> % (grow-pattern-tree o-map) mechanize-pattern) p-seq))))

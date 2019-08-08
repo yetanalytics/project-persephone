@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
-            [com.yetanalytics.persephone.util :as util]
+            [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template-validation :as tv]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -38,28 +38,28 @@
 (deftest value-map-test
   (testing "value-map test: given keys and a vector of maps, we get back a
            vector of the appropriate values."
-    (is (= (util/value-map ex-map-vec :odd) [1 3]))
-    (is (= (util/value-map ex-map-vec :even) [2 4]))
-    (is (= (util/value-map ex-map-vec :not-exist) [nil nil]))
+    (is (= (tv/value-map ex-map-vec :odd) [1 3]))
+    (is (= (tv/value-map ex-map-vec :even) [2 4]))
+    (is (= (tv/value-map ex-map-vec :not-exist) [nil nil]))
     ;; Multiple arguments
-    (is (= (util/value-map ex-map-vec-2 :map :odd) [1 3]))
-    (is (= (util/value-map ex-map-vec-2 :map :even) [2 4]))
-    (is (= (util/value-map ex-map-vec-2 :not-exist :odd) [nil nil]))
-    (is (= (util/value-map ex-map-vec-2 :map :not-exist) [nil nil]))
-    (is (= (util/value-map ex-map-vec :map :odd) [nil nil]))))
+    (is (= (tv/value-map ex-map-vec-2 :map :odd) [1 3]))
+    (is (= (tv/value-map ex-map-vec-2 :map :even) [2 4]))
+    (is (= (tv/value-map ex-map-vec-2 :not-exist :odd) [nil nil]))
+    (is (= (tv/value-map ex-map-vec-2 :map :not-exist) [nil nil]))
+    (is (= (tv/value-map ex-map-vec :map :odd) [nil nil]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ex-statement-1
-  (util/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
+  (json/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
 (def ex-statement-2
-  (util/json-to-edn (slurp "resources/sample_statements/adl_2.json")))
+  (json/json-to-edn (slurp "resources/sample_statements/adl_2.json")))
 (def ex-statement-3
-  (util/json-to-edn (slurp "resources/sample_statements/adl_3.json")))
+  (json/json-to-edn (slurp "resources/sample_statements/adl_3.json")))
 (def ex-statement-4
-  (util/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
+  (json/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
 
 ;; Example template
 (def ex-template

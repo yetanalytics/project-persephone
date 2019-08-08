@@ -2,8 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pprint]
             [com.yetanalytics.persephone :refer :all]
-            [com.yetanalytics.persephone.pattern-validation :as pv]
-            [com.yetanalytics.persephone.util :as u]))
+            [com.yetanalytics.persephone.pattern-validation :as pv]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Will Profile

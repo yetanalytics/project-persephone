@@ -3,7 +3,7 @@
             [com.yetanalytics.persephone.pattern-validation :as p]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
             [com.yetanalytics.persephone.utils.errors :as err]
-            [com.yetanalytics.persephone.util :as u]))
+            [com.yetanalytics.persephone.utils.json :as json]))
 
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages 
@@ -15,7 +15,7 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile u/json-to-edn p/profile-to-fsm)
+    (-> profile json/json-to-edn p/profile-to-fsm)
     ;; EDN
     (p/profile-to-fsm profile)))
 
@@ -26,7 +26,7 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile u/json-to-edn :templates)
+    (-> profile json/json-to-edn :templates)
     ;; EDN
     (-> profile :templates vec)))
 
@@ -35,7 +35,7 @@
   and returns a boolean. If the function returns false, it prints an error
   message detailing all validation errors."
   [template statement]
-  (let [statement (if (string? statement) (u/json-to-edn statement) statement)]
+  (let [statement (if (string? statement) (json/json-to-edn statement) statement)]
     (t/validate-statement template statement :err-msg true)))
 
 (defn read-next-statement
@@ -43,7 +43,7 @@
   in a sequence. Returns a new state if validation is successful or the current
   state if validation fails."
   [pattern statement & [curr-state]]
-  (let [statement (if (string? statement) (u/json-to-edn statement) statement)
+  (let [statement (if (string? statement) (json/json-to-edn statement) statement)
         next-state (fsm/read-next pattern statement curr-state)]
     (if-not (false? (:rejected-last next-state))
       (do (err/print-bad-statement statement) next-state)

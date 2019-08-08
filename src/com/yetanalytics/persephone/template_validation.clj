@@ -3,7 +3,7 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [clojure.walk :as w]
-            [com.yetanalytics.persephone.util :as util]
+            [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as emsg]))
 
 ;; TODO StatementRefTemplate predicates
@@ -21,7 +21,7 @@
     (constantly true)))
 
 (defn cond-partial
-  "Compose Clojure's partial function with util/cond-on-val.
+  "Compose Clojure's partial function with cond-on-val.
   The predicate is only considered when its first argument isn't nil."
   [pred-fn v]
   (cond-on-val (partial pred-fn v) v))
@@ -120,9 +120,9 @@
 (defn create-included-spec
   "Returns a clojure spec for when presence is 'included.'"
   [{:keys [any all none]}]
-  (let [rule-any? (util/cond-partial any-values? any)
-        rule-all? (util/cond-partial all-values? all)
-        rule-none? (util/cond-partial none-values? none)]
+  (let [rule-any? (cond-partial any-values? any)
+        rule-all? (cond-partial all-values? all)
+        rule-none? (cond-partial none-values? none)]
     (s/and all-matchable?
            rule-any?
            rule-all?
@@ -143,9 +143,9 @@
 (defn create-default-spec
   "Returns a predicate for when presence is 'recommended' or is missing."
   [{:keys [any all none]}]
-  (let [rule-any? (util/cond-partial any-values? any)
-        rule-all? (util/cond-partial all-values? all)
-        rule-none? (util/cond-partial none-values? none)]
+  (let [rule-any? (cond-partial any-values? any)
+        rule-all? (cond-partial all-values? all)
+        rule-none? (cond-partial none-values? none)]
     (s/or :missing none-matchable?
           :not-missing (s/and any-matchable?
                               rule-any?
@@ -183,16 +183,16 @@
   vector of evaluated values."
   [statement json-paths]
   (letfn [(collify [maybe-coll]
-            ;; ensure proper processing within `util/read-json`
+            ;; ensure proper processing within `json/read-json`
             ;; - no other enformcent that `json-paths` is a coll
             (if (coll? maybe-coll) maybe-coll [maybe-coll]))
           (get-by-loc [loc]
             ;; query `statement` based on `loc`
-                      (util/read-json statement loc))
+                      (json/read-json statement loc))
           (mapcatv [f & colls]
             ;; semi silly refactor
             ;; - more concise/effecient than previous version
-            ;; - TODO: worth porting to util?
+            ;; - TODO: worth porting to json?
                    (->> colls (apply mapcat f) vec))]
     (->> json-paths
          collify
@@ -206,14 +206,14 @@
   "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
   values from a Statement as a vector."
   [statement location & [selector]]
-  (let [locations (util/split-json-path location)
+  (let [locations (json/split-json-path location)
         values (evaluate-paths statement locations)]
     (if-not (some? selector)
       values
       ;; there's a selector
       (letfn [(format-selector [sel]
                 ;; format for use within `evaluate-paths`
-                (-> sel (string/replace #"(\$)" "$1[*]") util/split-json-path))]
+                (-> sel (string/replace #"(\$)" "$1[*]") json/split-json-path))]
         (->> selector
              format-selector
              ;; dive one level deeper into original location query results

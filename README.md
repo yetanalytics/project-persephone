@@ -22,7 +22,7 @@ a Profile (for use with `validate-statement`).
 `check-individual-statement` returns a boolean while also printing on false.
 All the other methods return data structures (an Ubergraph graph for
 `compile-profile`, a map for `read-next-statement` and a vector of maps for
-`profile-templates) that can be used later. It is _your_ responsibility as the
+`profile-templates`) that can be used later. It is _your_ responsibility as the
 user to store the returned structure as an atom or other stateful form in your
 application.
 

@@ -6,7 +6,7 @@
 ;; Finite State Machine Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; A finite state machine is mathematically defined as a qunituple of the
+;; A finite state machine is mathematically defined as a quintuple of the
 ;; following:
 ;; - Sigma: The input alphabet, a finite and non-empty set of symbols
 ;; - S: A finite, non-empty set of states

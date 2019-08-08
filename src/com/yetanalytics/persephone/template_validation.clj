@@ -12,6 +12,31 @@
 ;; Util functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn cond-on-val
+  "Ensure that predicate is only considered when the value is not nil.
+  Otherwise ignore the predicate by always returning true."
+  [pred-fn v]
+  (if (some? v)
+    pred-fn
+    (constantly true)))
+
+(defn cond-partial
+  "Compose Clojure's partial function with util/cond-on-val.
+  The predicate is only considered when its first argument isn't nil."
+  [pred-fn v]
+  (cond-on-val (partial pred-fn v) v))
+
+;; Currently unused; may be useful sometime in the future.
+(defn value-map
+  "Given an array of keys (each corresponding to a level of map nesting),
+  return corresponding values from a vector of maps."
+  [map-vec & ks]
+  (mapv #(get-in % ks) map-vec))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Basic predicates 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (comment
   ;; example usage of not-empty
   (nil? (not-empty []))

@@ -1,36 +1,11 @@
-(ns com.yetanalytics.persephone.util
+(ns com.yetanalytics.persephone.utils.json
   (:require [clojure.string :as string]
             [cheshire.core :as cheshire]
-            [json-path :as jpath])
-  (:import [com.jayway.jsonpath
-            DocumentContext
-            Configuration
-            JsonPath
-            Criteria
-            Filter
-            Predicate
-            PathNotFoundException]
-           [java.util Date]))
+            [json-path :as jpath]))
 
-(defn cond-on-val
-  "Ensure that predicate is only considered when the value is not nil.
-  Otherwise ignore the predicate by always returning true."
-  [pred-fn v]
-  (if (some? v)
-    pred-fn
-    (constantly true)))
-
-(defn cond-partial
-  "Compose Clojure's partial function with util/cond-on-val.
-  The predicate is only considered when its first argument isn't nil."
-  [pred-fn v]
-  (cond-on-val (partial pred-fn v) v))
-
-(defn value-map
-  "Given an array of keys (each corresponding to a level of map nesting),
-  return corresponding values from a vector of maps."
-  [map-vec & ks]
-  (mapv #(get-in % ks) map-vec))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSON-EDN conversion
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn json-to-edn
   "Convert a JSON data structure to EDN."
@@ -41,6 +16,10 @@
   "Convert an EDN data structure to JSON."
   [edn]
   (cheshire/generate-string edn))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSONPath
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; We require the lookahead group "(?!([^\[]*\]))" to avoid separating along
 ;; pipes within brackets. The "\]" detects a closing bracket, but the "[^\[]"
@@ -73,22 +52,22 @@
       [(:value result-map)])))
 
 #_(defn read-json
-  "Evaluate a JSONPath query given a JSONPath string and JSON.
+    "Evaluate a JSONPath query given a JSONPath string and JSON.
 Always returns a vector of values."
-  [json json-path]
-  (doto (JsonPath/parse json)
-    (.read json-path))
-  #_(if (string? json)
-      (let [compiled (JsonPath/compile json-path (into-array Predicate []))]
-        (first (if-let [ret
-                        (try (.read compiled json)
-                             (catch PathNotFoundException pnfe
-                               nil))]
+    [json json-path]
+    (doto (JsonPath/parse json)
+      (.read json-path))
+    #_(if (string? json)
+        (let [compiled (JsonPath/compile json-path (into-array Predicate []))]
+          (first (if-let [ret
+                          (try (.read compiled json)
+                               (catch PathNotFoundException pnfe
+                                 nil))]
         ;; normalize to vector
-                 (if (coll? ret) ret [ret])
-                 []))
+                   (if (coll? ret) ret [ret])
+                   []))
       ; (if (instance? java.util.Collection values)
       ;   (vec (seq values))
       ;   [values])
       ;values
-        (read-json (edn-to-json json) json-path))))
+          (read-json (edn-to-json json) json-path))))

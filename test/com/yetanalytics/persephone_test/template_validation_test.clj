@@ -4,6 +4,54 @@
             [com.yetanalytics.persephone.util :as util]
             [com.yetanalytics.persephone.template-validation :as tv]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Utils Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn ex-predicate [arg1 arg2] (= arg1 arg2))
+
+(def ex-map-vec [{:odd 1 :even 2} {:odd 3 :even 4}])
+(def ex-map-vec-2 [{:map {:odd 1 :even 2}} {:map {:odd 3 :even 4}}])
+
+(deftest cond-on-val-test
+  (testing "cond-on-val function test: if the value is nil, ignore predicate."
+    (is (function? (tv/cond-on-val some? "some")))
+    (is (function? (tv/cond-on-val some? nil)))
+    (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some")))
+    (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil)))
+    (is (true? ((tv/cond-on-val (partial ex-predicate "foo") 2) "foo")))
+    (is (false? ((tv/cond-on-val (partial ex-predicate "foo") 2) "bar")))
+    (is (true? ((tv/cond-on-val (partial ex-predicate "foo") nil) "bar")))))
+
+(deftest cond-partial-test
+  (testing "cond-partial function test: if the value is not nil, consider
+           function and make it into a one-arg predicate."
+    (is (function? (tv/cond-partial ex-predicate "foo")))
+    (is (function? (tv/cond-partial ex-predicate nil)))
+    (is (true? ((tv/cond-partial ex-predicate "foo") "foo")))
+    (is (false? ((tv/cond-partial ex-predicate "foo") "bar")))
+    (is (true? ((tv/cond-partial ex-predicate nil) "bar")))
+    (is (true? ((tv/cond-partial ex-predicate nil) nil)))))
+
+;; Currently testing an unused function (except for in a test), but we're
+;; keeping it in case it gets used in the future.
+(deftest value-map-test
+  (testing "value-map test: given keys and a vector of maps, we get back a
+           vector of the appropriate values."
+    (is (= (util/value-map ex-map-vec :odd) [1 3]))
+    (is (= (util/value-map ex-map-vec :even) [2 4]))
+    (is (= (util/value-map ex-map-vec :not-exist) [nil nil]))
+    ;; Multiple arguments
+    (is (= (util/value-map ex-map-vec-2 :map :odd) [1 3]))
+    (is (= (util/value-map ex-map-vec-2 :map :even) [2 4]))
+    (is (= (util/value-map ex-map-vec-2 :not-exist :odd) [nil nil]))
+    (is (= (util/value-map ex-map-vec-2 :map :not-exist) [nil nil]))
+    (is (= (util/value-map ex-map-vec :map :odd) [nil nil]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Statement Template Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def ex-statement-1
   (util/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
 (def ex-statement-2
@@ -121,8 +169,8 @@
 ;; Rules predicate tests.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; name-values = ["Andrew Downes" "Toby "Nichols" "Ena Hills"]
-(def name-values (-> ex-statement-3 :actor :member (util/value-map :name)))
+;; $.actor.member[*].name = ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+(def name-values (-> ex-statement-3 :actor :member (tv/value-map :name)))
 
 (deftest any-values-test
   (testing "any-values function: values MUST include at least one value that is

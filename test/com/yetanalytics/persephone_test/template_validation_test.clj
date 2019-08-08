@@ -1,8 +1,8 @@
-(ns com.yetanalytics.template-validation-test
+(ns com.yetanalytics.persephone-test.template-validation-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
-            [com.yetanalytics.util :as util]
-            [com.yetanalytics.template-validation :as tv]))
+            [com.yetanalytics.persephone.util :as util]
+            [com.yetanalytics.persephone.template-validation :as tv]))
 
 (def ex-statement-1
   (util/json-to-edn (slurp "resources/sample_statements/adl_1.json")))

@@ -1,9 +1,9 @@
-(ns com.yetanalytics.project-persephone-test
+(ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pprint]
-            [com.yetanalytics.project-persephone :refer :all]
-            [com.yetanalytics.pattern-validation :as pv]
-            [com.yetanalytics.util :as u]))
+            [com.yetanalytics.persephone :refer :all]
+            [com.yetanalytics.persephone.pattern-validation :as pv]
+            [com.yetanalytics.persephone.util :as u]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Will Profile

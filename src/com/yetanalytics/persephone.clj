@@ -1,9 +1,9 @@
-(ns com.yetanalytics.project-persephone
-  (:require [com.yetanalytics.template-validation :as t]
-            [com.yetanalytics.pattern-validation :as p]
-            [com.yetanalytics.utils.fsm :as fsm]
-            [com.yetanalytics.utils.errors :as err]
-            [com.yetanalytics.util :as u]))
+(ns com.yetanalytics.persephone
+  (:require [com.yetanalytics.persephone.template-validation :as t]
+            [com.yetanalytics.persephone.pattern-validation :as p]
+            [com.yetanalytics.persephone.utils.fsm :as fsm]
+            [com.yetanalytics.persephone.utils.errors :as err]
+            [com.yetanalytics.persephone.util :as u]))
 
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages 

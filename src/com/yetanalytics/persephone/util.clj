@@ -1,4 +1,4 @@
-(ns com.yetanalytics.util
+(ns com.yetanalytics.persephone.util
   (:require [clojure.string :as string]
             [cheshire.core :as cheshire]
             [json-path :as jpath])

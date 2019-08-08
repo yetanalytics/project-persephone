@@ -1,8 +1,8 @@
-(ns com.yetanalytics.util-tests.fsm-tests
+(ns com.yetanalytics.persephone-test.util-tests.fsm-tests
   (:require [clojure.test :refer :all]
             [clojure.set :as cset]
             [ubergraph.core :as uber]
-            [com.yetanalytics.utils.fsm :as fsm]))
+            [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
 ;; Base FSMs
 (def single-odd-fsm (fsm/transition-fsm "o" odd?))

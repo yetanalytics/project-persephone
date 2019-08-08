@@ -1,10 +1,10 @@
-(ns com.yetanalytics.pattern-validation-test
+(ns com.yetanalytics.persephone-test.pattern-validation-test
   (:require [clojure.test :refer :all]
             [clojure.set :as cset]
             [clojure.zip :as zip]
             [ubergraph.core :as uber]
-            [com.yetanalytics.pattern-validation :as pv]
-            [com.yetanalytics.utils.fsm :as fsm]))
+            [com.yetanalytics.persephone.pattern-validation :as pv]
+            [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
 (def ex-profile
   {:templates [{:id "http://foo.org/t1"

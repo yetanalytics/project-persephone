@@ -1,9 +1,9 @@
-(ns com.yetanalytics.pattern-validation
+(ns com.yetanalytics.persephone.pattern-validation
   (:require [clojure.core.match :as m]
             [clojure.walk :as w]
             [clojure.zip :as zip]
-            [com.yetanalytics.utils.fsm :as fsm]
-            [com.yetanalytics.template-validation :as tv]))
+            [com.yetanalytics.persephone.utils.fsm :as fsm]
+            [com.yetanalytics.persephone.template-validation :as tv]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Object maps and seqs

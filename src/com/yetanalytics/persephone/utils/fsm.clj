@@ -1,4 +1,4 @@
-(ns com.yetanalytics.utils.fsm
+(ns com.yetanalytics.persephone.utils.fsm
   (:require [clojure.set :as cset]
             [ubergraph.core :as uber]))
 

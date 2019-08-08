@@ -1,10 +1,10 @@
-(ns com.yetanalytics.template-validation
+(ns com.yetanalytics.persephone.template-validation
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [clojure.walk :as w]
-            [com.yetanalytics.util :as util]
-            [com.yetanalytics.utils.errors :as emsg]))
+            [com.yetanalytics.persephone.util :as util]
+            [com.yetanalytics.persephone.utils.errors :as emsg]))
 
 ;; TODO StatementRefTemplate predicates
 

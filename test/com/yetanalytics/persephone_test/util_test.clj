@@ -1,7 +1,7 @@
-(ns com.yetanalytics.util-test
+(ns com.yetanalytics.persephone-test.util-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
-            [com.yetanalytics.util :as util]))
+            [com.yetanalytics.persephone.util :as util]))
 
 (defn ex-predicate [arg1 arg2] (= arg1 arg2))
 

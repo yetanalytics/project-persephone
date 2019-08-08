@@ -1,4 +1,4 @@
-(ns com.yetanalytics.utils.errors
+(ns com.yetanalytics.persephone.utils.errors
   (:require [clojure.string :as string]))
 
 ;; Generic error messages

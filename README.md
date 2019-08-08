@@ -9,18 +9,22 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 
 ## Usage 
 
-The `project-persephone` namespace has three methods:
+The `project-persephone` namespace has four methods:
 - `validate-statement`: Check an individual Statement against an
   individual Statement Template.
 - `read-next-statement`: Read a Statement (which may be part of a stream)
   against a compiled Pattern.
 - `compile-profile`: Compile all primary Patterns from a given Profile into
   a form usable by the library.
+- `profile-templates`: Returns a vector of Statement Templates (as EDN) from
+a Profile (for use with `validate-statement`).
 
 `check-individual-statement` returns a boolean while also printing on false.
-`read-next-statement` and `compile-profile` both return data structures that
-can be used later. It is _your_ responsibility as the user to store the
-returned structure as an atom or other stateful form in your application.
+All the other methods return data structures (an Ubergraph graph for
+`compile-profile`, a map for `read-next-statement` and a vector of maps for
+`profile-templates) that can be used later. It is _your_ responsibility as the
+user to store the returned structure as an atom or other stateful form in your
+application.
 
 The FSM can now read, one at a time, Statements, and update its current
 state. It will also return whether the Statement was accepted by the FSM and
@@ -96,7 +100,7 @@ match in the order listed. Equivalent to the concatenation operation in a regex.
 array match. Equivalent to the union operator (`|` in a regex string).
 - `zeroOrMore`: The Pattern matches if the Template or Pattern matches one or
 more times, or is not matched against at all. Equivalent of the Kleene Star
-operation (`*` in a regex string).
+operation (`\*` in a regex string).
 - `oneOrMore`: The Pattern matches if the Template or Pattern matches at least
 one time. Equivalent of the `+` operator in a regex.
 - `optional`: The Pattern matches if the Template or Pattern matches exactly
@@ -143,8 +147,9 @@ semantics library.
 - Work on error messaging/logging
     - Perform actual logging (rather than simply printing to the console).
     - Display better errors (rather than simply the Statement ID) if a Pattern
-    cannot accept a Statement.
-- Create a demo of the library with a Profile and a set of Statements.
+    cannot accept a Statement. (This requires work on the FSM library.)
+    - Catch exceptions caused by JSON-to-EDN parsing.
+- Squish bugs (see Issue tracker).
 
 ## License
 

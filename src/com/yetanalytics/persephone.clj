@@ -26,17 +26,9 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile json/json-to-edn :templates)
+    (->> profile json/json-to-edn :templates (mapv t/template-valid))
     ;; EDN
-    (-> profile :templates vec)))
-
-(defn validate-statement
-  "Takes in a Statement Template and a Statement as arguments, respectively,
-  and returns a boolean. If the function returns false, it prints an error
-  message detailing all validation errors."
-  [template statement]
-  (let [statement (if (string? statement) (json/json-to-edn statement) statement)]
-    (t/validate-statement template statement :err-msg true)))
+    (->> profile :templates (mapv t/template-valid))))
 
 (defn read-next-statement
   "Uses a compiled Pattern and its current state to validate the next Statement
@@ -48,3 +40,11 @@
     (if-not (false? (:rejected-last next-state))
       (do (err/print-bad-statement statement) next-state)
       next-state)))
+
+(defn validate-statement
+  "Takes in a Statement Template and a Statement as arguments, respectively,
+  and returns a boolean. If the function returns false, it prints an error
+  message detailing all validation errors."
+  [template statement]
+  (let [statement (if (string? statement) (json/json-to-edn statement) statement)]
+    (t/validate-statement template statement :err-msg true)))

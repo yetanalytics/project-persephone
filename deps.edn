@@ -5,6 +5,9 @@
         json-path {:mvn/version "1.0.1"}
         cheshire {:mvn/version "5.8.1"}
         ubergraph {:mvn/version "0.5.3"}
+        ;; Latest commit as of August 9, 2019
+        com.yetanalytics/project-pan {:git/url "git@github.com:yetanalytics/project-pan.git" 
+                                      :sha "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}
         }
  :aliases
  {:test {:extra-paths ["test"]
@@ -14,4 +17,5 @@
                 {:git/url "https://github.com/cognitect-labs/test-runner"
                  :sha "cb96e80f6f3d3b307c59cbeb49bb0dcb3a2a780b"}}
    :main-opts ["-m" "cognitect.test-runner"
-               "-d" "test"]}}}
+               "-d" "test"]}}
+ :mvn/repos {"jitpack" {:url "https://jitpack.io"}}}

@@ -304,7 +304,7 @@
                 {
                     "location": "$.context.contextActivities.category[*].id",
                     "presence": "included",
-                    "any": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "any": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {
@@ -337,7 +337,7 @@
                 {
                     "location": "$.context.contextActivities.category[*].id",
                     "presence": "included",
-                    "any": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "any": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {
@@ -370,7 +370,7 @@
                 {
                     "location": "$.context.contextActivities.category[*].id",
                     "presence": "included",
-                    "any": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "any": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {
@@ -434,7 +434,7 @@
                 {
                     "location": "$.context.contextActivities.category[*].id",
                     "presence": "included",
-                    "any": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "any": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {

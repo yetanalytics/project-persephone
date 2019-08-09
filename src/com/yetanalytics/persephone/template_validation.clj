@@ -3,6 +3,7 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
             [clojure.walk :as w]
+            [com.yetanalytics.pan.objects.template :as template]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as emsg]))
 
@@ -289,24 +290,11 @@
 ;; Bringing it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn normalize-rule
-  "Given a rule, normalize singleton values for 'any', 'all' and 'none' by
-  making them singleton-valued arrays, eg. 'foo' becomes ['foo']."
-  [rule]
-  (letfn [(normalize-vals [v] ;; Be careful not to normalize nils
-            (if (some? v) (if (coll? v) v [v])))]
-    (-> rule
-        (update :any normalize-vals)
-        (update :all normalize-vals)
-        (update :none normalize-vals))))
-
-;; TODO Normalize singleton values for 'any', 'all' and 'none' in rules by
-;; turning them into vectors.
 (defn create-rule-validator
   "Given a rule, create a function that will validate new Statements against
   the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec (-> rule normalize-rule create-rule-spec)]
+  (let [rule-spec (create-rule-spec rule)]
     (fn [statement]
       (let [values (find-values statement location selector)
             error-data (s/explain-data rule-spec values)]
@@ -329,18 +317,38 @@
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn validate-statement
+(defn template-valid
+  "Given a Statement Template, throw an exception if it is syntactically
+  invalid. If it's valid, return it instead (similar to spec/conform)."
+  [template]
+  (let [errors (s/explain-data ::template/template template)]
+    (if (some? errors)
+      (throw (ex-info "Template Validation Exception" errors))
+      template)))
+
+(defn validate-statement*
   "Given a Statement and a Statement Template, validate the Statement.
-  Returns true if Statement is valid, false otherwise.
-  Set err-msg argument to true to print errors."
-  [template statement & {:keys [err-msg] :or {err-msg false}}]
-  (let [temp-id (:id template)
-        stmt-id (:id statement)
-        new-rules (add-det-properties template)
+ Returns nil if the Statement is valid, the spec error map otherwise"
+  [template statement]
+  (let [new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)
         error-vec (map #(% statement) validators)]
     (if-not (none-matchable? error-vec)
+      error-vec
+      nil)))
+
+(defn validate-statement
+  "Given a Statement and a Statement Template, validate the Statement.
+  Returns true if Statement is valid, false otherwise.
+  Set err-msg argument to true to print errors.
+  Note: Assumes syntactically valid Template and Statement already."
+  [template statement & {:keys [err-msg] :or {err-msg false}}]
+  (let [temp-id (:id template)
+        stmt-id (:id statement)
+        error-vec (validate-statement* template statement)]
+    (if-not (nil? error-vec)
       (if (true? err-msg)
-        (do (emsg/print-error (filter some? error-vec) temp-id stmt-id) false)
+        (do (emsg/print-error (filter some? error-vec) temp-id stmt-id)
+            false)
         false)
       true)))

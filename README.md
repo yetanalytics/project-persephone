@@ -9,15 +9,15 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 
 ## Usage 
 
-The `project-persephone` namespace has four methods:
-- `validate-statement`: Check an individual Statement against an
-  individual Statement Template.
-- `read-next-statement`: Read a Statement (which may be part of a stream)
-  against a compiled Pattern.
-- `compile-profile`: Compile all primary Patterns from a given Profile into
-  a form usable by the library.
+The `persephone` namespace has four methods:
 - `profile-templates`: Returns a vector of Statement Templates (as EDN) from
 a Profile (for use with `validate-statement`).
+- `validate-statement`: Check an individual Statement against an
+  individual Statement Template.
+- `compile-profile`: Compile all primary Patterns from a given Profile into
+  a form usable by the library.
+- `read-next-statement`: Read a Statement (which may be part of a stream)
+  against a compiled Pattern.
 
 `check-individual-statement` returns a boolean while also printing on false.
 All the other methods return data structures (an Ubergraph graph for

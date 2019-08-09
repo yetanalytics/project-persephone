@@ -6,7 +6,8 @@
             [com.yetanalytics.persephone.utils.json :as json]))
 
 ;; TODO: Work with XML and Turtle Profiles
-;; TODO: Add Exception messages 
+;; TODO: Add Exception messages
+;; TODO: Add project-pan integration
 (defn compile-profile
   "Take a JSON-LD profile (or an equivalent EDN data structure) as an argument
   and returns a sequence of compiled primary Patterns, which can then be used
@@ -26,9 +27,9 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (->> profile json/json-to-edn :templates (mapv t/template-valid))
+    (->> profile json/json-to-edn :templates)
     ;; EDN
-    (->> profile :templates (mapv t/template-valid))))
+    (->> profile :templates)))
 
 (defn read-next-statement
   "Uses a compiled Pattern and its current state to validate the next Statement

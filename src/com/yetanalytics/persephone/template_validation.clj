@@ -317,6 +317,7 @@
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO Currently unused; need to add this back in to validate Templates
 (defn template-valid
   "Given a Statement Template, throw an exception if it is syntactically
   invalid. If it's valid, return it instead (similar to spec/conform)."

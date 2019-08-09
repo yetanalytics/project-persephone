@@ -1,7 +1,10 @@
 (ns com.yetanalytics.persephone.pattern-validation
-  (:require [clojure.core.match :as m]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.core.match :as m]
             [clojure.walk :as w]
             [clojure.zip :as zip]
+            [com.yetanalytics.pan.objects.template :as template]
+            [com.yetanalytics.pan.objects.pattern :as pattern]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
             [com.yetanalytics.persephone.template-validation :as tv]))
 
@@ -79,7 +82,6 @@
   Patterns), replace the identifiers with their respective objects (either
   a Template map, a Pattern, or an array of Patterns)."
   [pattern-loc objects-map]
-  #_(println (zip/branch? pattern-loc))
   (if (zip/branch? pattern-loc)
     (zip/replace pattern-loc
                  (zip/make-node pattern-loc
@@ -128,7 +130,8 @@
 
 (defn profile-to-fsm
   "Pipeline function that turns a Profile into a FSM that can perform
-  Statement validation."
+  Statement validation. Note: Assumes syntactically valid Patterns from a valid
+  Profile."
   [profile]
   (let [o-map (mapify-all profile)
         p-seq (primary-patterns profile)]

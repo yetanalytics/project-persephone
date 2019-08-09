@@ -134,7 +134,6 @@ semantics library.
 
 ## TODO
 
-- Complete interface with outside world (converting JSON to EDN, etc.)
 - Migrate JSONPath library to Jayway Java implementation
     - Current lib fails when using recursive descent ("..") for numerical vals.
     - Current lib does not support string-valued keys.
@@ -144,11 +143,14 @@ semantics library.
     - Statements MUST be read in timestamp order.
     - Statements have additional grouping requirements given by the
     `registration` and `subregistration` properties.
+- Integrate project-pan and xapi-schema
+    - We need these libraries to validate Statements, Templates and Patterns
+    (or else we potentially get exceptions, infinite loops, etc.)
 - Work on error messaging/logging
     - Perform actual logging (rather than simply printing to the console).
     - Display better errors (rather than simply the Statement ID) if a Pattern
     cannot accept a Statement. (This requires work on the FSM library.)
-    - Catch exceptions caused by JSON-to-EDN parsing.
+    - Catch exceptions and properly display error messages.
 - Squish bugs (see Issue tracker).
 
 ## License

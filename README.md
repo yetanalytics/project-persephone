@@ -87,7 +87,7 @@ have a name property for all of its actor members).
 Each Pattern is essentially a regular expression on Statement Templates, which
 can be composed from other Patterns. Internally, after compilation using the
 `compile-profile` method, each Pattern is implemented as a finite state
-machine (FSM), which is mathematically equivalent to finite state machines.
+machine (FSM), which is mathematically equivalent to regular expressions.
 
 There are five different types of Patterns, based on which of the five
 following properties they have. The `sequence` and `alternates` properties are

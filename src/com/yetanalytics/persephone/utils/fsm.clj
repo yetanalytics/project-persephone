@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm
   (:require [clojure.set :as cset]
+            [clojure.string :as string]
             [dorothy.core :as dorothy]
             [dorothy.jvm :as djvm]))
 
@@ -75,11 +76,15 @@
              (concat accum
                      (reduce-kv
                       (fn [accum symb dests]
-                        (concat accum
-                                (reduce (fn [accum dest]
-                                          (conj accum [src dest {:label symb}]))
-                                        []
-                                        dests)))
+                        (if (coll? dests)
+                          ; NFA: destinations are sets of states
+                          (concat accum
+                                  (reduce (fn [accum dest]
+                                            (conj accum [src dest {:label symb}]))
+                                          []
+                                          dests))
+                          ; DFA: destinations are single states
+                          (conj accum [src dests {:label symb}])))
                       []
                       trans)))
            []
@@ -98,18 +103,7 @@
      :states #{start accept}
      :start start
      :accepts #{accept}
-     :transitions {start {fn-symbol #{accept}}
-                   accept {}}}))
-
-(def odd-fsm (transition-fsm-2 "odd" odd?))
-(def even-fsm (transition-fsm-2 "even" even?))
-
-(fsm->graphviz odd-fsm)
-(-> odd-fsm fsm->graphviz dorothy/dot djvm/show!)
-
-(-> (dorothy/digraph [[:a :b :c] [:b :d]])
-    dorothy/dot
-    djvm/show!)
+     :transitions {start {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
 (defn concat-fsm-2 [fsm-coll]
@@ -134,9 +128,6 @@
           (recur new-fsm remain-fsm))))
     (throw (Exception. "Undefined for empty collection of FSMs"))))
 
-(def odd-then-even-fsm (concat-fsm-2 [odd-fsm even-fsm]))
-(-> odd-then-even-fsm fsm->graphviz dorothy/dot djvm/show!)
-
 ;;    + --> s ==> s --v
 ;; -> q               f
 ;;    + --> s ==> s --^
@@ -146,13 +137,15 @@
         old-starts (set (mapv :start fsm-coll))
         old-accepts (mapv #(-> % :accepts first) fsm-coll)
         reduce-eps-trans
-        (partial
-         reduce
-         (fn [acc state]
-           (update-in acc [state :epsilon] (fn [d] (cset/union d #{new-accept})))))]
-    {:symbols (merge (map :symbols fsm-coll))
+        (partial reduce
+                 (fn [acc state]
+                   (update-in acc
+                              [state :epsilon]
+                              (fn [d] (cset/union d #{new-accept})))))]
+    {:symbols (into {} (mapcat :symbols fsm-coll))
      :states (cset/union
-              (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} fsm-coll)
+              (reduce
+               (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} fsm-coll)
               #{new-start new-accept})
      :start new-start
      :accepts #{new-accept}
@@ -161,9 +154,6 @@
       (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} fsm-coll)
       (reduce-eps-trans old-accepts)
       (update-in [new-start :epsilon] (fn [_] old-starts)))}))
-
-(def odd-or-even-fsm (union-fsm-2 [odd-fsm even-fsm]))
-(-> odd-or-even-fsm fsm->graphviz dorothy/dot djvm/show!)
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -185,9 +175,6 @@
       (update-in
        [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
 
-(def odd-zero-or-more-fsm (kleene-fsm-2 odd-fsm))
-(-> odd-zero-or-more-fsm fsm->graphviz dorothy/dot djvm/show!)
-
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
 (defn optional-fsm-2 [fsm]
@@ -206,9 +193,6 @@
        [new-start :epsilon] #(cset/union % #{old-start new-accept}))
       (update-in
        [old-accept :epsilon] #(cset/union % #{new-accept})))}))
-
-(def odd-optional-fsm (optional-fsm-2 odd-fsm))
-(-> odd-optional-fsm fsm->graphviz dorothy/dot djvm/show!)
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -229,21 +213,129 @@
       (update-in
        [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
 
-(def odd-one-or-more-fsm (plus-fsm-2 odd-fsm))
-(-> odd-one-or-more-fsm fsm->graphviz dorothy/dot djvm/show!)
+(defn init-queue [init] (conj clojure.lang.PersistentQueue/EMPTY init))
 
 (defn epsilon-closure-2
   "Returns the epsilon closure (performs a BFS internally)"
   [fsm init-state]
-  (loop [visited-states #{} state-queue (seq [init-state])]
+  (loop [visited-states #{}
+         state-queue (init-queue init-state)]
     (if-let [state (peek state-queue)]
       (if-not (contains? visited-states state)
-        (let [visited-states' (conj visited-states state)
-              next-states (-> fsm :transitions state :epsilon)
-              state-queue' (concat state-queue next-states)]
+        (let [visited-states'
+              (conj visited-states state)
+              next-states
+              (-> fsm :transitions (get state) :epsilon seq)
+              state-queue'
+              (reduce
+               (fn [queue s] (conj queue s))
+               (pop state-queue)
+               next-states)]
           (recur visited-states' state-queue'))
         visited-states)
       visited-states)))
+
+(defn move
+  [nfa symb-input state]
+  (if-let [trans (-> nfa :transitions (get state))]
+    (->> trans
+         (filterv (fn [[symb _]] (= symb-input symb)))
+         (mapcat (fn [[_ dests]] dests)))
+    nil))
+
+#_(defn move-all
+    "Given an NFA and a state, return the set of states after all possible non-
+  epsilon transitions."
+    [nfa state]
+    (reduce-kv
+     (fn [accum symb dests] (if-not (= symb :epsilon) (conj accum dests) accum))
+     []
+     (-> nfa :transitions state)))
+
+(defn nfa-states->dfa-state [nfa-states]
+  (if (not-empty nfa-states)
+    (->> nfa-states vec sort (map str) (string/join "-"))
+    "FAIL"))
+
+(defn construct-powerset
+  "Given an NFA with epsilon transitions, perform the powerset construction in
+   order to (semi)-determinize it and remove epsilon transitions."
+  [nfa]
+  ;; Pseudocode from:
+  ;;    http://www.cs.nuim.ie/~jpower/Courses/Previous/parsing/node9.html
+  ;; 1. Create the start state of the DFA by taking the epsilon closure of the
+  ;;    start state of the NFA.
+  ;; 2. Perform the following for the new DFA state:
+  ;;    For each possible input symbol:
+  ;;     a) Apply move to the newly-created state and the input symbol; this
+  ;;        will return a set of states.
+  ;;     b) Apply the epsilon closure to this set of states, possibly resulting
+  ;;        in a new set.
+  ;;    This set of NFA states will be a single state in the DFA.
+  ;; 4. Each time we generate a new DFA state, we must apply step 2 to it. The
+  ;;    process is complete when applying step 2 does not yield any new states.
+  ;; 5. The finish states of the DFA are those which contain any of the finish
+  ;;    states of the NFA.
+  (let [{symbols :symbols
+         nfa-start :start
+         nfa-accepts :accepts} nfa
+        nfa-start-eps-close (epsilon-closure-2 nfa nfa-start)
+        dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
+    (loop [dfa
+           {:symbols symbols
+            :states #{dfa-start}
+            :start dfa-start
+            :accepts #{}
+            :transitions {}}
+           queue (init-queue nfa-start-eps-close)]
+      (if-let [nfa-states (peek queue)]
+        (let [queue'
+              (pop queue)
+              dfa-state
+              (nfa-states->dfa-state nfa-states)
+              [queue'' dfa']
+              (reduce
+               (fn [[queue dfa] symb]
+                 (let [next-nfa-states
+                       (->>
+                        nfa-states
+                        (mapcat (partial move nfa symb))
+                        (mapcat (partial epsilon-closure-2 nfa))
+                        set)
+                       next-dfa-state
+                       (nfa-states->dfa-state next-nfa-states)
+                       new-dfa
+                       (->
+                        dfa
+                        (update :states conj next-dfa-state)
+                        (update :accepts
+                                (if (not-empty (cset/intersection
+                                                nfa-accepts
+                                                next-nfa-states))
+                                  #(conj % next-dfa-state)
+                                  (partial identity)))
+                        (update-in
+                         [:transitions dfa-state]
+                         merge
+                         {symb next-dfa-state}))
+                       new-queue
+                       (if (and (not (contains? (:states dfa) next-dfa-state))
+                                (not-empty next-nfa-states))
+                         (conj queue next-nfa-states)
+                         queue)]
+                   [new-queue new-dfa]))
+               [queue' dfa]
+               (keys symbols))]
+          (recur dfa' queue''))
+        (if (contains? (:states dfa) "FAIL")
+          (update-in dfa
+                     [:transitions "FAIL"]
+                     (fn [trans]
+                       (reduce
+                        (fn [acc symb] (assoc acc symb "FAIL"))
+                        trans
+                        (keys symbols))))
+          dfa)))))
 
 (defn read-next-state-2*
   "Given an FSM, a queue of states, and an input, advance the current state

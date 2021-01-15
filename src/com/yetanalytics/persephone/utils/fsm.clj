@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.utils.fsm
   (:require [clojure.set :as cset]
-            [ubergraph.core :as uber]))
+            [dorothy.core :as dorothy]
+            [dorothy.jvm :as djvm]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Functions
@@ -29,6 +30,15 @@
 ;; additional nodes and transitions to. This is NOT a very efficient algorithm,
 ;; but it is correct and leaves room for optimization.
 
+;;
+;; {:alphabet {:kw predicate ...}
+;;  :states #{states ...}
+;;  :start state
+;;  :accepts #{states ...}
+;;  :transitions {state {:kw #{states} (if nfa) / state (if dfa)}} ...}
+;; }
+;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constructing Finite State Machines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,6 +52,221 @@
   "Wrapper function to generate a random UUID (using Java's UUID class).
   Used to create new node names."
   [] (java.util.UUID/randomUUID))
+
+(def counter (atom 0))
+
+(defn new-node-2 []
+  (swap! counter (partial + 1)))
+
+(defn fsm->graphviz
+  [fsm]
+  (let
+   [nodes (reduce
+           (fn [accum state]
+             (conj accum
+                   [state
+                    {:shape       :circle
+                     :peripheries (if (contains? (:accepts fsm) state) 2 1)
+                     :label       state}]))
+           []
+           (:states fsm))
+    edges (reduce-kv
+           (fn [accum src trans]
+             (concat accum
+                     (reduce-kv
+                      (fn [accum symb dests]
+                        (concat accum
+                                (reduce (fn [accum dest]
+                                          (conj accum [src dest {:label symb}]))
+                                        []
+                                        dests)))
+                      []
+                      trans)))
+           []
+           (:transitions fsm))]
+    (dorothy/digraph (concat edges nodes))))
+
+(defn print-fsm [fsm]
+  (-> fsm fsm->graphviz dorothy/dot djvm/show!))
+
+;;    i    
+;; x ---> a
+(defn transition-fsm-2
+  [fn-symbol f]
+  (let [start (new-node-2) accept (new-node-2)]
+    {:symbols {fn-symbol f}
+     :states #{start accept}
+     :start start
+     :accepts #{accept}
+     :transitions {start {fn-symbol #{accept}}
+                   accept {}}}))
+
+(def odd-fsm (transition-fsm-2 "odd" odd?))
+(def even-fsm (transition-fsm-2 "even" even?))
+
+(fsm->graphviz odd-fsm)
+(-> odd-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+(-> (dorothy/digraph [[:a :b :c] [:b :d]])
+    dorothy/dot
+    djvm/show!)
+
+;; -> q ==> s --> s ==> a
+(defn concat-fsm-2 [fsm-coll]
+  (if-not (empty? fsm-coll)
+    (loop [fsm (peek fsm-coll)
+           fsm-queue (pop fsm-coll)]
+      (if (empty? fsm-queue)
+        fsm
+        (let [next-fsm (peek fsm-queue)
+              remain-fsm (pop fsm-queue)
+              new-fsm
+              {:symbols (merge (:symbols fsm) (:symbols next-fsm))
+               :states (cset/union (:states fsm) (:states next-fsm))
+               :start (:start fsm)
+               :accepts (:accepts next-fsm)
+               :transitions
+               (->
+                (merge (:transitions fsm) (:transitions next-fsm))
+                (update-in
+                 [(-> fsm :accepts first) :epsilon]
+                 (fn [nexts] (set (conj nexts (:start next-fsm))))))}]
+          (recur new-fsm remain-fsm))))
+    (throw (Exception. "Undefined for empty collection of FSMs"))))
+
+(def odd-then-even-fsm (concat-fsm-2 [odd-fsm even-fsm]))
+(-> odd-then-even-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+;;    + --> s ==> s --v
+;; -> q               f
+;;    + --> s ==> s --^
+(defn union-fsm-2 [fsm-coll]
+  (let [new-start (new-node-2)
+        new-accept (new-node-2)
+        old-starts (set (mapv :start fsm-coll))
+        old-accepts (mapv #(-> % :accepts first) fsm-coll)
+        reduce-eps-trans
+        (partial
+         reduce
+         (fn [acc state]
+           (update-in acc [state :epsilon] (fn [d] (cset/union d #{new-accept})))))]
+    {:symbols (merge (map :symbols fsm-coll))
+     :states (cset/union
+              (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} fsm-coll)
+              #{new-start new-accept})
+     :start new-start
+     :accepts #{new-accept}
+     :transitions
+     (->
+      (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} fsm-coll)
+      (reduce-eps-trans old-accepts)
+      (update-in [new-start :epsilon] (fn [_] old-starts)))}))
+
+(def odd-or-even-fsm (union-fsm-2 [odd-fsm even-fsm]))
+(-> odd-or-even-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+;;          v-----+
+;; -> q --> s ==> s --> f
+;;    +-----------------^
+(defn kleene-fsm-2 [fsm]
+  (let [new-start (new-node-2)
+        new-accept (new-node-2)
+        old-start (:start fsm)
+        old-accept (-> fsm :accepts first)]
+    {:symbols (:symbols fsm)
+     :states (cset/union (:states fsm) #{new-start new-accept})
+     :start new-start
+     :accepts #{new-accept}
+     :transitions
+     (->
+      (:transitions fsm)
+      (update-in
+       [new-start :epsilon] #(cset/union % #{old-start new-accept}))
+      (update-in
+       [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
+
+(def odd-zero-or-more-fsm (kleene-fsm-2 odd-fsm))
+(-> odd-zero-or-more-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+;;    +-----------------v
+;; -> q --> s ==> s --> f
+(defn optional-fsm-2 [fsm]
+  (let [new-start (new-node-2)
+        new-accept (new-node-2)
+        old-start (:start fsm)
+        old-accept (-> fsm :accepts first)]
+    {:symbols (:symbols fsm)
+     :states (cset/union (:states fsm) #{new-start new-accept})
+     :start new-start
+     :accepts #{new-accept}
+     :transitions
+     (->
+      (:transitions fsm)
+      (update-in
+       [new-start :epsilon] #(cset/union % #{old-start new-accept}))
+      (update-in
+       [old-accept :epsilon] #(cset/union % #{new-accept})))}))
+
+(def odd-optional-fsm (optional-fsm-2 odd-fsm))
+(-> odd-optional-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+;;          v-----+
+;; -> q --> s ==> s --> f
+(defn plus-fsm-2 [fsm]
+  (let [new-start (new-node-2)
+        new-accept (new-node-2)
+        old-start (:start fsm)
+        old-accept (-> fsm :accepts first)]
+    {:symbols (:symbols fsm)
+     :states (cset/union (:states fsm) #{new-start new-accept})
+     :start new-start
+     :accepts #{new-accept}
+     :transitions
+     (->
+      (:transitions fsm)
+      (update-in
+       [new-start :epsilon] #(cset/union % #{old-start}))
+      (update-in
+       [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
+
+(def odd-one-or-more-fsm (plus-fsm-2 odd-fsm))
+(-> odd-one-or-more-fsm fsm->graphviz dorothy/dot djvm/show!)
+
+(defn epsilon-closure-2
+  "Returns the epsilon closure (performs a BFS internally)"
+  [fsm init-state]
+  (loop [visited-states #{} state-queue (seq [init-state])]
+    (if-let [state (peek state-queue)]
+      (if-not (contains? visited-states state)
+        (let [visited-states' (conj visited-states state)
+              next-states (-> fsm :transitions state :epsilon)
+              state-queue' (concat state-queue next-states)]
+          (recur visited-states' state-queue'))
+        visited-states)
+      visited-states)))
+
+(defn read-next-state-2*
+  "Given an FSM, a queue of states, and an input, advance the current state
+   from the topmost state in the queue."
+  [fsm input state-queue state]
+  (loop [states state-queue
+         transitions (-> fsm :transitions state)]
+    (if-let [[symbol next-state] (peek transitions)]
+      (let [predicate (-> fsm :symbols symbol)]
+        (if (and (some? predicate) (predicate input))
+          (recur (conj states next-state) (pop transitions))
+          (recur states (pop transitions))))
+      transitions)))
+
+#_((defn read-next-state-2
+     [fsm input state-queue]
+     (if-let [state (peek state-queue)]
+       (let [state-queue' (read-next-state-2* fsm input state-queue state)
+             state-queue'' (conj (epsilon-closure-2 fsm state))])
+       (->> state (fsm input (pop state-queue)) (conj (epsilon-closure fsm)))
+       state-queue)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Basic transition:
 ;;    A
@@ -210,11 +435,12 @@
         new-states
         (recur new-states epsilons)))))
 
-(defn slurp-transition [fsm input state-set in-symbol]
+(defn slurp-transition
   "Let an FSM read an incoming symbol against a single edge transition.
   Return the set of nodes that is the result of the transition function.
   If the empty set is returned, that means the input is not accepted against
   this transition."
+  [fsm input state-set in-symbol]
   (if-let [pred-fn (-> fsm :symbols (get input))]
     (if (pred-fn in-symbol)
       state-set ;; If transition accepts, return new states; else kill path

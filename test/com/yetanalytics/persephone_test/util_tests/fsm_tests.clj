@@ -312,6 +312,163 @@
 
 ;; TODO: Write tests for the other FSM combos
 
+(deftest epsilon-closure-test
+  (testing "Epsilon closure of an NFA state."
+    (is (= #{0}
+           (fsm/epsilon-closure a-fsm 0)))
+    (is (= #{1 2}
+           (fsm/epsilon-closure (fsm/concat-fsm [a-fsm b-fsm]) 1)))
+    (is (= #{0 2 4 6 8}
+           (fsm/epsilon-closure (fsm/union-fsm [(fsm/union-fsm [a-fsm b-fsm])
+                                                b-fsm])
+                                8)))
+    (is (= #{0 4 5 6 7 8 9}
+           (do (fsm/reset-counter 4)
+               (fsm/epsilon-closure
+                (-> a-fsm fsm/kleene-fsm fsm/kleene-fsm fsm/kleene-fsm)
+                8))))
+    (is (= #{0 1 4 5 6 7 9}
+           (do (fsm/reset-counter 4)
+               (fsm/epsilon-closure
+                (-> a-fsm fsm/kleene-fsm fsm/kleene-fsm fsm/kleene-fsm)
+                1))))))
+
+(deftest move-test
+  (testing "Move by one state on an NFA."
+    (is (= [1]
+           (fsm/move a-fsm "a" 0)))
+    (is (= []
+           (fsm/move a-fsm "b" 0)))
+    (is (= []
+           (fsm/move a-fsm "a" 1)))
+    (is (= nil
+           (fsm/move a-fsm "a" 2)))
+    (is (= [1]
+           (fsm/move (fsm/concat-fsm [a-fsm b-fsm]) "a" 0)))
+    (is (= []
+           (fsm/move (fsm/concat-fsm [a-fsm b-fsm]) "a" 1)))
+    (is (= [1]
+           (fsm/move (fsm/concat-fsm [a-fsm b-fsm]) "a" 0)))
+    (is (= [1 2]
+           (fsm/move {:type :nfa
+                      :symbols {"a" is-a?}
+                      :states #{0 1 2}
+                      :start 0
+                      :accept 1
+                      :transitions {0 {"a" #{1 2}}}}
+                     "a"
+                     0)))
+    (is (= [1]
+           (fsm/move {:type :nfa
+                      :symbols {"a" is-a? "b" is-b?}
+                      :states #{0 1 2}
+                      :start 0
+                      :accept 1
+                      :transitions {0 {"a" #{1} "b" #{2}}}}
+                     "a"
+                     0)))))
+
+(deftest powerset-construction-test
+  (testing "Constructing a DFA out of an NFA via the powerset construction."
+    (is (= {:type :dfa
+            :symbols {"a" is-a?}
+            :states #{"0" "1"}
+            :start "0"
+            :accepts #{"1"}
+            :transitions {"0" {"a" "1"} "1" {}}}
+           (fsm/construct-powerset a-fsm)))
+    (is (= {:type :dfa
+            :symbols {"a" is-a? "b" is-b?}
+            :states #{"0" "1-2" "3"}
+            :start "0"
+            :accepts #{"3"}
+            :transitions {"0" {"a" "1-2"}
+                          "1-2" {"b" "3"}
+                          "3" {}}}
+           (fsm/construct-powerset (fsm/concat-fsm [a-fsm b-fsm]))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a? "b" is-b?}
+            :states #{"0-2-4" "1-5" "3-5"}
+            :start "0-2-4"
+            :accepts #{"1-5" "3-5"}
+            :transitions {"0-2-4" {"a" "1-5"
+                                   "b" "3-5"}
+                          "1-5" {}
+                          "3-5" {}}}
+           (fsm/construct-powerset (fsm/union-fsm [a-fsm b-fsm]))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a? "b" is-b?}
+            :states #{"0-2-4-6-8" "1-5-9" "3-5-7-9"}
+            :start "0-2-4-6-8"
+            :accepts #{"1-5-9" "3-5-7-9"}
+            :transitions {"0-2-4-6-8" {"a" "1-5-9"
+                                       "b" "3-5-7-9"}
+                          "1-5-9" {}
+                          "3-5-7-9" {}}}
+           (fsm/construct-powerset
+            (fsm/union-fsm [(fsm/union-fsm [a-fsm b-fsm]) b-fsm]))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a?}
+            :states #{"0-2-3" "0-1-3"}
+            :start "0-2-3"
+            :accepts #{"0-2-3" "0-1-3"}
+            :transitions {"0-2-3" {"a" "0-1-3"}
+                          "0-1-3" {"a" "0-1-3"}}}
+           (do (fsm/reset-counter 2)
+               (fsm/construct-powerset (fsm/kleene-fsm a-fsm)))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a?}
+            :states #{"0-2-3" "1-3"}
+            :start "0-2-3"
+            :accepts #{"0-2-3" "1-3"}
+            :transitions {"0-2-3" {"a" "1-3"}
+                          "1-3" {}}}
+           (do (fsm/reset-counter 2)
+               (fsm/construct-powerset (fsm/optional-fsm a-fsm)))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a?}
+            :states #{"0-2" "0-1-3"}
+            :start "0-2"
+            :accepts #{"0-1-3"}
+            :transitions {"0-2" {"a" "0-1-3"}
+                          "0-1-3" {"a" "0-1-3"}}}
+           (do (fsm/reset-counter 2)
+               (fsm/construct-powerset (fsm/plus-fsm a-fsm)))))
+    (is (= {:type :dfa
+            :symbols {"a" is-a?}
+            :states #{"0-4-5-6-7-8-9" "0-1-4-5-6-7-9"}
+            :start "0-4-5-6-7-8-9"
+            :accepts #{"0-4-5-6-7-8-9" "0-1-4-5-6-7-9"}
+            :transitions {"0-4-5-6-7-8-9" {"a" "0-1-4-5-6-7-9"}
+                          "0-1-4-5-6-7-9" {"a" "0-1-4-5-6-7-9"}}}
+           (do (fsm/reset-counter 4)
+               (fsm/construct-powerset (-> a-fsm
+                                           fsm/kleene-fsm
+                                           fsm/kleene-fsm
+                                           fsm/kleene-fsm)))))
+    ;; Example taken from Wikipedia:
+    ;; https://en.wikipedia.org/wiki/Powerset_construction
+    (is (= {:type :dfa
+            :symbols {"a" is-a? "b" is-b?}
+            :states #{"0-1-2" "1-3" "1-2" "3"}
+            :start "0-1-2"
+            :accepts #{"1-3" "3"}
+            :transitions {"0-1-2" {"a" "1-3" "b" "1-3"}
+                          "1-3"   {"a" "1-2" "b" "1-3"}
+                          "1-2"   {"a" "3" "b" "1-3"}
+                          "3"     {"a" "1-2"}}}
+           (do (fsm/reset-counter)
+               (fsm/construct-powerset
+                {:type :nfa
+                 :symbols {"a" is-a? "b" is-b?}
+                 :states #{0 1 2 3}
+                 :start 0
+                 :accept 3
+                 :transitions {0 {"a" #{1} :epsilon #{2}}
+                               1 {"b" #{1 3}}
+                               2 {"a" #{3} :epsilon #{1}}
+                               3 {"a" #{2}}}}))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; ;; Base FSMs

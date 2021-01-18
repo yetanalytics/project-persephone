@@ -260,6 +260,8 @@
       (update-in [old-accept :epsilon] #(cset/union % #{old-start new-accept}))
       (update new-accept (constantly {})))}))
 
+;; TODO: Write separator here
+
 (defn init-queue [init] (conj clojure.lang.PersistentQueue/EMPTY init))
 
 (defn epsilon-closure
@@ -269,17 +271,14 @@
          state-queue (init-queue init-state)]
     (if-let [state (peek state-queue)]
       (if-not (contains? visited-states state)
-        (let [visited-states'
-              (conj visited-states state)
-              next-states
-              (-> fsm :transitions (get state) :epsilon seq)
-              state-queue'
-              (reduce
-               (fn [queue s] (conj queue s))
-               (pop state-queue)
-               next-states)]
+        (let [visited-states' (conj visited-states state)
+              next-states (-> fsm :transitions (get state) :epsilon seq)
+              state-queue' (reduce
+                            (fn [queue s] (conj queue s))
+                            (pop state-queue)
+                            next-states)]
           (recur visited-states' state-queue'))
-        visited-states)
+        (recur visited-states (pop state-queue)))
       visited-states)))
 
 (defn move
@@ -288,6 +287,7 @@
     (->> trans
          (filterv (fn [[symb _]] (= symb-input symb)))
          (mapcat (fn [[_ dests]] dests)))
+    ;; TODO: Make this an exception???
     nil))
 
 #_(defn move-all
@@ -302,7 +302,7 @@
 (defn nfa-states->dfa-state [nfa-states]
   (if (not-empty nfa-states)
     (->> nfa-states vec sort (map str) (string/join "-"))
-    "FAIL"))
+    nil))
 
 (defn nfa-accept-states?
   "Returns true if any of the NFA states are accept states."
@@ -338,53 +338,78 @@
   ;;    process is complete when applying step 2 does not yield any new states.
   ;; 5. The finish states of the DFA are those which contain any of the finish
   ;;    states of the NFA.
-  (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
-        dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
-    (loop [dfa
-           {:type :dfa
-            :symbols (:symbols nfa)
-            :states #{dfa-start}
-            :start dfa-start
-            :accepts #{}
-            :transitions {}}
-           queue (init-queue nfa-start-eps-close)]
-      (if-let [nfa-states (peek queue)]
-        (let [queue'
-              (pop queue)
-              dfa-state
-              (nfa-states->dfa-state nfa-states)
-              [queue'' dfa']
-              (reduce
-               (fn [[queue dfa] symb]
-                 (let [next-nfa-states
-                       (->> nfa-states
-                            (mapcat (partial move nfa symb))
-                            (mapcat (partial epsilon-closure nfa))
-                            set)
-                       next-dfa-state
-                       (nfa-states->dfa-state next-nfa-states)
-                       new-dfa
-                       (-> dfa
-                           (update :states conj next-dfa-state)
-                           (update :accepts
-                                   (if (nfa-accept-states? nfa next-nfa-states)
-                                     #(conj % next-dfa-state)
-                                     (partial identity)))
-                           (update-in [:transitions dfa-state]
-                                      merge
-                                      {symb next-dfa-state}))
-                       new-queue
-                       (if (and (not (contains? (:states dfa) next-dfa-state))
-                                (not-empty next-nfa-states))
-                         (conj queue next-nfa-states)
-                         queue)]
-                   [new-queue new-dfa]))
-               [queue' dfa]
-               (-> nfa :symbols keys))]
-          (recur dfa' queue''))
-        (if (contains? (:states dfa) "FAIL")
-          (add-failure-transitions dfa)
-          dfa)))))
+  (letfn [(add-state-to-dfa
+            [dfa next-nfa-states next-dfa-state prev-dfa-state symb]
+           (if (some? next-dfa-state)
+             (-> dfa
+                 (update :states conj next-dfa-state)
+                 (update :accepts #(if (nfa-accept-states? nfa next-nfa-states)
+                                    (conj % next-dfa-state)
+                                    %))
+                 (update-in
+                  [:transitions prev-dfa-state] merge {symb next-dfa-state})
+                 (update :transitions #(if-not (contains?
+                                                (:states dfa)
+                                                next-dfa-state)
+                                         (assoc % next-dfa-state {})
+                                         %)))
+             dfa))
+          (add-state-to-queue
+           [queue dfa next-nfa-states next-dfa-state]
+           (if (and (some? next-dfa-state)
+                    (not (contains? (:states dfa) next-dfa-state)))
+             (conj queue next-nfa-states)
+             queue))]
+    (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
+          dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
+      (loop [dfa {:type        :dfa
+                  :symbols     (:symbols nfa)
+                  :states      #{dfa-start}
+                  :start       dfa-start
+                  :accepts     (if (nfa-accept-states? nfa nfa-start-eps-close)
+                                 #{dfa-start}
+                                 #{})
+                  :transitions {}}
+             queue (init-queue nfa-start-eps-close)]
+        (if-let [nfa-states (peek queue)]
+          (let [queue'
+                (pop queue)
+                dfa-state
+                (nfa-states->dfa-state nfa-states)
+                [queue'' dfa']
+                (reduce
+                 (fn [[queue dfa] symb]
+                   (let [next-nfa-states (->>
+                                          nfa-states
+                                          (mapcat (partial move nfa symb))
+                                          (mapcat (partial epsilon-closure nfa))
+                                          set)
+                         next-dfa-state  (nfa-states->dfa-state next-nfa-states)
+                         new-dfa         (add-state-to-dfa dfa
+                                                           next-nfa-states
+                                                           next-dfa-state
+                                                           dfa-state
+                                                           symb)
+                         new-queue       (add-state-to-queue queue
+                                                             dfa
+                                                             next-nfa-states
+                                                             next-dfa-state)]
+                     [new-queue new-dfa]))
+                 [queue' dfa]
+                 (-> nfa :symbols keys))]
+            (recur dfa' queue''))
+          dfa
+          #_(if (contains? (:states dfa) "FAIL")
+              (add-failure-transitions dfa)
+              dfa))))))
+
+(construct-powerset
+ {:type :nfa
+  :symbols {"a" odd?}
+  :states #{0 1}
+  :start 0
+  :accept 1
+  :transitions {0 {"a" #{1}}, 1 {}}})
 
 (defn read-next-state-2*
   "Given an FSM, a queue of states, and an input, advance the current state

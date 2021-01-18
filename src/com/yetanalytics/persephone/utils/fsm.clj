@@ -32,7 +32,7 @@
 ;; but it is correct and leaves room for optimization.
 
 ;;
-;; {:alphabet {:kw predicate ...}
+;; {:symbols {:kw predicate ...}
 ;;  :states #{states ...}
 ;;  :start state
 ;;  :accepts #{states ...}
@@ -44,19 +44,23 @@
 ;; Constructing Finite State Machines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn states
-  "Return all states in an FSM."
-  [fsm]
-  (-> fsm :graph uber/nodes set))
+#_(defn states
+    "Return all states in an FSM."
+    [fsm]
+    (-> fsm :graph uber/nodes set))
 
 (defn new-node
   "Wrapper function to generate a random UUID (using Java's UUID class).
   Used to create new node names."
   [] (java.util.UUID/randomUUID))
 
-(def counter (atom 0))
+(def counter (atom -1))
 
-(defn new-node-2 []
+(defn reset-counter
+  ([] (swap! counter (constantly -1)))
+  ([n] (swap! counter (constantly (- n 1)))))
+
+(defn new-state []
   (swap! counter (partial + 1)))
 
 (defn fsm->graphviz
@@ -76,14 +80,13 @@
              (concat accum
                      (reduce-kv
                       (fn [accum symb dests]
-                        (if (coll? dests)
-                          ; NFA: destinations are sets of states
+                        (if (= (:type fsm) :nfa)
                           (concat accum
-                                  (reduce (fn [accum dest]
-                                            (conj accum [src dest {:label symb}]))
-                                          []
-                                          dests))
-                          ; DFA: destinations are single states
+                                  (reduce
+                                   (fn [accum dest]
+                                     (conj accum [src dest {:label symb}]))
+                                   []
+                                   dests))
                           (conj accum [src dests {:label symb}])))
                       []
                       trans)))
@@ -94,128 +97,172 @@
 (defn print-fsm [fsm]
   (-> fsm fsm->graphviz dorothy/dot djvm/show!))
 
+(defn alphatize-states-fsm
+  [fsm]
+  (let [old-to-new-states (reduce (fn [acc state] (assoc acc state (new-state)))
+                                  {}
+                                  (sort (:states fsm))) ;; FIXME: sort is for debugging only
+        update-dests (fn [transitions]
+                       (reduce-kv
+                        (fn [acc src trans]
+                          (assoc acc
+                                 src
+                                 (reduce-kv
+                                  (fn [acc symb dests]
+                                    (assoc acc
+                                           symb
+                                           (into
+                                            #{}
+                                            (mapv old-to-new-states dests))))
+                                  {}
+                                  trans)))
+                        {}
+                        transitions))]
+    (-> fsm
+        (update :states #(into #{} (mapv old-to-new-states %)))
+        (update :start old-to-new-states)
+        (update :accept old-to-new-states)
+        (update :transitions update-dests)
+        (update :transitions
+                #(cset/rename-keys % old-to-new-states)))))
+
+(defn alphatize-states
+  [fsm-coll]
+  (reset-counter)
+  (loop [new-fsm-queue []
+         fsm-queue fsm-coll]
+    (if-let [fsm (first fsm-queue)]
+      (let [fsm' (alphatize-states-fsm fsm)]
+        (recur (conj new-fsm-queue fsm') (rest fsm-queue)))
+      new-fsm-queue)))
+
+
+
 ;;    i    
 ;; x ---> a
-(defn transition-fsm-2
+(defn transition-fsm
   [fn-symbol f]
-  (let [start (new-node-2) accept (new-node-2)]
-    {:symbols {fn-symbol f}
+  (let [start (new-state) accept (new-state)]
+    {:type :nfa
+     :symbols {fn-symbol f}
      :states #{start accept}
      :start start
-     :accepts #{accept}
+     :accept accept
      :transitions {start {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
-(defn concat-fsm-2 [fsm-coll]
+(defn concat-fsm [fsm-coll]
   (if-not (empty? fsm-coll)
-    (loop [fsm (peek fsm-coll)
-           fsm-queue (pop fsm-coll)]
-      (if (empty? fsm-queue)
-        fsm
-        (let [next-fsm (peek fsm-queue)
-              remain-fsm (pop fsm-queue)
-              new-fsm
-              {:symbols (merge (:symbols fsm) (:symbols next-fsm))
-               :states (cset/union (:states fsm) (:states next-fsm))
-               :start (:start fsm)
-               :accepts (:accepts next-fsm)
-               :transitions
-               (->
-                (merge (:transitions fsm) (:transitions next-fsm))
-                (update-in
-                 [(-> fsm :accepts first) :epsilon]
-                 (fn [nexts] (set (conj nexts (:start next-fsm))))))}]
-          (recur new-fsm remain-fsm))))
+    (let [fsm-coll (alphatize-states fsm-coll)]
+      (loop [fsm (first fsm-coll)
+             fsm-list (rest fsm-coll)]
+        (if-let [next-fsm (first fsm-list)]
+          (let [new-fsm
+                {:type :nfa
+                 :symbols (merge (:symbols fsm) (:symbols next-fsm))
+                 :states (cset/union (:states fsm) (:states next-fsm))
+                 :start (:start fsm)
+                 :accept (:accept next-fsm)
+                 :transitions
+                 (-> (merge (:transitions fsm) (:transitions next-fsm))
+                     (update-in
+                      [(:accept fsm) :epsilon]
+                      (fn [nexts] (set (conj nexts (:start next-fsm))))))}]
+            (recur new-fsm (rest fsm-list)))
+          fsm)))
     (throw (Exception. "Undefined for empty collection of FSMs"))))
 
 ;;    + --> s ==> s --v
 ;; -> q               f
 ;;    + --> s ==> s --^
-(defn union-fsm-2 [fsm-coll]
-  (let [new-start (new-node-2)
-        new-accept (new-node-2)
+(defn union-fsm [fsm-coll]
+  (let [fsm-coll (alphatize-states fsm-coll)
+        new-start (new-state)
+        new-accept (new-state)
         old-starts (set (mapv :start fsm-coll))
-        old-accepts (mapv #(-> % :accepts first) fsm-coll)
+        old-accepts (mapv :accept fsm-coll)
         reduce-eps-trans
         (partial reduce
                  (fn [acc state]
                    (update-in acc
                               [state :epsilon]
                               (fn [d] (cset/union d #{new-accept})))))]
-    {:symbols (into {} (mapcat :symbols fsm-coll))
+    {:type :nfa
+     :symbols (into {} (mapcat :symbols fsm-coll))
      :states (cset/union
               (reduce
                (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} fsm-coll)
               #{new-start new-accept})
      :start new-start
-     :accepts #{new-accept}
+     :accept new-accept
      :transitions
      (->
       (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} fsm-coll)
       (reduce-eps-trans old-accepts)
-      (update-in [new-start :epsilon] (fn [_] old-starts)))}))
+      (update-in [new-start :epsilon] (constantly old-starts))
+      (update new-accept (constantly {})))}))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 ;;    +-----------------^
-(defn kleene-fsm-2 [fsm]
-  (let [new-start (new-node-2)
-        new-accept (new-node-2)
+(defn kleene-fsm [fsm]
+  (let [new-start (new-state)
+        new-accept (new-state)
         old-start (:start fsm)
-        old-accept (-> fsm :accepts first)]
-    {:symbols (:symbols fsm)
+        old-accept (:accept fsm)]
+    {:type :nfa
+     :symbols (:symbols fsm)
      :states (cset/union (:states fsm) #{new-start new-accept})
      :start new-start
-     :accepts #{new-accept}
+     :accept new-accept
      :transitions
      (->
       (:transitions fsm)
-      (update-in
-       [new-start :epsilon] #(cset/union % #{old-start new-accept}))
-      (update-in
-       [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
+      (update-in [new-start :epsilon] #(cset/union % #{old-start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{old-start new-accept}))
+      (update new-accept (constantly {})))}))
 
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
-(defn optional-fsm-2 [fsm]
-  (let [new-start (new-node-2)
-        new-accept (new-node-2)
+(defn optional-fsm [fsm]
+  (let [new-start (new-state)
+        new-accept (new-state)
         old-start (:start fsm)
-        old-accept (-> fsm :accepts first)]
-    {:symbols (:symbols fsm)
+        old-accept (:accept fsm)]
+    {:type :nfa
+     :symbols (:symbols fsm)
      :states (cset/union (:states fsm) #{new-start new-accept})
      :start new-start
-     :accepts #{new-accept}
+     :accept new-accept
      :transitions
      (->
       (:transitions fsm)
-      (update-in
-       [new-start :epsilon] #(cset/union % #{old-start new-accept}))
-      (update-in
-       [old-accept :epsilon] #(cset/union % #{new-accept})))}))
+      (update-in [new-start :epsilon] #(cset/union % #{old-start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
+      (update new-accept (constantly {})))}))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
-(defn plus-fsm-2 [fsm]
-  (let [new-start (new-node-2)
-        new-accept (new-node-2)
+(defn plus-fsm [fsm]
+  (let [new-start (new-state)
+        new-accept (new-state)
         old-start (:start fsm)
-        old-accept (-> fsm :accepts first)]
-    {:symbols (:symbols fsm)
+        old-accept (:accept fsm)]
+    {:type :nfa
+     :symbols (:symbols fsm)
      :states (cset/union (:states fsm) #{new-start new-accept})
      :start new-start
-     :accepts #{new-accept}
+     :accept new-accept
      :transitions
      (->
       (:transitions fsm)
-      (update-in
-       [new-start :epsilon] #(cset/union % #{old-start}))
-      (update-in
-       [old-accept :epsilon] #(cset/union % #{old-start new-accept})))}))
+      (update-in [new-start :epsilon] #(cset/union % #{old-start}))
+      (update-in [old-accept :epsilon] #(cset/union % #{old-start new-accept}))
+      (update new-accept (constantly {})))}))
 
 (defn init-queue [init] (conj clojure.lang.PersistentQueue/EMPTY init))
 
-(defn epsilon-closure-2
+(defn epsilon-closure
   "Returns the epsilon closure (performs a BFS internally)"
   [fsm init-state]
   (loop [visited-states #{}
@@ -257,6 +304,21 @@
     (->> nfa-states vec sort (map str) (string/join "-"))
     "FAIL"))
 
+(defn nfa-accept-states?
+  "Returns true if any of the NFA states are accept states."
+  [nfa nfa-states]
+  (contains? nfa-states (:accept nfa))
+  #_(not-empty (cset/intersection (-> nfa :accept nfa-states))))
+
+(defn add-failure-transitions [dfa]
+  (update-in
+   dfa
+   [:transitions "FAIL"]
+   (fn [trans] (reduce
+                (fn [acc symb] (assoc acc symb "FAIL"))
+                trans
+                (-> dfa :symbols keys)))))
+
 (defn construct-powerset
   "Given an NFA with epsilon transitions, perform the powerset construction in
    order to (semi)-determinize it and remove epsilon transitions."
@@ -276,13 +338,11 @@
   ;;    process is complete when applying step 2 does not yield any new states.
   ;; 5. The finish states of the DFA are those which contain any of the finish
   ;;    states of the NFA.
-  (let [{symbols :symbols
-         nfa-start :start
-         nfa-accepts :accepts} nfa
-        nfa-start-eps-close (epsilon-closure-2 nfa nfa-start)
+  (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
         dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
     (loop [dfa
-           {:symbols symbols
+           {:type :dfa
+            :symbols (:symbols nfa)
             :states #{dfa-start}
             :start dfa-start
             :accepts #{}
@@ -297,27 +357,22 @@
               (reduce
                (fn [[queue dfa] symb]
                  (let [next-nfa-states
-                       (->>
-                        nfa-states
-                        (mapcat (partial move nfa symb))
-                        (mapcat (partial epsilon-closure-2 nfa))
-                        set)
+                       (->> nfa-states
+                            (mapcat (partial move nfa symb))
+                            (mapcat (partial epsilon-closure nfa))
+                            set)
                        next-dfa-state
                        (nfa-states->dfa-state next-nfa-states)
                        new-dfa
-                       (->
-                        dfa
-                        (update :states conj next-dfa-state)
-                        (update :accepts
-                                (if (not-empty (cset/intersection
-                                                nfa-accepts
-                                                next-nfa-states))
-                                  #(conj % next-dfa-state)
-                                  (partial identity)))
-                        (update-in
-                         [:transitions dfa-state]
-                         merge
-                         {symb next-dfa-state}))
+                       (-> dfa
+                           (update :states conj next-dfa-state)
+                           (update :accepts
+                                   (if (nfa-accept-states? nfa next-nfa-states)
+                                     #(conj % next-dfa-state)
+                                     (partial identity)))
+                           (update-in [:transitions dfa-state]
+                                      merge
+                                      {symb next-dfa-state}))
                        new-queue
                        (if (and (not (contains? (:states dfa) next-dfa-state))
                                 (not-empty next-nfa-states))
@@ -325,16 +380,10 @@
                          queue)]
                    [new-queue new-dfa]))
                [queue' dfa]
-               (keys symbols))]
+               (-> nfa :symbols keys))]
           (recur dfa' queue''))
         (if (contains? (:states dfa) "FAIL")
-          (update-in dfa
-                     [:transitions "FAIL"]
-                     (fn [trans]
-                       (reduce
-                        (fn [acc symb] (assoc acc symb "FAIL"))
-                        trans
-                        (keys symbols))))
+          (add-failure-transitions dfa)
           dfa)))))
 
 (defn read-next-state-2*
@@ -354,7 +403,7 @@
      [fsm input state-queue]
      (if-let [state (peek state-queue)]
        (let [state-queue' (read-next-state-2* fsm input state-queue state)
-             state-queue'' (conj (epsilon-closure-2 fsm state))])
+             state-queue'' (conj (epsilon-closure fsm state))])
        (->> state (fsm input (pop state-queue)) (conj (epsilon-closure fsm)))
        state-queue)))
 
@@ -363,99 +412,99 @@
 ;; Basic transition:
 ;;    A
 ;; x ---> a
-(defn transition-fsm
-  "Create a finite state machine that contains only a single transition edge."
-  [fn-symbol fun]
-  (let [start (new-node)
-        accept (new-node)]
-    {:symbols {fn-symbol fun} ;; Epsilon is not part of the alphabet
-     :start start
-     :accept #{accept}
-     :graph (-> (uber/multidigraph)
-                (uber/add-nodes start accept)
-                (uber/add-edges [start accept {:symbol fn-symbol}]))}))
+#_(defn transition-fsm
+    "Create a finite state machine that contains only a single transition edge."
+    [fn-symbol fun]
+    (let [start (new-node)
+          accept (new-node)]
+      {:symbols {fn-symbol fun} ;; Epsilon is not part of the alphabet
+       :start start
+       :accept #{accept}
+       :graph (-> (uber/multidigraph)
+                  (uber/add-nodes start accept)
+                  (uber/add-edges [start accept {:symbol fn-symbol}]))}))
 
 ;; Concatenation helper
-(defn concat-to-fsm
-  "Helper function for sequence-fsm. Attaches a new FSM to the start of the
+#_(defn concat-to-fsm
+    "Helper function for sequence-fsm. Attaches a new FSM to the start of the
   main FSM."
-  [next-fsm curr-fsm]
-  (assoc curr-fsm
-         :start (:start next-fsm)
-         :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-         :graph (->
-                 (:graph curr-fsm)
-                 (uber/build-graph (:graph next-fsm))
-                 (uber/add-edges*
-                  (mapv (fn [as]
-                          [as (:start curr-fsm) {:symbol :epsilon}])
-                        (:accept next-fsm))))))
+    [next-fsm curr-fsm]
+    (assoc curr-fsm
+           :start (:start next-fsm)
+           :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
+           :graph (->
+                   (:graph curr-fsm)
+                   (uber/build-graph (:graph next-fsm))
+                   (uber/add-edges*
+                    (mapv (fn [as]
+                            [as (:start curr-fsm) {:symbol :epsilon}])
+                          (:accept next-fsm))))))
 ;; Concatenation
 ;     A      e      B
 ;; s ---> s ---> s ---> a
-(defn sequence-fsm
-  "Apply the sequence pattern, ie. ABC, to a sequence of FSMs; return a new
+#_(defn sequence-fsm
+    "Apply the sequence pattern, ie. ABC, to a sequence of FSMs; return a new
   state machine."
-  [fsm-arr]
-  (loop [curr-fsm (peek fsm-arr)
-         queue (pop fsm-arr)]
-    (if (empty? queue)
-      curr-fsm
-      (let [next-fsm (peek queue)]
-        (recur (concat-to-fsm next-fsm curr-fsm) (pop queue))))))
+    [fsm-arr]
+    (loop [curr-fsm (peek fsm-arr)
+           queue (pop fsm-arr)]
+      (if (empty? queue)
+        curr-fsm
+        (let [next-fsm (peek queue)]
+          (recur (concat-to-fsm next-fsm curr-fsm) (pop queue))))))
 
 ;; Union helper
-(defn union-with-fsm
-  [next-fsm curr-fsm]
-  (assoc curr-fsm
-         :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
-         :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-         :graph (->
-                 (:graph curr-fsm)
-                 (uber/build-graph (:graph next-fsm))
-                 (uber/add-edges
-                  [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}]))))
+#_(defn union-with-fsm
+    [next-fsm curr-fsm]
+    (assoc curr-fsm
+           :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
+           :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
+           :graph (->
+                   (:graph curr-fsm)
+                   (uber/build-graph (:graph next-fsm))
+                   (uber/add-edges
+                    [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}]))))
 ;; Union:
 ;;    e      A
 ;; + ---> s ---> a
 ;; s
 ;; + ---> s ---> a
 ;;    e      B
-(defn alternates-fsm
-  "Apply the fsm-arr pattern, ie. A|B|C, to a set of FSMs; return a new
+#_(defn alternates-fsm
+    "Apply the fsm-arr pattern, ie. A|B|C, to a set of FSMs; return a new
   state fsm."
-  [fsm-arr]
-  (let [start (new-node)]
-    (loop [curr-fsm (assoc {}
-                           :start start :accept #{} :symbols {}
-                           :graph (-> (uber/multidigraph)
-                                      (uber/add-nodes start)))
-           queue fsm-arr]
-      (if (empty? queue)
-        curr-fsm
-        (let [next-fsm (peek queue)]
-          (recur (union-with-fsm next-fsm curr-fsm) (pop queue)))))))
+    [fsm-arr]
+    (let [start (new-node)]
+      (loop [curr-fsm (assoc {}
+                             :start start :accept #{} :symbols {}
+                             :graph (-> (uber/multidigraph)
+                                        (uber/add-nodes start)))
+             queue fsm-arr]
+        (if (empty? queue)
+          curr-fsm
+          (let [next-fsm (peek queue)]
+            (recur (union-with-fsm next-fsm curr-fsm) (pop queue)))))))
 
 ;; Kleene Star:
 ;;           e
 ;;        +------+
 ;;    e   v  A   |
 ;; a ---> s ---> a
-(defn zero-or-more-fsm
-  "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
+#_(defn zero-or-more-fsm
+    "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
   machine."
-  [sub-fsm]
-  (let [node (new-node)]
-    (assoc sub-fsm
-           :start node
-           :accept (cset/union (:accept sub-fsm) #{node})
-           :graph
-           (->
-            (:graph sub-fsm)
-            (uber/add-edges [node (:start sub-fsm) {:symbol :epsilon}])
-            (uber/add-edges* (mapv (fn [as]
-                                     [as (:start sub-fsm) {:symbol :epsilon}])
-                                   (:accept sub-fsm)))))))
+    [sub-fsm]
+    (let [node (new-node)]
+      (assoc sub-fsm
+             :start node
+             :accept (cset/union (:accept sub-fsm) #{node})
+             :graph
+             (->
+              (:graph sub-fsm)
+              (uber/add-edges [node (:start sub-fsm) {:symbol :epsilon}])
+              (uber/add-edges* (mapv (fn [as]
+                                       [as (:start sub-fsm) {:symbol :epsilon}])
+                                     (:accept sub-fsm)))))))
 
 ;; Union with epsilon transition
 ;;    e      A
@@ -463,129 +512,129 @@
 ;; s
 ;; + ---> a
 ;;    e
-(defn optional-fsm
-  "Apply the sub-fsm pattern, ie. A?, to an FSM; return a new state machine."
-  [sub-fsm]
-  (let [start (new-node) accept (new-node)]
-    (assoc sub-fsm
-           :start start
-           :accept (cset/union (:accept sub-fsm) #{accept})
-           :graph
-           (->
-            (:graph sub-fsm)
-            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
-            (uber/add-edges [start accept {:symbol :epsilon}])))))
+#_(defn optional-fsm
+    "Apply the sub-fsm pattern, ie. A?, to an FSM; return a new state machine."
+    [sub-fsm]
+    (let [start (new-node) accept (new-node)]
+      (assoc sub-fsm
+             :start start
+             :accept (cset/union (:accept sub-fsm) #{accept})
+             :graph
+             (->
+              (:graph sub-fsm)
+              (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
+              (uber/add-edges [start accept {:symbol :epsilon}])))))
 
 ;; Kleene Plus (ie. Kleen Star w/ concat):
 ;;           e
 ;;        + ---- +
 ;;    e   v  A   |
 ;; s ---> s ---> a
-(defn one-or-more-fsm
-  "Apply the oneOrMore pattern, ie. A+, to an FSM; return a new state machine."
-  [sub-fsm]
-  (let [start (new-node)]
-    (assoc sub-fsm
-           :start start
-           :graph
-           (->
-            (:graph sub-fsm)
-            (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
-            (uber/add-edges* (mapv (fn [as]
-                                     [as (:start sub-fsm) {:symbol :epsilon}])
-                                   (:accept sub-fsm)))))))
+#_(defn one-or-more-fsm
+    "Apply the oneOrMore pattern, ie. A+, to an FSM; return a new state machine."
+    [sub-fsm]
+    (let [start (new-node)]
+      (assoc sub-fsm
+             :start start
+             :graph
+             (->
+              (:graph sub-fsm)
+              (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
+              (uber/add-edges* (mapv (fn [as]
+                                       [as (:start sub-fsm) {:symbol :epsilon}])
+                                     (:accept sub-fsm)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Using Finite State Machines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn all-deltas
-  "For a given FSM and an input state, return a table relating inputs and the
+#_(defn all-deltas
+    "For a given FSM and an input state, return a table relating inputs and the
   set of result states. Equivalent to returning a row in a transition table
   (with transitions that output the empty set removed)."
-  [fsm state]
-  (let [graph (:graph fsm)
-        out-edges (-> graph (uber/out-edges state) vec)]
-    (reduce (fn [accum edge]
-              (let [input (uber/attr graph edge :symbol)
-                    dest (uber/dest edge)]
-                (update accum input #(cset/union % #{dest})))) {} out-edges)))
+    [fsm state]
+    (let [graph (:graph fsm)
+          out-edges (-> graph (uber/out-edges state) vec)]
+      (reduce (fn [accum edge]
+                (let [input (uber/attr graph edge :symbol)
+                      dest (uber/dest edge)]
+                  (update accum input #(cset/union % #{dest})))) {} out-edges)))
 
-(defn epsilon-closure
-  "Return the epsilon closure of a state, ie. the set of states that can be
+#_(defn epsilon-closure
+    "Return the epsilon closure of a state, ie. the set of states that can be
   reached by the state using only epsilon transitions (including itself)."
-  [fsm states]
+    [fsm states]
   ;; Perform BFS using a queue, while also using a set as a state accumulator.
   ;; Important to not consider states already in the set, or else we would get
   ;; stuck in infinite cycles.
-  (loop [state-set states
-         state-queue states]
-    (let [deltas (apply merge (mapv (partial all-deltas fsm) state-queue))
-          epsilons (cset/difference (:epsilon deltas) state-set)
-          new-states (cset/union epsilons state-set)]
-      (if (nil? epsilons)
-        new-states
-        (recur new-states epsilons)))))
+    (loop [state-set states
+           state-queue states]
+      (let [deltas (apply merge (mapv (partial all-deltas fsm) state-queue))
+            epsilons (cset/difference (:epsilon deltas) state-set)
+            new-states (cset/union epsilons state-set)]
+        (if (nil? epsilons)
+          new-states
+          (recur new-states epsilons)))))
 
-(defn slurp-transition
-  "Let an FSM read an incoming symbol against a single edge transition.
+#_(defn slurp-transition
+    "Let an FSM read an incoming symbol against a single edge transition.
   Return the set of nodes that is the result of the transition function.
   If the empty set is returned, that means the input is not accepted against
   this transition."
-  [fsm input state-set in-symbol]
-  (if-let [pred-fn (-> fsm :symbols (get input))]
-    (if (pred-fn in-symbol)
-      state-set ;; If transition accepts, return new states; else kill path
-      #{})
+    [fsm input state-set in-symbol]
+    (if-let [pred-fn (-> fsm :symbols (get input))]
+      (if (pred-fn in-symbol)
+        state-set ;; If transition accepts, return new states; else kill path
+        #{})
     ;; Epsilon transitions don't count (since we've already read them) 
-    #{}))
+      #{}))
 
-(defn slurp-symbol
-  "Given an FSM, a single state and an incoming symbol, find the set of states
+#_(defn slurp-symbol
+    "Given an FSM, a single state and an incoming symbol, find the set of states
   given by all accepting transitions (excluding epsilon transitions)."
-  [fsm state in-symbol]
-  (let [deltas (all-deltas fsm state)
-        inputs (keys deltas) next-states (vals deltas)]
-    (apply cset/union
-           (mapv (fn [input state-set]
-                   (slurp-transition fsm input state-set in-symbol))
-                 inputs next-states))))
+    [fsm state in-symbol]
+    (let [deltas (all-deltas fsm state)
+          inputs (keys deltas) next-states (vals deltas)]
+      (apply cset/union
+             (mapv (fn [input state-set]
+                     (slurp-transition fsm input state-set in-symbol))
+                   inputs next-states))))
 
-(defn read-next*
-  "Let an FSM, given a current state, read a new symbol.
+#_(defn read-next*
+    "Let an FSM, given a current state, read a new symbol.
   Unlike the non-star version, this function returns the empty map on failure
   instead of resetting the state, making it unsutiable for composition (but
   useful for debug purposes)."
-  [fsm curr-state in-symbol]
-  (let [e-closure (epsilon-closure fsm curr-state)]
-    (apply cset/union (mapv #(slurp-symbol fsm % in-symbol) e-closure))))
+    [fsm curr-state in-symbol]
+    (let [e-closure (epsilon-closure fsm curr-state)]
+      (apply cset/union (mapv #(slurp-symbol fsm % in-symbol) e-closure))))
 
-(defn read-next
-  "Let an FSM, given a current state, read a new symbol.
+#_(defn read-next
+    "Let an FSM, given a current state, read a new symbol.
   If the given state is nil or empty, start at the FSM's start state.
   Properties of curr-state map:
   :states-set - The current set of state IDs.
   :rejected-last - Whether the FSM has rejected the last input read.
   :accept-states - The set of accept states the FSM has reached, or nil if it
   has not reached any."
-  [fsm in-symbol & [curr-state]]
-  (let [{:keys [start accept]} fsm
-        curr-state (if (empty? curr-state)
-                     {:states-set #{start}
-                      :rejected-last false
-                      :accept-states (get accept start)}
-                     curr-state)
-        {:keys [states-set rejected-last accept-states]} curr-state
-        new-states (read-next* fsm states-set in-symbol)]
-    (if (empty? new-states)
+    [fsm in-symbol & [curr-state]]
+    (let [{:keys [start accept]} fsm
+          curr-state (if (empty? curr-state)
+                       {:states-set #{start}
+                        :rejected-last false
+                        :accept-states (get accept start)}
+                       curr-state)
+          {:keys [states-set rejected-last accept-states]} curr-state
+          new-states (read-next* fsm states-set in-symbol)]
+      (if (empty? new-states)
       ;; FSM does not accept symbol; backtrack to previous state
-      {:states-set states-set :rejected-last true :accept-states accept-states}
+        {:states-set states-set :rejected-last true :accept-states accept-states}
       ;; FSM accepts symbol; return new state
-      {:states-set new-states :rejected-last false
-       :accept-states (not-empty (cset/intersection accept new-states))})))
+        {:states-set new-states :rejected-last false
+         :accept-states (not-empty (cset/intersection accept new-states))})))
 
-(defn fsm-function
-  "Create a function out of an FSM that accepts a state and inputs, for our
+#_(defn fsm-function
+    "Create a function out of an FSM that accepts a state and inputs, for our
   convenience (eg. in threading macros)."
-  [fsm]
-  (partial read-next fsm))
+    [fsm]
+    (partial read-next fsm))

@@ -340,26 +340,26 @@
   ;;    states of the NFA.
   (letfn [(add-state-to-dfa
             [dfa next-nfa-states next-dfa-state prev-dfa-state symb]
-           (if (some? next-dfa-state)
-             (-> dfa
-                 (update :states conj next-dfa-state)
-                 (update :accepts #(if (nfa-accept-states? nfa next-nfa-states)
-                                    (conj % next-dfa-state)
-                                    %))
-                 (update-in
-                  [:transitions prev-dfa-state] merge {symb next-dfa-state})
-                 (update :transitions #(if-not (contains?
-                                                (:states dfa)
-                                                next-dfa-state)
-                                         (assoc % next-dfa-state {})
-                                         %)))
-             dfa))
+            (if (some? next-dfa-state)
+              (-> dfa
+                  (update :states conj next-dfa-state)
+                  (update :accepts #(if (nfa-accept-states? nfa next-nfa-states)
+                                      (conj % next-dfa-state)
+                                      %))
+                  (update-in
+                   [:transitions prev-dfa-state] merge {symb next-dfa-state})
+                  (update :transitions #(if-not (contains?
+                                                 (:states dfa)
+                                                 next-dfa-state)
+                                          (assoc % next-dfa-state {})
+                                          %)))
+              dfa))
           (add-state-to-queue
-           [queue dfa next-nfa-states next-dfa-state]
-           (if (and (some? next-dfa-state)
-                    (not (contains? (:states dfa) next-dfa-state)))
-             (conj queue next-nfa-states)
-             queue))]
+            [queue dfa next-nfa-states next-dfa-state]
+            (if (and (some? next-dfa-state)
+                     (not (contains? (:states dfa) next-dfa-state)))
+              (conj queue next-nfa-states)
+              queue))]
     (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
           dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
       (loop [dfa {:type        :dfa
@@ -398,39 +398,30 @@
                  [queue' dfa]
                  (-> nfa :symbols keys))]
             (recur dfa' queue''))
-          dfa
-          #_(if (contains? (:states dfa) "FAIL")
-              (add-failure-transitions dfa)
-              dfa))))))
+          dfa)))))
 
-(construct-powerset
- {:type :nfa
-  :symbols {"a" odd?}
-  :states #{0 1}
-  :start 0
-  :accept 1
-  :transitions {0 {"a" #{1}}, 1 {}}})
-
-(defn read-next-state-2*
-  "Given an FSM, a queue of states, and an input, advance the current state
-   from the topmost state in the queue."
-  [fsm input state-queue state]
-  (loop [states state-queue
-         transitions (-> fsm :transitions state)]
-    (if-let [[symbol next-state] (peek transitions)]
-      (let [predicate (-> fsm :symbols symbol)]
-        (if (and (some? predicate) (predicate input))
-          (recur (conj states next-state) (pop transitions))
-          (recur states (pop transitions))))
-      transitions)))
-
-#_((defn read-next-state-2
-     [fsm input state-queue]
-     (if-let [state (peek state-queue)]
-       (let [state-queue' (read-next-state-2* fsm input state-queue state)
-             state-queue'' (conj (epsilon-closure fsm state))])
-       (->> state (fsm input (pop state-queue)) (conj (epsilon-closure fsm)))
-       state-queue)))
+(defn read-next
+  "Given a compiled FSM, the current state, and an input, let the FSM read that
+   input.  The return value is a map of the following:
+    :next-states - A vector of states the FSM has reached after reading the
+     input.  (Note that an input may be valid for more than one symbol, hence
+     why we need to return a vector.)
+    :rejected? - True if the input is false for all available predicates at the
+     state, so the FSM cannot advance a state; false otherwise.
+    :accepted? - True if the FSM as arrived at an accept state after reading the
+     input; false otherwise."
+  [dfa state input]
+  (if-let [trans (-> dfa :transitions (get state))]
+    (let [dests
+          (->> trans
+               (filterv (fn [[symb _]]
+                          (let [pred? (get (:symbols dfa) symb)] (pred? input))))
+               (mapv (fn [[_ dest]] dest)))]
+      {:next-states dests
+       :rejected? (empty? dests)
+       :accepted? (not (empty?
+                        (filterv (partial contains? (:accepts dfa)) dests)))})
+    (throw (Exception. "State not found in the finite state machine"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

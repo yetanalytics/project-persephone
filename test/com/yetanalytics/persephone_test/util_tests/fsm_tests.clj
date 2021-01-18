@@ -469,6 +469,22 @@
                                2 {"a" #{3} :epsilon #{1}}
                                3 {"a" #{2}}}}))))))
 
+(-> a-fsm fsm/construct-powerset :accepts)
+(true? (filterv (partial contains? #{"1"}) ["1"]))
+
+(deftest read-next-test
+  (testing "The read-next function."
+    (is (= {:next-states ["1"] :rejected? false :accepted? true}
+           (-> a-fsm fsm/construct-powerset (fsm/read-next "0" "a"))))
+    (is (= {:next-states [] :rejected? true :accepted? false}
+           (-> a-fsm fsm/construct-powerset (fsm/read-next "0" "b"))))
+    (is (= {:next-states [] :rejected? true :accepted? false}
+           (-> a-fsm fsm/construct-powerset (fsm/read-next "1" "a"))))
+    (is (= {:next-states ["3"] :rejected? false :accepted? true}
+           (let [dfa (-> [a-fsm b-fsm] fsm/concat-fsm fsm/construct-powerset)]
+             (fsm/read-next dfa "0" "a")
+             (fsm/read-next dfa "1-2" "b"))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; ;; Base FSMs

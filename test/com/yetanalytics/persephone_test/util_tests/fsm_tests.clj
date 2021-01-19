@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-tests
-  (:require [clojure.test :refer :all]
-            [clojure.set :as cset]
+  (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
 (deftest alphatize-states-test

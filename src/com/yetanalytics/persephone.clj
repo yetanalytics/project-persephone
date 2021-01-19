@@ -10,20 +10,20 @@
 ;; TODO: Add project-pan integration
 (defn compile-profile
   "Take a JSON-LD profile (or an equivalent EDN data structure) as an argument
-  and returns a sequence of compiled primary Patterns, which can then be used
-  in read-next-statement. Returns nil if there are no primary Patterns in the
-  profile."
+   and returns a sequence of compiled primary Patterns, which can then be used
+   in read-next-statement. Returns nil if there are no primary Patterns in the
+   profile."
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile json/json-to-edn p/profile->fsm)
+    (-> profile json/json-to-edn p/profile->fsms)
     ;; EDN
-    (-> profile p/profile->fsm)))
+    (-> profile p/profile->fsms)))
 
 (defn profile-templates
   "Take a JSON-LD profile (or an equivalent EDN data structure) and return a
-  vector of Statement Templates (in EDN format). Returns nil if there are
-  there are no Templates in the Profile."
+   vector of Statement Templates (in EDN format). Returns nil if there are
+   there are no Templates in the Profile."
   [profile]
   (if (string? profile)
     ;; JSON-LD
@@ -45,8 +45,8 @@
 
 (defn validate-statement
   "Takes in a Statement Template and a Statement as arguments, respectively,
-  and returns a boolean. If the function returns false, it prints an error
-  message detailing all validation errors."
+   and returns a boolean. If the function returns false, it prints an error
+   message detailing all validation errors."
   [template stmt]
   (let [statement (if (string? stmt) (json/json-to-edn stmt) stmt)]
     (t/validate-statement template statement :err-msg true)))

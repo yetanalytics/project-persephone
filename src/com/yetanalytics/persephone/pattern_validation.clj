@@ -91,7 +91,7 @@
 
 (defn grow-pattern-tree
   "Build a tree data structure out of a Pattern using zippers. Each internal
-  node is a Pattern and each leaf node is a Statement Template."
+   node is a Pattern and each leaf node is a Statement Template."
   [pattern objects-map]
   (loop [pattern-loc (create-zipper pattern)]
     (if (zip/end? pattern-loc)
@@ -128,10 +128,10 @@
   (fsm/reset-counter)
   (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa))
 
-(defn profile->fsm
+(defn profile->fsms
   "Pipeline function that turns a Profile into a sequence of FSMs that can
-   perform Statement validation. Note: Assumes syntactically valid Patterns from
-   a valid Profile."
+   perform Statement validation. Each entry corresponds to a primary Pattern.
+   Note: Assumes syntactically valid Patterns from a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]

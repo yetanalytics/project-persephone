@@ -1,61 +1,61 @@
 (ns com.yetanalytics.persephone-test.pattern-validation-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [clojure.zip :as zip]
             [com.yetanalytics.persephone.pattern-validation :as pv]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
 (def ex-profile
-  {:templates [{:id "http://foo.org/t1"
+  {:templates [{:id   "http://foo.org/t1"
                 :type "StatementTemplate"
                 :verb "http://foo.org/verb1"}
-               {:id "http://foo.org/t2"
+               {:id   "http://foo.org/t2"
                 :type "StatementTemplate"
                 :verb "http://foo.org/verb2"}
-               {:id "http://foo.org/t3"
+               {:id   "http://foo.org/t3"
                 :type "StatementTemplate"
                 :verb "http://foo.org/verb3"}]
-   :patterns [{:id "http://foo.org/p1"
-               :type "Pattern"
-               :primary true
-               :alternates ["http://foo.org/p2"
-                            "http://foo.org/t1"]}
-              {:id "http://foo.org/p2"
-               :type "Pattern"
-               :primary false
-               :sequence ["http://foo.org/t2"
-                          "http://foo.org/t3"]}
-              {:id "http://foo.org/p3"
-               :type "Pattern"
-               :primary true
-               :oneOrMore {:id "http://foo.org/p1"}}]})
+   :patterns  [{:id         "http://foo.org/p1"
+                :type       "Pattern"
+                :primary    true
+                :alternates ["http://foo.org/p2"
+                             "http://foo.org/t1"]}
+               {:id       "http://foo.org/p2"
+                :type     "Pattern"
+                :primary  false
+                :sequence ["http://foo.org/t2"
+                           "http://foo.org/t3"]}
+               {:id        "http://foo.org/p3"
+                :type      "Pattern"
+                :primary   true
+                :oneOrMore {:id "http://foo.org/p1"}}]})
 
 (deftest mapify-patterns-test
   (testing "mapify-patterns function"
-    (is (= {"http://foo.org/p1" {:id "http://foo.org/p1"
-                                 :type "Pattern"
-                                 :primary true
+    (is (= {"http://foo.org/p1" {:id         "http://foo.org/p1"
+                                 :type       "Pattern"
+                                 :primary    true
                                  :alternates ["http://foo.org/p2"
                                               "http://foo.org/t1"]}
-            "http://foo.org/p2" {:id "http://foo.org/p2"
-                                 :type "Pattern"
-                                 :primary false
+            "http://foo.org/p2" {:id       "http://foo.org/p2"
+                                 :type     "Pattern"
+                                 :primary  false
                                  :sequence ["http://foo.org/t2"
                                             "http://foo.org/t3"]}
-            "http://foo.org/p3" {:id "http://foo.org/p3"
-                                 :type "Pattern"
-                                 :primary true
+            "http://foo.org/p3" {:id        "http://foo.org/p3"
+                                 :type      "Pattern"
+                                 :primary   true
                                  :oneOrMore {:id "http://foo.org/p1"}}}
            (pv/mapify-patterns ex-profile)))))
 
 (deftest mapify-templates-test
   (testing "mapify-templates function"
-    (is (= {"http://foo.org/t1" {:id "http://foo.org/t1"
+    (is (= {"http://foo.org/t1" {:id   "http://foo.org/t1"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb1"}
-            "http://foo.org/t2" {:id "http://foo.org/t2"
+            "http://foo.org/t2" {:id   "http://foo.org/t2"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb2"}
-            "http://foo.org/t3" {:id "http://foo.org/t3"
+            "http://foo.org/t3" {:id   "http://foo.org/t3"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb3"}}
            (pv/mapify-templates ex-profile)))))
@@ -63,63 +63,63 @@
 (deftest mapify-all-test
   (testing "mapify-all function: make a id-object map of Templates and Patterns
            given a Profile."
-    (is (= {"http://foo.org/p1" {:id "http://foo.org/p1"
-                                 :type "Pattern"
-                                 :primary true
+    (is (= {"http://foo.org/p1" {:id         "http://foo.org/p1"
+                                 :type       "Pattern"
+                                 :primary    true
                                  :alternates ["http://foo.org/p2"
                                               "http://foo.org/t1"]}
-            "http://foo.org/p2" {:id "http://foo.org/p2"
-                                 :type "Pattern"
-                                 :primary false
+            "http://foo.org/p2" {:id       "http://foo.org/p2"
+                                 :type     "Pattern"
+                                 :primary  false
                                  :sequence ["http://foo.org/t2"
                                             "http://foo.org/t3"]}
-            "http://foo.org/p3" {:id "http://foo.org/p3"
-                                 :type "Pattern"
-                                 :primary true
+            "http://foo.org/p3" {:id        "http://foo.org/p3"
+                                 :type      "Pattern"
+                                 :primary   true
                                  :oneOrMore {:id "http://foo.org/p1"}}
-            "http://foo.org/t1" {:id "http://foo.org/t1"
+            "http://foo.org/t1" {:id   "http://foo.org/t1"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb1"}
-            "http://foo.org/t2" {:id "http://foo.org/t2"
+            "http://foo.org/t2" {:id   "http://foo.org/t2"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb2"}
-            "http://foo.org/t3" {:id "http://foo.org/t3"
+            "http://foo.org/t3" {:id   "http://foo.org/t3"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb3"}}
            (pv/mapify-all ex-profile)))))
 
 (deftest primary-patterns-test
   (testing "primary-patterns function: seq of primary patterns"
-    (is (= '({:id "http://foo.org/p1"
-              :type "Pattern"
-              :primary true
+    (is (= '({:id         "http://foo.org/p1"
+              :type       "Pattern"
+              :primary    true
               :alternates ["http://foo.org/p2"
                            "http://foo.org/t1"]}
-             {:id "http://foo.org/p3"
-              :type "Pattern"
-              :primary true
+             {:id        "http://foo.org/p3"
+              :type      "Pattern"
+              :primary   true
               :oneOrMore {:id "http://foo.org/p1"}})
            (pv/primary-patterns ex-profile)))))
 
 (deftest create-zipper-test
   (testing "create-zipper function"
-    (is (= {:id "http://foo.org/p1"
-            :type "Pattern"
-            :primary true
+    (is (= {:id         "http://foo.org/p1"
+            :type       "Pattern"
+            :primary    true
             :alternates ["http://foo.org/p2" "http://foo.org/t1"]}
            (-> ex-profile :patterns (get 0))))
-    (is (= {:id "http://foo.org/p1"
-            :type "Pattern"
-            :primary true
+    (is (= {:id         "http://foo.org/p1"
+            :type       "Pattern"
+            :primary    true
             :alternates ["http://foo.org/p2" "http://foo.org/t1"]}
            (-> ex-profile :patterns (get 0) pv/create-zipper zip/node)))
     (is (-> ex-profile :patterns (get 0) pv/create-zipper zip/branch?))
     (is (= '("http://foo.org/p2" "http://foo.org/t1")
            (-> ex-profile :patterns (get 0) pv/create-zipper zip/children)))
     (is (seq? (-> ex-profile :patterns (get 0) pv/create-zipper zip/children)))
-    (is (= {:id "http://foo.org/p3"
-            :type "Pattern"
-            :primary true
+    (is (= {:id        "http://foo.org/p3"
+            :type      "Pattern"
+            :primary   true
             :oneOrMore {:id "http://foo.org/p1"}}
            (-> ex-profile :patterns (get 2) pv/create-zipper zip/node)))
     (is (= '("http://foo.org/p1")
@@ -128,75 +128,75 @@
 
 (deftest update-children-test
   (testing "update-children function"
-    (is (= {:id "http://foo.org/p1"
-            :type "Pattern"
-            :primary true
-            :alternates [{:id "http://foo.org/p2"
-                          :type "Pattern"
-                          :primary false
+    (is (= {:id         "http://foo.org/p1"
+            :type       "Pattern"
+            :primary    true
+            :alternates [{:id       "http://foo.org/p2"
+                          :type     "Pattern"
+                          :primary  false
                           :sequence ["http://foo.org/t2" "http://foo.org/t3"]}
-                         {:id "http://foo.org/t1"
+                         {:id   "http://foo.org/t1"
                           :type "StatementTemplate"
                           :verb "http://foo.org/verb1"}]}
            (-> ex-profile :patterns (get 0) pv/create-zipper
                (pv/update-children (pv/mapify-all ex-profile)) zip/node)))
-    (is (= {:id "http://foo.org/p2"
-            :type "Pattern"
-            :primary false
-            :sequence [{:id "http://foo.org/t2"
+    (is (= {:id       "http://foo.org/p2"
+            :type     "Pattern"
+            :primary  false
+            :sequence [{:id   "http://foo.org/t2"
                         :type "StatementTemplate"
                         :verb "http://foo.org/verb2"}
-                       {:id "http://foo.org/t3"
+                       {:id   "http://foo.org/t3"
                         :type "StatementTemplate"
                         :verb "http://foo.org/verb3"}]}
            (-> ex-profile :patterns (get 1) pv/create-zipper
                (pv/update-children (pv/mapify-all ex-profile)) zip/node)))
     (is (= (-> ex-profile :patterns (get 2) pv/create-zipper
                (pv/update-children (pv/mapify-all ex-profile)) zip/node)
-           {:id "http://foo.org/p3"
-            :type "Pattern"
-            :primary true
-            :oneOrMore [{:id "http://foo.org/p1"
-                         :type "Pattern"
-                         :primary true
+           {:id        "http://foo.org/p3"
+            :type      "Pattern"
+            :primary   true
+            :oneOrMore [{:id         "http://foo.org/p1"
+                         :type       "Pattern"
+                         :primary    true
                          :alternates ["http://foo.org/p2"
                                       "http://foo.org/t1"]}]}))))
 
 (deftest grow-pattern-tree-test
   (testing "grow-pattern-tree function (implicitly also tests update-children)"
-    (is (= {:id "http://foo.org/p1"
-            :type "Pattern"
-            :primary true
-            :alternates [{:id "http://foo.org/p2"
-                          :type "Pattern"
-                          :primary false
-                          :sequence [{:id "http://foo.org/t2"
+    (is (= {:id         "http://foo.org/p1"
+            :type       "Pattern"
+            :primary    true
+            :alternates [{:id       "http://foo.org/p2"
+                          :type     "Pattern"
+                          :primary  false
+                          :sequence [{:id   "http://foo.org/t2"
                                       :type "StatementTemplate"
                                       :verb "http://foo.org/verb2"}
-                                     {:id "http://foo.org/t3"
+                                     {:id   "http://foo.org/t3"
                                       :type "StatementTemplate"
                                       :verb "http://foo.org/verb3"}]}
-                         {:id "http://foo.org/t1"
+                         {:id   "http://foo.org/t1"
                           :type "StatementTemplate"
                           :verb "http://foo.org/verb1"}]}
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 0))
                                  (pv/mapify-all ex-profile))))
-    (is (= {:id "http://foo.org/p3"
-            :type "Pattern"
-            :primary true
-            :oneOrMore [{:id "http://foo.org/p1"
-                         :type "Pattern"
-                         :primary true
-                         :alternates [{:id "http://foo.org/p2"
-                                       :type "Pattern"
-                                       :primary false
-                                       :sequence [{:id "http://foo.org/t2"
+    (is (= {:id        "http://foo.org/p3"
+            :type      "Pattern"
+            :primary   true
+            :oneOrMore [{:id         "http://foo.org/p1"
+                         :type       "Pattern"
+                         :primary    true
+                         :alternates [{:id       "http://foo.org/p2"
+                                       :type     "Pattern"
+                                       :primary  false
+                                       :sequence [{:id   "http://foo.org/t2"
                                                    :type "StatementTemplate"
                                                    :verb "http://foo.org/verb2"}
-                                                  {:id "http://foo.org/t3"
+                                                  {:id   "http://foo.org/t3"
                                                    :type "StatementTemplate"
                                                    :verb "http://foo.org/verb3"}]}
-                                      {:id "http://foo.org/t1"
+                                      {:id   "http://foo.org/t1"
                                        :type "StatementTemplate"
                                        :verb "http://foo.org/verb1"}]}]}
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 2))
@@ -270,7 +270,7 @@
 
 (deftest profile-to-fsm-test
   (testing "profile-to-fsm function"
-    (let [pattern-fsms (pv/profile->fsm ex-profile)
+    (let [pattern-fsms (pv/profile->fsms ex-profile)
           read-nxt-1   (partial fsm/read-next (first pattern-fsms))
           read-nxt-2   (partial fsm/read-next (second pattern-fsms))
           stmt-1       {:id "some-stmt-uuid"
@@ -282,7 +282,7 @@
       (is (= 2 (count pattern-fsms)))
       (is (every? #(= (-> % keys set)
                       #{:type :symbols :states :start :accepts :transitions})
-                  (pv/profile->fsm ex-profile)))
+                  (pv/profile->fsms ex-profile)))
       (is (-> nil
               (read-nxt-1 stmt-1)
               :accepted?))

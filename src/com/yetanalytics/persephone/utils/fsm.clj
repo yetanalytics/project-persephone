@@ -5,164 +5,162 @@
             [dorothy.jvm :as djvm]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Finite State Machine Functions
+;; Finite State Machine Library
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; A finite state machine is mathematically defined as a quintuple of the
-;; following:
+;; A finite state machine (FSM) is a construction consisting of "states" and
+;; "transitions"; the current state changes when the FSM reads an input,
+;; depending on the transitions available.
+;; 
+;; An FSM is mathematically defined as the following quintuple:
 ;; - Sigma: The input alphabet, a finite and non-empty set of symbols
-;; - S: A finite, non-empty set of states
-;; - s_0: The initial state, s.t. s_0 \in S
+;; - S:     A finite, non-empty set of states
+;; - s_0:   The initial state, s.t. s_0 \in S
 ;; - delta: The state transition function, where delta : S x Sigma -> S
-;; - F: The set of finite states, where F \subset S
+;; - F:     The set of finite states, where F \subset S
 ;;
-;; Each FSM is encoded as a map of the five mathematical objects, as such:
-;; - :symbols is our alphabet. In practice it is actually a map between an ID
-;; and a one-place predicate function, which evaluates the next symbol read.
-;; - :start is our start state.
-;; - :accept is our set of accept states.
-;; - :graph is an Ubergraph representation of our FSM, which will effectively
-;; serve as our transition table (since we can look up our transitions by
-;; getting the outgoing edges of any node) and our state set (by calling 
-;; uber/nodes).
-;;
-;; The creation of an FSM is based off of Thompson's Algorithm (Thompson, 1968)
-;; in which every sub-FSM is treated as a "black box" with which to attach 
-;; additional nodes and transitions to. This is NOT a very efficient algorithm,
-;; but it is correct and leaves room for optimization.
-
-;;
-;; {:symbols {:kw predicate ...}
-;;  :states #{states ...}
-;;  :start state
-;;  :accepts #{states ...}
-;;  :transitions {state {:kw #{states} (if nfa) / state (if dfa)}} ...}
+;; FSMs can also be depicted as graphs, which is why this library has graph
+;; visualization algorithms (mostly for debugging).
+;; 
+;; FSMs can be divided into deterministic finite automata (DFAs) and non-
+;; deterministic finite automata (NFAs). In a DFA, there can only be one
+;; transition for each state and pair, whereas in an NFA there can be multiple.
+;; Furthermore, NFAs may have "epsilon transitions" which can be taken without
+;; reading any input.
+;; 
+;; The creation of an NFA is based off of Thompson's Algorithm (Thompson, 1968)
+;; in which every sub-NFA is treated as a "black box" with which to attach 
+;; additional nodes and transitions to. We then convert the NFA into a DFA
+;; using the powerset construction, which can result exponential blowup in the
+;; worst-case scenario, but in practice usually decreases the FSM size.
+;; 
+;; We encode an NFA as the following data structure:
+;; {:symbols     {symbol predicate ...}
+;;  :states      #{state ...}
+;;  :start       state
+;;  :accepts     state
+;;  :transitions {state {symbol #{state ...} ...} ...}
 ;; }
-;;
+;; where "symbol" is a string or keyword, "predicate" is a predicate function,
+;; and "state" is a number.
+;; 
+;; We encode a DFA as the following:
+;; {:symbols     {symbol predicate ...}
+;;  :states      #{state ...}
+;;  :start       state
+;;  :accepts     #{state ...}
+;;  :transitions {state {symbol state ...} ...}
+;; }
+;; 
+;; The main differences are that a DFA can have multiple accept states and that
+;; eachs symbol in the transition map corresponds to only one state. NFAs having
+;; only one accept state is NOT a general property of NFAs, but it is an
+;; invariant under Thompson's Algorithm.
+;; 
+;; Note that since mutliple predicates may be valid for an input, we cannot
+;; truly eliminate nondeterminism from our FSMs (unless we make each transition
+;; a set of logical formulae, which would guarentee exponential blowup), so we
+;; use the term "DFA" loosely in this context.
+;; 
+;; Resources:
+;; - Thompson's Algorithm:
+;;   https://en.wikipedia.org/wiki/Thompson%27s_construction
+;; - Powerset Construction:
+;;   https://en.wikipedia.org/wiki/Powerset_construction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Constructing Finite State Machines
+;; Utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#_(defn states
-    "Return all states in an FSM."
-    [fsm]
-    (-> fsm :graph uber/nodes set))
-
-(defn new-node
-  "Wrapper function to generate a random UUID (using Java's UUID class).
-  Used to create new node names."
-  [] (java.util.UUID/randomUUID))
+;; State creation utilities
 
 (def counter (atom -1))
 
 (defn reset-counter
+  "Reset the counter used to name states; an optional starting value may be
+   provided (mainly for debugging). The counter must always be reset before
+   constructing a new NFA."
   ([] (swap! counter (constantly -1)))
   ([n] (swap! counter (constantly (- n 1)))))
 
-(defn new-state []
+(defn- new-state []
   (swap! counter (partial + 1)))
 
-(defn fsm->graphviz
-  [fsm]
-  (let
-   [nodes (reduce
-           (fn [accum state]
-             (conj accum
-                   [state
-                    {:shape       :circle
-                     :peripheries (if (contains? (:accepts fsm) state) 2 1)
-                     :label       state}]))
-           []
-           (:states fsm))
-    edges (reduce-kv
-           (fn [accum src trans]
-             (concat accum
-                     (reduce-kv
-                      (fn [accum symb dests]
-                        (if (= (:type fsm) :nfa)
-                          (concat accum
-                                  (reduce
-                                   (fn [accum dest]
-                                     (conj accum [src dest {:label symb}]))
-                                   []
-                                   dests))
-                          (conj accum [src dests {:label symb}])))
-                      []
-                      trans)))
-           []
-           (:transitions fsm))]
-    (dorothy/digraph (concat edges nodes))))
+;; State alphatization
 
-(defn print-fsm [fsm]
-  (-> fsm fsm->graphviz dorothy/dot djvm/show!))
-
-(defn alphatize-states-fsm
-  [fsm]
-  (let [old-to-new-states (reduce (fn [acc state] (assoc acc state (new-state)))
-                                  {}
-                                  (sort (:states fsm))) ;; FIXME: sort is for debugging only
-        update-dests (fn [transitions]
-                       (reduce-kv
-                        (fn [acc src trans]
-                          (assoc acc
-                                 src
-                                 (reduce-kv
-                                  (fn [acc symb dests]
-                                    (assoc acc
-                                           symb
-                                           (into
-                                            #{}
-                                            (mapv old-to-new-states dests))))
-                                  {}
-                                  trans)))
-                        {}
-                        transitions))]
-    (-> fsm
+(defn- alphatize-states-nfa
+  [nfa]
+  (let [old-to-new-states
+        (reduce (fn [acc state] (assoc acc state (new-state)))
+                {}
+                (sort (:states nfa))) ;; FIXME: sort is for debugging only
+        update-dests
+        (fn [transitions]
+          (reduce-kv
+           (fn [acc src trans]
+             (assoc acc src (reduce-kv
+                             (fn [acc symb dests]
+                               (assoc acc
+                                      symb
+                                      (into
+                                       #{}
+                                       (mapv old-to-new-states dests))))
+                             {}
+                             trans)))
+           {}
+           transitions))]
+    (-> nfa
         (update :states #(into #{} (mapv old-to-new-states %)))
         (update :start old-to-new-states)
         (update :accept old-to-new-states)
         (update :transitions update-dests)
-        (update :transitions
-                #(cset/rename-keys % old-to-new-states)))))
+        (update :transitions #(cset/rename-keys % old-to-new-states)))))
 
 (defn alphatize-states
-  [fsm-coll]
+  "Rename all states in a collection of NFAs such that no two states share the
+   same name."
+  [nfa-coll]
   (reset-counter)
   (loop [new-fsm-queue []
-         fsm-queue fsm-coll]
+         fsm-queue nfa-coll]
     (if-let [fsm (first fsm-queue)]
-      (let [fsm' (alphatize-states-fsm fsm)]
+      (let [fsm' (alphatize-states-nfa fsm)]
         (recur (conj new-fsm-queue fsm') (rest fsm-queue)))
       new-fsm-queue)))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NFA Construction Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;    i    
 ;; x ---> a
-(defn transition-fsm
+(defn transition-nfa
+  "Create an NFA that accepts a single input."
   [fn-symbol f]
   (let [start (new-state) accept (new-state)]
-    {:type :nfa
+    {:type    :nfa
      :symbols {fn-symbol f}
-     :states #{start accept}
-     :start start
-     :accept accept
+     :states  #{start accept}
+     :start   start
+     :accept  accept
      :transitions {start {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
-(defn concat-fsm [fsm-coll]
-  (if-not (empty? fsm-coll)
-    (let [fsm-coll (alphatize-states fsm-coll)]
-      (loop [fsm (first fsm-coll)
-             fsm-list (rest fsm-coll)]
+(defn concat-nfa
+  "Concat a collection of NFAs in sequential order. The function throws an
+   exception on empty collections."
+  [nfa-coll]
+  (if-not (empty? nfa-coll)
+    (let [nfa-coll (alphatize-states nfa-coll)]
+      (loop [fsm      (first nfa-coll)
+             fsm-list (rest nfa-coll)]
         (if-let [next-fsm (first fsm-list)]
           (let [new-fsm
-                {:type :nfa
+                {:type    :nfa
                  :symbols (merge (:symbols fsm) (:symbols next-fsm))
-                 :states (cset/union (:states fsm) (:states next-fsm))
-                 :start (:start fsm)
-                 :accept (:accept next-fsm)
+                 :states  (cset/union (:states fsm) (:states next-fsm))
+                 :start   (:start fsm)
+                 :accept  (:accept next-fsm)
                  :transitions
                  (-> (merge (:transitions fsm) (:transitions next-fsm))
                      (update-in
@@ -175,29 +173,31 @@
 ;;    + --> s ==> s --v
 ;; -> q               f
 ;;    + --> s ==> s --^
-(defn union-fsm [fsm-coll]
-  (let [fsm-coll (alphatize-states fsm-coll)
-        new-start (new-state)
-        new-accept (new-state)
-        old-starts (set (mapv :start fsm-coll))
-        old-accepts (mapv :accept fsm-coll)
+(defn union-nfa
+  "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
+  [nfa-coll]
+  (let [nfa-coll    (alphatize-states nfa-coll)
+        new-start   (new-state)
+        new-accept  (new-state)
+        old-starts  (set (mapv :start nfa-coll))
+        old-accepts (mapv :accept nfa-coll)
         reduce-eps-trans
         (partial reduce
                  (fn [acc state]
                    (update-in acc
                               [state :epsilon]
                               (fn [d] (cset/union d #{new-accept})))))]
-    {:type :nfa
-     :symbols (into {} (mapcat :symbols fsm-coll))
-     :states (cset/union
-              (reduce
-               (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} fsm-coll)
-              #{new-start new-accept})
-     :start new-start
-     :accept new-accept
+    {:type    :nfa
+     :symbols (into {} (mapcat :symbols nfa-coll))
+     :states  (cset/union
+               (reduce
+                (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
+               #{new-start new-accept})
+     :start   new-start
+     :accept  new-accept
      :transitions
      (->
-      (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} fsm-coll)
+      (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} nfa-coll)
       (reduce-eps-trans old-accepts)
       (update-in [new-start :epsilon] (constantly old-starts))
       (update new-accept (constantly {})))}))
@@ -205,121 +205,115 @@
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 ;;    +-----------------^
-(defn kleene-fsm [fsm]
-  (let [new-start (new-state)
+(defn kleene-nfa
+  "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
+   means the NFA can be taken zero or more times."
+  [nfa]
+  (let [new-start  (new-state)
         new-accept (new-state)
-        old-start (:start fsm)
-        old-accept (:accept fsm)]
-    {:type :nfa
-     :symbols (:symbols fsm)
-     :states (cset/union (:states fsm) #{new-start new-accept})
-     :start new-start
-     :accept new-accept
+        old-start  (:start nfa)
+        old-accept (:accept nfa)]
+    {:type    :nfa
+     :symbols (:symbols nfa)
+     :states  (cset/union (:states nfa) #{new-start new-accept})
+     :start   new-start
+     :accept  new-accept
      :transitions
      (->
-      (:transitions fsm)
+      (:transitions nfa)
       (update-in [new-start :epsilon] #(cset/union % #{old-start new-accept}))
       (update-in [old-accept :epsilon] #(cset/union % #{old-start new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
-(defn optional-fsm [fsm]
-  (let [new-start (new-state)
+(defn optional-nfa
+  "Apply the optional operation on an NFA (the \"?\" regex symbol), which
+   means the NFA may or may not be taken."
+  [nfa]
+  (let [new-start  (new-state)
         new-accept (new-state)
-        old-start (:start fsm)
-        old-accept (:accept fsm)]
-    {:type :nfa
-     :symbols (:symbols fsm)
-     :states (cset/union (:states fsm) #{new-start new-accept})
-     :start new-start
-     :accept new-accept
+        old-start  (:start nfa)
+        old-accept (:accept nfa)]
+    {:type    :nfa
+     :symbols (:symbols nfa)
+     :states  (cset/union (:states nfa) #{new-start new-accept})
+     :start   new-start
+     :accept  new-accept
      :transitions
      (->
-      (:transitions fsm)
+      (:transitions nfa)
       (update-in [new-start :epsilon] #(cset/union % #{old-start new-accept}))
       (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
-(defn plus-fsm [fsm]
-  (let [new-start (new-state)
+(defn plus-nfa
+  "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
+   means the NFA can be taken one or more times."
+  [nfa]
+  (let [new-start  (new-state)
         new-accept (new-state)
-        old-start (:start fsm)
-        old-accept (:accept fsm)]
-    {:type :nfa
-     :symbols (:symbols fsm)
-     :states (cset/union (:states fsm) #{new-start new-accept})
-     :start new-start
-     :accept new-accept
+        old-start  (:start nfa)
+        old-accept (:accept nfa)]
+    {:type    :nfa
+     :symbols (:symbols nfa)
+     :states  (cset/union (:states nfa) #{new-start new-accept})
+     :start   new-start
+     :accept  new-accept
      :transitions
      (->
-      (:transitions fsm)
+      (:transitions nfa)
       (update-in [new-start :epsilon] #(cset/union % #{old-start}))
       (update-in [old-accept :epsilon] #(cset/union % #{old-start new-accept}))
       (update new-accept (constantly {})))}))
 
-;; TODO: Write separator here
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NFA to DFA Conversion
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn init-queue [init] (conj clojure.lang.PersistentQueue/EMPTY init))
+(defn- init-queue [init]
+  (conj clojure.lang.PersistentQueue/EMPTY init))
 
 (defn epsilon-closure
-  "Returns the epsilon closure (performs a BFS internally)"
-  [fsm init-state]
+  "Given an NFA and a state, returns the epsilon closure for that state."
+  [nfa init-state]
+  ;; Perform a BFS and keep track of visited states
   (loop [visited-states #{}
-         state-queue (init-queue init-state)]
+         state-queue    (init-queue init-state)]
     (if-let [state (peek state-queue)]
       (if-not (contains? visited-states state)
         (let [visited-states' (conj visited-states state)
-              next-states (-> fsm :transitions (get state) :epsilon seq)
-              state-queue' (reduce
-                            (fn [queue s] (conj queue s))
-                            (pop state-queue)
-                            next-states)]
+              next-states     (-> nfa :transitions (get state) :epsilon seq)
+              state-queue'    (reduce
+                               (fn [queue s] (conj queue s))
+                               (pop state-queue)
+                               next-states)]
           (recur visited-states' state-queue'))
         (recur visited-states (pop state-queue)))
       visited-states)))
 
-(defn move
+(defn nfa-move
+  "Given an NFA, a symbolic input (NOT an argument to predicates), and a state,
+   return a vector of states arrived after the transition. Returns nil if no
+   transitions are available."
   [nfa symb-input state]
   (if-let [trans (-> nfa :transitions (get state))]
     (->> trans
          (filterv (fn [[symb _]] (= symb-input symb)))
          (mapcat (fn [[_ dests]] dests)))
-    ;; TODO: Make this an exception???
     nil))
 
-#_(defn move-all
-    "Given an NFA and a state, return the set of states after all possible non-
-  epsilon transitions."
-    [nfa state]
-    (reduce-kv
-     (fn [accum symb dests] (if-not (= symb :epsilon) (conj accum dests) accum))
-     []
-     (-> nfa :transitions state)))
-
-(defn nfa-states->dfa-state [nfa-states]
+(defn- nfa-states->dfa-state [nfa-states]
   (if (not-empty nfa-states)
     (->> nfa-states vec sort (map str) (string/join "-"))
     nil))
 
-(defn nfa-accept-states?
-  "Returns true if any of the NFA states are accept states."
-  [nfa nfa-states]
-  (contains? nfa-states (:accept nfa))
-  #_(not-empty (cset/intersection (-> nfa :accept nfa-states))))
+(defn- nfa-accept-states? [nfa nfa-states]
+  (contains? nfa-states (:accept nfa)))
 
-(defn add-failure-transitions [dfa]
-  (update-in
-   dfa
-   [:transitions "FAIL"]
-   (fn [trans] (reduce
-                (fn [acc symb] (assoc acc symb "FAIL"))
-                trans
-                (-> dfa :symbols keys)))))
-
-(defn construct-powerset
+(defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
    order to (semi)-determinize it and remove epsilon transitions."
   [nfa]
@@ -361,27 +355,24 @@
               (conj queue next-nfa-states)
               queue))]
     (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
-          dfa-start (nfa-states->dfa-state nfa-start-eps-close)]
+          dfa-start           (nfa-states->dfa-state nfa-start-eps-close)
+          is-start-accepting  (nfa-accept-states? nfa nfa-start-eps-close)]
       (loop [dfa {:type        :dfa
                   :symbols     (:symbols nfa)
                   :states      #{dfa-start}
                   :start       dfa-start
-                  :accepts     (if (nfa-accept-states? nfa nfa-start-eps-close)
-                                 #{dfa-start}
-                                 #{})
+                  :accepts     (if is-start-accepting #{dfa-start} #{})
                   :transitions {}}
              queue (init-queue nfa-start-eps-close)]
         (if-let [nfa-states (peek queue)]
-          (let [queue'
-                (pop queue)
-                dfa-state
-                (nfa-states->dfa-state nfa-states)
+          (let [queue'    (pop queue)
+                dfa-state (nfa-states->dfa-state nfa-states)
                 [queue'' dfa']
                 (reduce
                  (fn [[queue dfa] symb]
                    (let [next-nfa-states (->>
                                           nfa-states
-                                          (mapcat (partial move nfa symb))
+                                          (mapcat (partial nfa-move nfa symb))
                                           (mapcat (partial epsilon-closure nfa))
                                           set)
                          next-dfa-state  (nfa-states->dfa-state next-nfa-states)
@@ -409,248 +400,62 @@
     :rejected? - True if the input is false for all available predicates at the
      state, so the FSM cannot advance a state; false otherwise.
     :accepted? - True if the FSM as arrived at an accept state after reading the
-     input; false otherwise."
+     input; false otherwise.
+   If the state is nil, start at the start state."
   [dfa state input]
-  (if-let [trans (-> dfa :transitions (get state))]
-    (let [dests
-          (->> trans
-               (filterv (fn [[symb _]]
-                          (let [pred? (get (:symbols dfa) symb)] (pred? input))))
-               (mapv (fn [[_ dest]] dest)))]
-      {:next-states dests
-       :rejected? (empty? dests)
-       :accepted? (not (empty?
-                        (filterv (partial contains? (:accepts dfa)) dests)))})
-    (throw (Exception. "State not found in the finite state machine"))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Basic transition:
-;;    A
-;; x ---> a
-#_(defn transition-fsm
-    "Create a finite state machine that contains only a single transition edge."
-    [fn-symbol fun]
-    (let [start (new-node)
-          accept (new-node)]
-      {:symbols {fn-symbol fun} ;; Epsilon is not part of the alphabet
-       :start start
-       :accept #{accept}
-       :graph (-> (uber/multidigraph)
-                  (uber/add-nodes start accept)
-                  (uber/add-edges [start accept {:symbol fn-symbol}]))}))
-
-;; Concatenation helper
-#_(defn concat-to-fsm
-    "Helper function for sequence-fsm. Attaches a new FSM to the start of the
-  main FSM."
-    [next-fsm curr-fsm]
-    (assoc curr-fsm
-           :start (:start next-fsm)
-           :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-           :graph (->
-                   (:graph curr-fsm)
-                   (uber/build-graph (:graph next-fsm))
-                   (uber/add-edges*
-                    (mapv (fn [as]
-                            [as (:start curr-fsm) {:symbol :epsilon}])
-                          (:accept next-fsm))))))
-;; Concatenation
-;     A      e      B
-;; s ---> s ---> s ---> a
-#_(defn sequence-fsm
-    "Apply the sequence pattern, ie. ABC, to a sequence of FSMs; return a new
-  state machine."
-    [fsm-arr]
-    (loop [curr-fsm (peek fsm-arr)
-           queue (pop fsm-arr)]
-      (if (empty? queue)
-        curr-fsm
-        (let [next-fsm (peek queue)]
-          (recur (concat-to-fsm next-fsm curr-fsm) (pop queue))))))
-
-;; Union helper
-#_(defn union-with-fsm
-    [next-fsm curr-fsm]
-    (assoc curr-fsm
-           :accept (cset/union (:accept curr-fsm) (:accept next-fsm))
-           :symbols (merge (:symbols curr-fsm) (:symbols next-fsm))
-           :graph (->
-                   (:graph curr-fsm)
-                   (uber/build-graph (:graph next-fsm))
-                   (uber/add-edges
-                    [(:start curr-fsm) (:start next-fsm) {:symbol :epsilon}]))))
-;; Union:
-;;    e      A
-;; + ---> s ---> a
-;; s
-;; + ---> s ---> a
-;;    e      B
-#_(defn alternates-fsm
-    "Apply the fsm-arr pattern, ie. A|B|C, to a set of FSMs; return a new
-  state fsm."
-    [fsm-arr]
-    (let [start (new-node)]
-      (loop [curr-fsm (assoc {}
-                             :start start :accept #{} :symbols {}
-                             :graph (-> (uber/multidigraph)
-                                        (uber/add-nodes start)))
-             queue fsm-arr]
-        (if (empty? queue)
-          curr-fsm
-          (let [next-fsm (peek queue)]
-            (recur (union-with-fsm next-fsm curr-fsm) (pop queue)))))))
-
-;; Kleene Star:
-;;           e
-;;        +------+
-;;    e   v  A   |
-;; a ---> s ---> a
-#_(defn zero-or-more-fsm
-    "Apply the zeroOrMore pattern, ie. A*, to an FSM; return a new state 
-  machine."
-    [sub-fsm]
-    (let [node (new-node)]
-      (assoc sub-fsm
-             :start node
-             :accept (cset/union (:accept sub-fsm) #{node})
-             :graph
-             (->
-              (:graph sub-fsm)
-              (uber/add-edges [node (:start sub-fsm) {:symbol :epsilon}])
-              (uber/add-edges* (mapv (fn [as]
-                                       [as (:start sub-fsm) {:symbol :epsilon}])
-                                     (:accept sub-fsm)))))))
-
-;; Union with epsilon transition
-;;    e      A
-;; + ---> s ---> a
-;; s
-;; + ---> a
-;;    e
-#_(defn optional-fsm
-    "Apply the sub-fsm pattern, ie. A?, to an FSM; return a new state machine."
-    [sub-fsm]
-    (let [start (new-node) accept (new-node)]
-      (assoc sub-fsm
-             :start start
-             :accept (cset/union (:accept sub-fsm) #{accept})
-             :graph
-             (->
-              (:graph sub-fsm)
-              (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
-              (uber/add-edges [start accept {:symbol :epsilon}])))))
-
-;; Kleene Plus (ie. Kleen Star w/ concat):
-;;           e
-;;        + ---- +
-;;    e   v  A   |
-;; s ---> s ---> a
-#_(defn one-or-more-fsm
-    "Apply the oneOrMore pattern, ie. A+, to an FSM; return a new state machine."
-    [sub-fsm]
-    (let [start (new-node)]
-      (assoc sub-fsm
-             :start start
-             :graph
-             (->
-              (:graph sub-fsm)
-              (uber/add-edges [start (:start sub-fsm) {:symbol :epsilon}])
-              (uber/add-edges* (mapv (fn [as]
-                                       [as (:start sub-fsm) {:symbol :epsilon}])
-                                     (:accept sub-fsm)))))))
+  (let [{symbols :symbols
+         start   :start
+         accepts :accepts} dfa
+        state (if (nil? state) start state)]
+    (if-let [trans (-> dfa :transitions (get state))]
+      (let [dests
+            (->> trans
+                 (filterv (fn [[symb _]]
+                            (let [pred? (get symbols symb)] (pred? input))))
+                 (mapv (fn [[_ dest]] dest)))]
+        {:next-states dests
+         :rejected?   (empty? dests)
+         :accepted?   (boolean 
+                       (seq (filterv (partial contains? accepts) dests)))})
+      (throw (Exception. "State not found in the finite state machine")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Using Finite State Machines
+;; FSM Graph Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#_(defn all-deltas
-    "For a given FSM and an input state, return a table relating inputs and the
-  set of result states. Equivalent to returning a row in a transition table
-  (with transitions that output the empty set removed)."
-    [fsm state]
-    (let [graph (:graph fsm)
-          out-edges (-> graph (uber/out-edges state) vec)]
-      (reduce (fn [accum edge]
-                (let [input (uber/attr graph edge :symbol)
-                      dest (uber/dest edge)]
-                  (update accum input #(cset/union % #{dest})))) {} out-edges)))
+(defn fsm->graphviz
+  "Convert a FSM to be readable by the Dorothy graphviz library."
+  [fsm]
+  (let
+   [nodes (reduce
+           (fn [accum state]
+             (conj accum
+                   [state
+                    {:shape       :circle
+                     :label       state
+                     :peripheries (if (contains? (:accepts fsm) state) 2 1)}]))
+           []
+           (:states fsm))
+    edges (reduce-kv
+           (fn [accum src trans]
+             (concat accum
+                     (reduce-kv
+                      (fn [accum symb dests]
+                        (if (= (:type fsm) :nfa)
+                          (concat accum
+                                  (reduce
+                                   (fn [accum dest]
+                                     (conj accum [src dest {:label symb}]))
+                                   []
+                                   dests))
+                          (conj accum [src dests {:label symb}])))
+                      []
+                      trans)))
+           []
+           (:transitions fsm))]
+    (dorothy/digraph (concat edges nodes))))
 
-#_(defn epsilon-closure
-    "Return the epsilon closure of a state, ie. the set of states that can be
-  reached by the state using only epsilon transitions (including itself)."
-    [fsm states]
-  ;; Perform BFS using a queue, while also using a set as a state accumulator.
-  ;; Important to not consider states already in the set, or else we would get
-  ;; stuck in infinite cycles.
-    (loop [state-set states
-           state-queue states]
-      (let [deltas (apply merge (mapv (partial all-deltas fsm) state-queue))
-            epsilons (cset/difference (:epsilon deltas) state-set)
-            new-states (cset/union epsilons state-set)]
-        (if (nil? epsilons)
-          new-states
-          (recur new-states epsilons)))))
-
-#_(defn slurp-transition
-    "Let an FSM read an incoming symbol against a single edge transition.
-  Return the set of nodes that is the result of the transition function.
-  If the empty set is returned, that means the input is not accepted against
-  this transition."
-    [fsm input state-set in-symbol]
-    (if-let [pred-fn (-> fsm :symbols (get input))]
-      (if (pred-fn in-symbol)
-        state-set ;; If transition accepts, return new states; else kill path
-        #{})
-    ;; Epsilon transitions don't count (since we've already read them) 
-      #{}))
-
-#_(defn slurp-symbol
-    "Given an FSM, a single state and an incoming symbol, find the set of states
-  given by all accepting transitions (excluding epsilon transitions)."
-    [fsm state in-symbol]
-    (let [deltas (all-deltas fsm state)
-          inputs (keys deltas) next-states (vals deltas)]
-      (apply cset/union
-             (mapv (fn [input state-set]
-                     (slurp-transition fsm input state-set in-symbol))
-                   inputs next-states))))
-
-#_(defn read-next*
-    "Let an FSM, given a current state, read a new symbol.
-  Unlike the non-star version, this function returns the empty map on failure
-  instead of resetting the state, making it unsutiable for composition (but
-  useful for debug purposes)."
-    [fsm curr-state in-symbol]
-    (let [e-closure (epsilon-closure fsm curr-state)]
-      (apply cset/union (mapv #(slurp-symbol fsm % in-symbol) e-closure))))
-
-#_(defn read-next
-    "Let an FSM, given a current state, read a new symbol.
-  If the given state is nil or empty, start at the FSM's start state.
-  Properties of curr-state map:
-  :states-set - The current set of state IDs.
-  :rejected-last - Whether the FSM has rejected the last input read.
-  :accept-states - The set of accept states the FSM has reached, or nil if it
-  has not reached any."
-    [fsm in-symbol & [curr-state]]
-    (let [{:keys [start accept]} fsm
-          curr-state (if (empty? curr-state)
-                       {:states-set #{start}
-                        :rejected-last false
-                        :accept-states (get accept start)}
-                       curr-state)
-          {:keys [states-set rejected-last accept-states]} curr-state
-          new-states (read-next* fsm states-set in-symbol)]
-      (if (empty? new-states)
-      ;; FSM does not accept symbol; backtrack to previous state
-        {:states-set states-set :rejected-last true :accept-states accept-states}
-      ;; FSM accepts symbol; return new state
-        {:states-set new-states :rejected-last false
-         :accept-states (not-empty (cset/intersection accept new-states))})))
-
-#_(defn fsm-function
-    "Create a function out of an FSM that accepts a state and inputs, for our
-  convenience (eg. in threading macros)."
-    [fsm]
-    (partial read-next fsm))
+(defn print-fsm
+  "Show a FSM as an image."
+  [fsm]
+  (-> fsm fsm->graphviz dorothy/dot djvm/show!))

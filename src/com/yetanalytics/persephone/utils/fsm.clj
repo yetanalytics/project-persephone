@@ -417,13 +417,15 @@
      If the FSM cannot read the input, then next-state is nil.
      :accepted? - True if the FSM as arrived at an accept state after reading
      the input; false otherwise.
-   If state-info is nil, the function starts at the start state. If the state
-   value is nil, return state-info without calling the FSM."
+   If state-info is nil, the function starts at the start state.
+   If the state value is nil, or if input is nil, return state-info without
+   calling the FSM."
   [dfa state-info input]
-  (let [state (if (nil? state-info) (:start dfa) (:state state-info))]
-    (if-not (nil? state)
+  (let [state       (if (nil? state-info) (:start dfa) (:state state-info))
+        is-accepted (contains? (:accepts dfa) state)]
+    (if-not (or (nil? state) (nil? input))
       (read-next* dfa state input)
-      {:state nil :accepted? false})))
+      {:state state :accepted? is-accepted})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Graph Printing

@@ -16,9 +16,9 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile json/json-to-edn p/profile-to-fsm)
+    (-> profile json/json-to-edn p/profile->fsm)
     ;; EDN
-    (p/profile-to-fsm profile)))
+    (-> profile p/profile->fsm)))
 
 (defn profile-templates
   "Take a JSON-LD profile (or an equivalent EDN data structure) and return a
@@ -32,20 +32,21 @@
     (->> profile :templates)))
 
 (defn read-next-statement
-  "Uses a compiled Pattern and its current state to validate the next Statement
-  in a sequence. Returns a new state if validation is successful or the current
-  state if validation fails."
-  [pattern statement & [curr-state]]
-  (let [statement (if (string? statement) (json/json-to-edn statement) statement)
-        next-state (fsm/read-next pattern statement curr-state)]
-    (if-not (false? (:rejected-last next-state))
-      (do (err/print-bad-statement statement) next-state)
-      next-state)))
+  "Uses a compiled Pattern and its current state info to validate the next
+   Statement provided. Returns a new state info map if validation is successful
+   or the current one if validation fails. A nil value for the current state
+   info indicates that we have not yet started reading statements."
+  [pat-fsm curr-state-info stmt]
+  (let [statement       (if (string? stmt) (json/json-to-edn stmt) stmt)
+        next-state-info (fsm/read-next pat-fsm curr-state-info statement)]
+    (if (-> next-state-info :state nil?)
+      (do (err/print-bad-statement statement) next-state-info)
+      next-state-info)))
 
 (defn validate-statement
   "Takes in a Statement Template and a Statement as arguments, respectively,
   and returns a boolean. If the function returns false, it prints an error
   message detailing all validation errors."
-  [template statement]
-  (let [statement (if (string? statement) (json/json-to-edn statement) statement)]
+  [template stmt]
+  (let [statement (if (string? stmt) (json/json-to-edn stmt) stmt)]
     (t/validate-statement template statement :err-msg true)))

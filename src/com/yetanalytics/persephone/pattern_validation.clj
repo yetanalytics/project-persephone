@@ -43,38 +43,39 @@
 (defn create-zipper
   "Create a zipper out of a pattern."
   [pattern]
-  (letfn [(branch? [node] (contains? #{"Pattern"} (:type node)))
+  (letfn [(branch? [node]
+            (contains? #{"Pattern"} (:type node)))
           (children [branch]
-                    (m/match [branch]
-                      [(_ :guard #(contains? % :sequence))]
-                      (-> branch :sequence seq)
-                      [(_ :guard #(contains? % :alternates))]
-                      (-> branch :alternates seq)
-                      [(_ :guard #(contains? % :optional))]
-                      (if (map? (:optional branch))
-                        (-> branch :optional :id list)
-                        (-> branch :optional seq))
-                      [(_ :guard #(contains? % :oneOrMore))]
-                      (if (map? (:oneOrMore branch))
-                        (-> branch :oneOrMore :id list)
-                        (-> branch :oneOrMore seq))
-                      [(_ :guard #(contains? % :zeroOrMore))]
-                      (if (map? (:zeroOrMore branch))
-                        (-> branch :zeroOrMore :id list)
-                        (-> branch :zeroOrMore seq))))
+            (cond
+              (contains? branch :sequence)
+              (-> branch :sequence seq)
+              (contains? branch :alternates)
+              (-> branch :alternates seq)
+              (contains? branch :optional)
+              (if (map? (:optional branch))
+                (-> branch :optional :id list)
+                (-> branch :optional seq))
+              (contains? branch :oneOrMore)
+              (if (map? (:oneOrMore branch))
+                (-> branch :oneOrMore :id list)
+                (-> branch :oneOrMore seq))
+              (contains? branch :zeroOrMore)
+              (if (map? (:zeroOrMore branch))
+                (-> branch :zeroOrMore :id list)
+                (-> branch :zeroOrMore seq))))
           (make-node [node children-seq]
-                     (let [children-vec (vec children-seq)]
-                       (m/match [node]
-                         [(_ :guard #(contains? % :sequence))]
-                         (assoc node :sequence children-vec)
-                         [(_ :guard #(contains? % :alternates))]
-                         (assoc node :alternates children-vec)
-                         [(_ :guard #(contains? % :optional))]
-                         (assoc node :optional children-vec)
-                         [(_ :guard #(contains? % :oneOrMore))]
-                         (assoc node :oneOrMore children-vec)
-                         [(_ :guard #(contains? % :zeroOrMore))]
-                         (assoc node :zeroOrMore children-vec))))]
+            (let [children-vec (vec children-seq)]
+              (cond
+                (contains? node :sequence)
+                (assoc node :sequence children-vec)
+                (contains? node :alternates)
+                (assoc node :alternates children-vec)
+                (contains? node :optional)
+                (assoc node :optional children-vec)
+                (contains? node :oneOrMore)
+                (assoc node :oneOrMore children-vec)
+                (contains? node :zeroOrMore)
+                (assoc node :zeroOrMore children-vec))))]
     (zip/zipper branch? children make-node pattern)))
 
 (defn update-children
@@ -101,6 +102,7 @@
       (let [new-loc (update-children pattern-loc objects-map)]
         (recur (zip/next new-loc))))))
 
+#_{:clj-kondo/ignore [:unresolved-symbol]}
 (defn build-node-fsm
   "Given a node in the Pattern tree, return the corresponding FSM.
   The FSM built at this node is a composition of FSMs built from the child
@@ -112,13 +114,13 @@
     [{:type "Pattern" :alternates _}]
     (-> node :alternates fsm/alternates-fsm)
     [{:type "Pattern" :optional _}]
-    (-> node :optional first fsm/optional-fsm)
+    (-> node :optional first fsm/optional-nfa)
     [{:type "Pattern" :zeroOrMore _}]
     (-> node :zeroOrMore first fsm/zero-or-more-fsm)
     [{:type "Pattern" :oneOrMore _}]
     (-> node :oneOrMore first fsm/one-or-more-fsm)
     [{:type "StatementTemplate"}]
-    (fsm/transition-fsm (:id node) (partial tv/validate-statement node))
+    (fsm/transition-nfa (:id node) (partial tv/validate-statement node))
     ;; Node is not a map
     :else node))
 

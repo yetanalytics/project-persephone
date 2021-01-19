@@ -489,21 +489,19 @@
 
 (deftest read-next-test
   (testing "The read-next function."
-    (is (= {:next-states ["1"]
-            :rejected?   false
-            :accepted?   true}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next "0" "a"))))
-    (is (= {:next-states []
-            :rejected?   true
+    (is (= {:state     "1"
+            :accepted? true}
+           (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
+    (is (= {:state       nil
             :accepted?   false}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next "0" "b"))))
-    (is (= {:next-states []
-            :rejected?   true
-            :accepted?   false}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next "1" "a"))))
-    (is (= {:next-states ["3"]
-            :rejected?   false
-            :accepted?   true}
-           (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)]
-             (fsm/read-next dfa nil "a")
-             (fsm/read-next dfa "1-2" "b"))))))
+           (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
+    (is (= {:state     nil
+            :accepted? false}
+           (-> a-fsm
+               fsm/nfa->dfa
+               (fsm/read-next {:state "1" :accepted? true} "a"))))
+    (is (= {:state     "3"
+            :accepted? true}
+           (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
+                 read-nxt  (partial fsm/read-next dfa)]
+             (-> nil (read-nxt "a") (read-nxt "b")))))))

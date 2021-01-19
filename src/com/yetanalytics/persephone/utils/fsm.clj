@@ -391,37 +391,45 @@
             (recur dfa' queue''))
           dfa)))))
 
-(defn read-next
-  "Given a compiled FSM, the current state, and an input, let the FSM read that
-   input.  The return value is a map of the following:
-    :next-states - A vector of states the FSM has reached after reading the
-     input.  (Note that an input may be valid for more than one symbol, hence
-     why we need to return a vector.)
-    :rejected? - True if the input is false for all available predicates at the
-     state, so the FSM cannot advance a state; false otherwise.
-    :accepted? - True if the FSM as arrived at an accept state after reading the
-     input; false otherwise.
-   If the state is nil, start at the start state."
+;; TODO: Handle situations when number of states returned is greater than 1.
+
+(defn- read-next*
+  "Like read-next, except it takes in the state directly, rather than state
+   info. The read-next function is more useful for threading."
   [dfa state input]
-  (let [{symbols :symbols
-         start   :start
-         accepts :accepts} dfa
-        state (if (nil? state) start state)]
+  (let [{symbols :symbols accepts :accepts} dfa]
     (if-let [trans (-> dfa :transitions (get state))]
       (let [dests
             (->> trans
                  (filterv (fn [[symb _]]
                             (let [pred? (get symbols symb)] (pred? input))))
                  (mapv (fn [[_ dest]] dest)))]
-        {:next-states dests
-         :rejected?   (empty? dests)
-         :accepted?   (boolean 
-                       (seq (filterv (partial contains? accepts) dests)))})
+        {:state     (first dests)
+         :accepted? (boolean
+                     (seq (filterv (partial contains? accepts) dests)))})
       (throw (Exception. "State not found in the finite state machine")))))
+
+(defn read-next
+  "Given a compiled FSM, the current state info, and an input, let the FSM read
+   that input; this function returns update state info. State info has the
+   following fields:
+     :next-state - The next state arrived at in the FSM after reading the input.
+     If the FSM cannot read the input, then next-state is nil.
+     :accepted? - True if the FSM as arrived at an accept state after reading
+     the input; false otherwise.
+   If state-info is nil, the function starts at the start state. If the state
+   value is nil, return state-info without calling the FSM."
+  [dfa state-info input]
+  (let [state (if (nil? state-info) (:start dfa) (:state state-info))]
+    (if-not (nil? state)
+      (read-next* dfa state input)
+      {:state nil :accepted? false})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Graph Printing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: More testing, especially on DFAs
 
 (defn fsm->graphviz
   "Convert a FSM to be readable by the Dorothy graphviz library."

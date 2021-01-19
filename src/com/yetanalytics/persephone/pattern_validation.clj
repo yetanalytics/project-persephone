@@ -1,10 +1,7 @@
 (ns com.yetanalytics.persephone.pattern-validation
-  (:require [clojure.spec.alpha :as s]
-            [clojure.core.match :as m]
+  (:require [clojure.core.match :as m]
             [clojure.walk :as w]
             [clojure.zip :as zip]
-            [com.yetanalytics.pan.objects.template :as template]
-            [com.yetanalytics.pan.objects.pattern :as pattern]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
             [com.yetanalytics.persephone.template-validation :as tv]))
 
@@ -80,8 +77,8 @@
 
 (defn update-children
   "Given a location in a pattern zipper and a table of objects (Templates and 
-  Patterns), replace the identifiers with their respective objects (either
-  a Template map, a Pattern, or an array of Patterns)."
+   Patterns), replace the identifiers with their respective objects (either
+   a Template map, a Pattern, or an array of Patterns)."
   [pattern-loc objects-map]
   (if (zip/branch? pattern-loc)
     (zip/replace pattern-loc
@@ -102,40 +99,43 @@
       (let [new-loc (update-children pattern-loc objects-map)]
         (recur (zip/next new-loc))))))
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
-(defn build-node-fsm
-  "Given a node in the Pattern tree, return the corresponding FSM.
-  The FSM built at this node is a composition of FSMs built from the child
-  nodes."
+#_{:clj-kondo/ignore [:unresolved-symbol]} ;; Kondo doesn't recognize core.match
+(defn pattern->fsm
+  "Given a Pattern (e.g. as a node in a Pattern tree), return the corresponding
+   FSM. The FSM built at this node is a composition of FSMs built from the child
+   nodes."
   [node]
   (m/match [node]
     [{:type "Pattern" :sequence _}]
-    (-> node :sequence fsm/sequence-fsm)
+    (-> node :sequence fsm/concat-nfa)
     [{:type "Pattern" :alternates _}]
-    (-> node :alternates fsm/alternates-fsm)
+    (-> node :alternates fsm/union-nfa)
     [{:type "Pattern" :optional _}]
     (-> node :optional first fsm/optional-nfa)
     [{:type "Pattern" :zeroOrMore _}]
-    (-> node :zeroOrMore first fsm/zero-or-more-fsm)
+    (-> node :zeroOrMore first fsm/kleene-nfa)
     [{:type "Pattern" :oneOrMore _}]
-    (-> node :oneOrMore first fsm/one-or-more-fsm)
+    (-> node :oneOrMore first fsm/plus-nfa)
     [{:type "StatementTemplate"}]
     (fsm/transition-nfa (:id node) (partial tv/validate-statement node))
     ;; Node is not a map
     :else node))
 
-(defn mechanize-pattern
+(defn pattern-tree->fsm
   "Turn a Pattern tree data structure into an FSM using a post-order DFS tree
-  traversal."
+   traversal."
   [pattern-tree]
-  (w/postwalk build-node-fsm pattern-tree))
+  (fsm/reset-counter)
+  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa))
 
-(defn profile-to-fsm
-  "Pipeline function that turns a Profile into a FSM that can perform
-  Statement validation. Note: Assumes syntactically valid Patterns from a valid
-  Profile."
+(defn profile->fsm
+  "Pipeline function that turns a Profile into a sequence of FSMs that can
+   perform Statement validation. Note: Assumes syntactically valid Patterns from
+   a valid Profile."
   [profile]
-  (let [o-map (mapify-all profile)
-        p-seq (primary-patterns profile)]
-    (not-empty
-     (map #(-> % (grow-pattern-tree o-map) mechanize-pattern) p-seq))))
+  (let [temp-pat-map (mapify-all profile)
+        pattern-seq (primary-patterns profile)]
+    (seq (map (fn [pattern] (-> pattern
+                                      (grow-pattern-tree temp-pat-map)
+                                      pattern-tree->fsm))
+                    pattern-seq))))

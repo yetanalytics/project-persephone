@@ -221,81 +221,81 @@
 
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
-    (is (= {:next-states (-> template-1-fsm :accepts vec)
-            :rejected?   false
-            :accepted?   true}
+    (is (= {:state     (-> template-1-fsm :accepts first)
+            :accepted? true}
            (fsm/read-next template-1-fsm
                           nil
                           {:verb {:id "http://foo.org/verb1"}})))
-    (is (= {:next-states []
-            :rejected?   true
-            :accepted?   false}
+    (is (= {:state     nil
+            :accepted? false}
            (fsm/read-next template-1-fsm
                           nil
                           {:verb {:id "http://foo.org/verb9"}})))))
 
 (deftest mechanize-pattern-test-1
   (testing "mechanize-pattern function on pattern #1"
-    (is (-> (fsm/read-next pattern-1-fsm
-                           nil
-                           {:verb {:id "http://foo.org/verb1"}})
-            :accepted?))
-    (is (let [s1 (-> (fsm/read-next pattern-1-fsm
-                                    nil
-                                    {:verb {:id "http://foo.org/verb2"}})
-                     :next-states
-                     first)]
-          (-> (fsm/read-next pattern-1-fsm
-                             s1
-                             {:verb {:id "http://foo.org/verb3"}})
-              :accepted?)))
-    (is (-> (fsm/read-next pattern-1-fsm
-                           nil
-                           {:verb {:id "http://foo.org/verb9"}})
-            :rejected?))
-    (is (let [s1 (-> (fsm/read-next pattern-1-fsm
-                                    nil
-                                    {:verb {:id "http://foo.org/verb1"}})
-                     :next-states
-                     first)]
-          (-> (fsm/read-next pattern-1-fsm
-                             s1
-                             {:verb {:id "http://foo.org/verb1"}})
-              :rejected?)))))
+    (let [read-nxt (partial fsm/read-next pattern-1-fsm)]
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              :accepted?))
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb2"}})
+              (read-nxt {:verb {:id "http://foo.org/verb3"}})
+              :accepted?))
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb9"}})
+              :state
+              nil?))
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              :state
+              nil?)))))
 
 (deftest mechanize-pattern-test-2
-  (testing "foo bar"
-    (is (-> (fsm/read-next pattern-2-fsm
-                           nil
-                           {:verb {:id "http://foo.org/verb1"}})
-            :accepted?))
-    (is (let [s1 (-> (fsm/read-next pattern-2-fsm
-                                    nil
-                                    {:verb {:id "http://foo.org/verb1"}})
-                     :next-states
-                     first)]
-          (-> (fsm/read-next pattern-2-fsm
-                             s1
-                             {:verb {:id "http://foo.org/verb1"}})
-              :accepted?)))
-    (is (let [s1 (-> (fsm/read-next pattern-2-fsm
-                                    nil
-                                    {:verb {:id "http://foo.org/verb1"}})
-                     :next-states
-                     first)]
-          (-> (fsm/read-next pattern-2-fsm
-                             s1
-                             {:verb {:id "http://foo.org/verb9"}})
-              :rejected?)))))
+  (testing "mechanize-pattern function on pattern #2"
+    (let [read-nxt (partial fsm/read-next pattern-2-fsm)]
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              :accepted?))
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              :accepted?))
+      (is (-> nil
+              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {:verb {:id "http://foo.org/verb9"}})
+              :state
+              nil?)))))
 
 (deftest profile-to-fsm-test
   (testing "profile-to-fsm function"
-    (is (= 2 (count (pv/profile->fsm ex-profile))))
-    (is (every? #(= (-> % keys set)
-                    #{:type :symbols :states :start :accepts :transitions})
-                (pv/profile->fsm ex-profile)))
-    (is (not (-> (fsm/read-next (-> ex-profile pv/profile->fsm first)
-                                nil
-                                {:id "some-stmt-uuid"
-                                 :verb {:id "http://foo.org/verb1"}})
-                 :rejected?)))))
+    (let [pattern-fsms (pv/profile->fsm ex-profile)
+          read-nxt-1   (partial fsm/read-next (first pattern-fsms))
+          read-nxt-2   (partial fsm/read-next (second pattern-fsms))
+          stmt-1       {:id "some-stmt-uuid"
+                        :verb {:id "http://foo.org/verb1"}}
+          stmt-2       {:id   "some-stmt-uuid"
+                        :verb {:id "http://foo.org/verb2"}}
+          stmt-3       {:id   "some-stmt-uuid"
+                        :verb {:id "http://foo.org/verb3"}}]
+      (is (= 2 (count pattern-fsms)))
+      (is (every? #(= (-> % keys set)
+                      #{:type :symbols :states :start :accepts :transitions})
+                  (pv/profile->fsm ex-profile)))
+      (is (-> nil
+              (read-nxt-1 stmt-1)
+              :accepted?))
+      (is (-> nil
+              (read-nxt-1 stmt-2)
+              (read-nxt-1 stmt-3)
+              :accepted?))
+      (is (-> nil
+              (read-nxt-2 stmt-1)
+              :accepted?))
+      (is (-> nil
+              (read-nxt-2 stmt-1)
+              (read-nxt-2 stmt-1)
+              (read-nxt-2 stmt-1)
+              (read-nxt-2 stmt-1)
+              :accepted?)))))

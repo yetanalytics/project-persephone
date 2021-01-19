@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone-test.util-tests.json-test
-  (:require [clojure.test :refer :all]
-            [clojure.spec.alpha :as s]
+  (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.json :as json]))
 
 ;; TODO Test edn-to-json and read-json

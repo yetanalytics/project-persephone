@@ -1,5 +1,5 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is function?]]
             [clojure.spec.alpha :as s]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template-validation :as tv]))
@@ -214,11 +214,14 @@
     (is (tv/none-values? [] []))))
 
 ;; Predicates for our next tests
-(def included-spec (tv/create-included-spec {:presence "included"
-                                             :any ["Andrew Downes"]}))
-(def excluded-spec (tv/create-excluded-spec {:presence "excluded"}))
-(def recommended-spec (tv/create-default-spec {:presence "recommended"
-                                               :any ["Andrew Downes"]}))
+(def included-spec
+  (tv/create-included-spec {:presence "included" :any ["Andrew Downes"]}))
+
+(def excluded-spec
+  (tv/create-excluded-spec {:presence "excluded"}))
+
+(def recommended-spec
+  (tv/create-default-spec {:presence "recommended" :any ["Andrew Downes"]}))
 
 (deftest create-included-spec-test
   (testing "create-included-spec function: create a predicate when presence is
@@ -262,10 +265,8 @@
                                              :any ["Andrew Downes"]}))))
     (is (= (s/describe recommended-spec)
            (s/describe (tv/create-rule-spec {:any ["Andrew Downes"]}))))
-    (is (= "Exception!" (try (tv/create-rule-spec {:presence "foobar"})
-                             (catch Exception e (str "Exception!")))))
-    (is (= "Exception!" (try (tv/create-rule-spec {})
-                             (catch Exception e (str "Exception!")))))))
+    (is (thrown? Exception (tv/create-rule-spec {:presence "foobar"})))
+    (is (thrown? Exception (tv/create-rule-spec {})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests.

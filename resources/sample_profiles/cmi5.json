@@ -271,7 +271,7 @@
                 },
                 {
                     "location": "$.context.contextActivities.category[*].id",
-                    "none": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "none": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {
@@ -401,7 +401,7 @@
                 },
                 {
                     "location": "$.context.contextActivities.category[*].id",
-                    "none": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "none": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {
@@ -465,7 +465,7 @@
                 },
                 {
                     "location": "$.context.contextActivities.category[*].id",
-                    "none": "https://w3id.org/xapi/cmi5/context/categories/moveon"
+                    "none": ["https://w3id.org/xapi/cmi5/context/categories/moveon"]
                 }
             ]
         }, {

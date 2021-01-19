@@ -198,7 +198,6 @@
     (is (per/validate-statement (get cmi-templates 8) terminated-stmt))
     (is (per/validate-statement (get cmi-templates 9) satisfied-stmt))))
 
-;; FIXME: Test currently fails
 (deftest cmi-statement-test-2
   (testing "validating statements from cmi5 profile that exclude moveon"
     (is (not (per/validate-statement

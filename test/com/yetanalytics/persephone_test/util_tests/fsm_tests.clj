@@ -28,7 +28,20 @@
               :states      #{0 1}
               :start       0
               :accept      1
-              :transitions {0 {"b" #{1}} 1 {}}}])))))
+              :transitions {0 {"b" #{1}} 1 {}}}])))
+    (is (= [{:type :dfa
+             :symbols {"a" odd?}
+             :states #{0 1}
+             :start 0
+             :accepts #{0}
+             :transitions {0 {"a" 0}}}]
+           (fsm/alphatize-states
+            [{:type :dfa
+              :symbols {"a" odd?}
+              :states #{#{0 1 2 3 4 5} #{6 7 8 9 10}}
+              :start #{0 1 2 3 4 5}
+              :accepts #{#{0 1 2 3 4 5}}
+              :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}])))))
 
 (fsm/reset-counter)
 

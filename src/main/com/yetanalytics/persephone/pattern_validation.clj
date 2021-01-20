@@ -129,13 +129,14 @@
   (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa))
 
 (defn profile->fsms
-  "Pipeline function that turns a Profile into a sequence of FSMs that can
+  "Pipeline function that turns a Profile into a vectors of FSMs that can
    perform Statement validation. Each entry corresponds to a primary Pattern.
    Note: Assumes syntactically valid Patterns from a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]
-    (seq (map (fn [pattern] (-> pattern
-                                      (grow-pattern-tree temp-pat-map)
-                                      pattern-tree->fsm))
-                    pattern-seq))))
+    (fsm/alphatize-states
+     (mapv (fn [pattern] (-> pattern
+                             (grow-pattern-tree temp-pat-map)
+                             pattern-tree->fsm))
+           pattern-seq))))

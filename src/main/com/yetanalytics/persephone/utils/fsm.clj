@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.utils.fsm
-  (:require [clojure.set :as cset]
-            [clojure.string :as string]))
+  (:require [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -91,18 +90,16 @@
   (let [old-to-new-states
         (reduce (fn [acc state] (assoc acc state (new-state)))
                 {}
-                (sort (:states nfa))) ;; FIXME: sort is for debugging only
+                (sort (:states nfa))) ;; sort needed for debugging
         update-dests
         (fn [transitions]
           (reduce-kv
            (fn [acc src trans]
              (assoc acc src (reduce-kv
                              (fn [acc symb dests]
-                               (assoc acc
-                                      symb
-                                      (into
-                                       #{}
-                                       (mapv old-to-new-states dests))))
+                               (assoc acc symb (->> dests
+                                                    (mapv old-to-new-states)
+                                                    (into #{}))))
                              {}
                              trans)))
            {}
@@ -111,8 +108,32 @@
         (update :states #(into #{} (mapv old-to-new-states %)))
         (update :start old-to-new-states)
         (update :accept old-to-new-states)
-        (update :transitions update-dests)
-        (update :transitions #(cset/rename-keys % old-to-new-states)))))
+        (update :transitions #(cset/rename-keys % old-to-new-states))
+        (update :transitions update-dests))))
+
+(defn- alphatize-states-dfa
+  [dfa]
+  (let [old-to-new-states
+        (reduce (fn [acc state] (assoc acc state (new-state)))
+                {}
+                (:states dfa)) ;; cannot apply sort to sets
+        update-dests
+        (fn [transitions]
+          (reduce-kv
+           (fn [acc src trans]
+             (assoc acc src (reduce-kv
+                             (fn [acc symb dests]
+                               (assoc acc symb (old-to-new-states dests)))
+                             {}
+                             trans)))
+           {}
+           transitions))]
+    (-> dfa
+        (update :states #(into #{} (mapv old-to-new-states %)))
+        (update :start old-to-new-states)
+        (update :accepts #(->> % (mapv old-to-new-states) (into #{})))
+        (update :transitions #(cset/rename-keys % old-to-new-states))
+        (update :transitions update-dests))))
 
 (defn alphatize-states
   "Rename all states in a collection of NFAs such that no two states share the
@@ -122,7 +143,10 @@
   (loop [new-fsm-queue []
          fsm-queue nfa-coll]
     (if-let [fsm (first fsm-queue)]
-      (let [fsm' (alphatize-states-nfa fsm)]
+      (let [fsm'
+            (case (:type fsm)
+              :nfa (alphatize-states-nfa fsm)
+              :dfa (alphatize-states-dfa fsm))]
         (recur (conj new-fsm-queue fsm') (rest fsm-queue)))
       new-fsm-queue)))
 
@@ -361,10 +385,10 @@
                 (reduce
                  (fn [[queue dfa] symb]
                    (let [next-dfa-state (->>
-                                          dfa-state
-                                          (mapcat (partial nfa-move nfa symb))
-                                          (mapcat (partial epsilon-closure nfa))
-                                          set)
+                                         dfa-state
+                                         (mapcat (partial nfa-move nfa symb))
+                                         (mapcat (partial epsilon-closure nfa))
+                                         set)
                          new-dfa         (add-state-to-dfa
                                           dfa
                                           next-dfa-state

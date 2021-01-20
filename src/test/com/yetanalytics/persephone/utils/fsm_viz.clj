@@ -21,8 +21,9 @@
              (concat accum
                      (reduce-kv
                       (fn [accum symb dests]
-                        (cond
-                          (= (:type fsm) :nfa)
+                        (case
+                         (:type fsm)
+                          :nfa
                           (concat accum
                                   (reduce
                                    (fn [accum dest]
@@ -31,7 +32,7 @@
                                                   {:label symb}]))
                                    []
                                    dests))
-                          (= (:type fsm) :dfa)
+                          :dfa
                           (conj accum [(str src) (str dests) {:label symb}])))
                       []
                       trans)))

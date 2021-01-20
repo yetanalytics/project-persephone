@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.utils.fsm-viz
-  (:require [com.yetanalytics.persephone.utils.fsm :refer :all]
-            [dorothy.core :as dorothy]
+  (:require [dorothy.core :as dorothy]
             [dorothy.jvm :as djvm]))
 
 (defn fsm->graphviz
@@ -14,7 +13,7 @@
                     {:shape       :circle
                      :label       (str state)
                      :peripheries (if (contains? (:accepts fsm) state) 2 1)}]))
-           []
+           [[:start {:shape :point}]]
            (:states fsm))
     edges (reduce-kv
            (fn [accum src trans]
@@ -24,19 +23,18 @@
                         (case
                          (:type fsm)
                           :nfa
-                          (concat accum
-                                  (reduce
-                                   (fn [accum dest]
-                                     (conj accum [(str src)
-                                                  (str dest)
-                                                  {:label symb}]))
-                                   []
-                                   dests))
+                          (concat accum (reduce
+                                         (fn [accum dest]
+                                           (conj accum [(str src)
+                                                        (str dest)
+                                                        {:label symb}]))
+                                         []
+                                         dests))
                           :dfa
                           (conj accum [(str src) (str dests) {:label symb}])))
                       []
                       trans)))
-           []
+           [[:start (:start fsm)]]
            (:transitions fsm))]
     (dorothy/digraph (concat edges nodes))))
 

@@ -102,7 +102,7 @@ once, or not at all. Equivalent of the `?` operator in a regex.
 Using `read-next-statement`, a compiled Pattern can read a stream of Statements
 (e.g. from a Kafka stream); in addition to a Statement, the function also
 takes a map representing state info, which contains the following fields:
-- `:state` - The state that the FSM is currently at, represented as a string.
+- `:state` - The state that the FSM is currently at.
 - `:accepted?` - Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
 
 `read-next-statement` returns an updated version of the state info map, with the new `state` value set after the FSM reads the Statement. If the `state` value is `nil`, that indicates that the FSM cannot read the Statement, so it rejects it.

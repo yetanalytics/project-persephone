@@ -303,11 +303,6 @@
          (mapcat (fn [[_ dests]] dests)))
     nil))
 
-(defn- nfa-states->dfa-state [nfa-states]
-  (if (not-empty nfa-states)
-    (->> nfa-states vec sort (map str) (string/join "-"))
-    nil))
-
 (defn- nfa-accept-states? [nfa nfa-states]
   (contains? nfa-states (:accept nfa)))
 
@@ -331,11 +326,11 @@
   ;; 5. The finish states of the DFA are those which contain any of the finish
   ;;    states of the NFA.
   (letfn [(add-state-to-dfa
-            [dfa next-nfa-states next-dfa-state prev-dfa-state symb]
-            (if (some? next-dfa-state)
+            [dfa next-dfa-state prev-dfa-state symb]
+            (if (not-empty next-dfa-state)
               (-> dfa
                   (update :states conj next-dfa-state)
-                  (update :accepts #(if (nfa-accept-states? nfa next-nfa-states)
+                  (update :accepts #(if (nfa-accept-states? nfa next-dfa-state)
                                       (conj % next-dfa-state)
                                       %))
                   (update-in
@@ -347,44 +342,40 @@
                                           %)))
               dfa))
           (add-state-to-queue
-            [queue dfa next-nfa-states next-dfa-state]
-            (if (and (some? next-dfa-state)
+            [queue dfa next-dfa-state]
+            (if (and (not-empty next-dfa-state)
                      (not (contains? (:states dfa) next-dfa-state)))
-              (conj queue next-nfa-states)
+              (conj queue next-dfa-state)
               queue))]
-    (let [nfa-start-eps-close (epsilon-closure nfa (:start nfa))
-          dfa-start           (nfa-states->dfa-state nfa-start-eps-close)
-          is-start-accepting  (nfa-accept-states? nfa nfa-start-eps-close)]
+    (let [dfa-start (epsilon-closure nfa (:start nfa))
+          is-start-accepting  (nfa-accept-states? nfa dfa-start)]
       (loop [dfa {:type        :dfa
                   :symbols     (:symbols nfa)
                   :states      #{dfa-start}
                   :start       dfa-start
                   :accepts     (if is-start-accepting #{dfa-start} #{})
                   :transitions {}}
-             queue (init-queue nfa-start-eps-close)]
-        (if-let [nfa-states (peek queue)]
-          (let [queue'    (pop queue)
-                dfa-state (nfa-states->dfa-state nfa-states)
-                [queue'' dfa']
+             queue (init-queue dfa-start)]
+        (if-let [dfa-state (peek queue)]
+          (let [[queue'' dfa']
                 (reduce
                  (fn [[queue dfa] symb]
-                   (let [next-nfa-states (->>
-                                          nfa-states
+                   (let [next-dfa-state (->>
+                                          dfa-state
                                           (mapcat (partial nfa-move nfa symb))
                                           (mapcat (partial epsilon-closure nfa))
                                           set)
-                         next-dfa-state  (nfa-states->dfa-state next-nfa-states)
-                         new-dfa         (add-state-to-dfa dfa
-                                                           next-nfa-states
-                                                           next-dfa-state
-                                                           dfa-state
-                                                           symb)
-                         new-queue       (add-state-to-queue queue
-                                                             dfa
-                                                             next-nfa-states
-                                                             next-dfa-state)]
+                         new-dfa         (add-state-to-dfa
+                                          dfa
+                                          next-dfa-state
+                                          dfa-state
+                                          symb)
+                         new-queue       (add-state-to-queue
+                                          queue
+                                          dfa
+                                          next-dfa-state)]
                      [new-queue new-dfa]))
-                 [queue' dfa]
+                 [(pop queue) dfa]
                  (-> nfa :symbols keys))]
             (recur dfa' queue''))
           dfa)))))

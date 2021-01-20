@@ -385,77 +385,77 @@
   (testing "Constructing a DFA out of an NFA via the powerset construction."
     (is (= {:type        :dfa
             :symbols     {"a" is-a?}
-            :states      #{"0" "1"}
-            :start       "0"
-            :accepts     #{"1"}
-            :transitions {"0" {"a" "1"}
-                          "1" {}}}
+            :states      #{#{0} #{1}}
+            :start       #{0}
+            :accepts     #{#{1}}
+            :transitions {#{0} {"a" #{1}}
+                          #{1} {}}}
            (fsm/nfa->dfa a-fsm)))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?
                           "b" is-b?}
-            :states      #{"0" "1-2" "3"}
-            :start       "0"
-            :accepts     #{"3"}
-            :transitions {"0"   {"a" "1-2"}
-                          "1-2" {"b" "3"}
-                          "3"   {}}}
+            :states      #{#{0} #{1 2} #{3}}
+            :start       #{0}
+            :accepts     #{#{3}}
+            :transitions {#{0}   {"a" #{1 2}}
+                          #{1 2} {"b" #{3}}
+                          #{3}   {}}}
            (fsm/nfa->dfa (fsm/concat-nfa [a-fsm b-fsm]))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?
                           "b" is-b?}
-            :states      #{"0-2-4" "1-5" "3-5"}
-            :start       "0-2-4"
-            :accepts     #{"1-5" "3-5"}
-            :transitions {"0-2-4" {"a" "1-5" "b" "3-5"}
-                          "1-5"   {}
-                          "3-5"   {}}}
+            :states      #{#{0 2 4} #{1 5} #{3 5}}
+            :start       #{0 2 4}
+            :accepts     #{#{1 5} #{3 5}}
+            :transitions {#{0 2 4} {"a" #{1 5} "b" #{3 5}}
+                          #{1 5}   {}
+                          #{3 5}   {}}}
            (fsm/nfa->dfa (fsm/union-nfa [a-fsm b-fsm]))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?
                           "b" is-b?}
-            :states      #{"0-2-4-6-8" "1-5-9" "3-5-7-9"}
-            :start       "0-2-4-6-8"
-            :accepts     #{"1-5-9" "3-5-7-9"}
-            :transitions {"0-2-4-6-8" {"a" "1-5-9" "b" "3-5-7-9"}
-                          "1-5-9"     {}
-                          "3-5-7-9"   {}}}
+            :states      #{#{0 2 4 6 8} #{1 5 9} #{3 5 7 9}}
+            :start       #{0 2 4 6 8}
+            :accepts     #{#{1 5 9} #{3 5 7 9}}
+            :transitions {#{0 2 4 6 8} {"a" #{1 5 9} "b" #{3 5 7 9}}
+                          #{1 5 9}     {}
+                          #{3 5 7 9}   {}}}
            (fsm/nfa->dfa
             (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm]) b-fsm]))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?}
-            :states      #{"0-2-3" "0-1-3"}
-            :start       "0-2-3"
-            :accepts     #{"0-2-3" "0-1-3"}
-            :transitions {"0-2-3" {"a" "0-1-3"}
-                          "0-1-3" {"a" "0-1-3"}}}
+            :states      #{#{0 2 3} #{0 1 3}}
+            :start       #{0 2 3}
+            :accepts     #{#{0 2 3} #{0 1 3}}
+            :transitions {#{0 2 3} {"a" #{0 1 3}}
+                          #{0 1 3} {"a" #{0 1 3}}}}
            (do (fsm/reset-counter 2)
                (fsm/nfa->dfa (fsm/kleene-nfa a-fsm)))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?}
-            :states      #{"0-2-3" "1-3"}
-            :start       "0-2-3"
-            :accepts     #{"0-2-3" "1-3"}
-            :transitions {"0-2-3" {"a" "1-3"}
-                          "1-3"   {}}}
+            :states      #{#{0 2 3} #{1 3}}
+            :start       #{0 2 3}
+            :accepts     #{#{0 2 3} #{1 3}}
+            :transitions {#{0 2 3} {"a" #{1 3}}
+                          #{1 3}   {}}}
            (do (fsm/reset-counter 2)
                (fsm/nfa->dfa (fsm/optional-nfa a-fsm)))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?}
-            :states      #{"0-2" "0-1-3"}
-            :start       "0-2"
-            :accepts     #{"0-1-3"}
-            :transitions {"0-2"   {"a" "0-1-3"}
-                          "0-1-3" {"a" "0-1-3"}}}
+            :states      #{#{0 2} #{0 1 3}}
+            :start       #{0 2}
+            :accepts     #{#{0 1 3}}
+            :transitions {#{0 2}   {"a" #{0 1 3}}
+                          #{0 1 3} {"a" #{0 1 3}}}}
            (do (fsm/reset-counter 2)
                (fsm/nfa->dfa (fsm/plus-nfa a-fsm)))))
     (is (= {:type        :dfa
             :symbols     {"a" is-a?}
-            :states      #{"0-4-5-6-7-8-9" "0-1-4-5-6-7-9"}
-            :start       "0-4-5-6-7-8-9"
-            :accepts     #{"0-4-5-6-7-8-9" "0-1-4-5-6-7-9"}
-            :transitions {"0-4-5-6-7-8-9" {"a" "0-1-4-5-6-7-9"}
-                          "0-1-4-5-6-7-9" {"a" "0-1-4-5-6-7-9"}}}
+            :states      #{#{0 4 5 6 7 8 9} #{0 1 4 5 6 7 9}}
+            :start       #{0 4 5 6 7 8 9}
+            :accepts     #{#{0 4 5 6 7 8 9} #{0 1 4 5 6 7 9}}
+            :transitions {#{0 4 5 6 7 8 9} {"a" #{0 1 4 5 6 7 9}}
+                          #{0 1 4 5 6 7 9} {"a" #{0 1 4 5 6 7 9}}}}
            (do (fsm/reset-counter 4)
                (fsm/nfa->dfa (-> a-fsm
                                  fsm/kleene-nfa
@@ -466,13 +466,13 @@
     (is (= {:type        :dfa
             :symbols     {"a" is-a?
                           "b" is-b?}
-            :states      #{"0-1-2" "1-3" "1-2" "3"}
-            :start       "0-1-2"
-            :accepts     #{"1-3" "3"}
-            :transitions {"0-1-2" {"a" "1-3" "b" "1-3"}
-                          "1-3"   {"a" "1-2" "b" "1-3"}
-                          "1-2"   {"a" "3"   "b" "1-3"}
-                          "3"     {"a" "1-2"}}}
+            :states      #{#{0 1 2} #{1 3} #{1 2} #{3}}
+            :start       #{0 1 2}
+            :accepts     #{#{1 3} #{3}}
+            :transitions {#{0 1 2} {"a" #{1 3} "b" #{1 3}}
+                          #{1 3}   {"a" #{1 2} "b" #{1 3}}
+                          #{1 2}   {"a" #{3}   "b" #{1 3}}
+                          #{3}     {"a" #{1 2}}}}
            (do (fsm/reset-counter)
                (fsm/nfa->dfa
                 {:type        :nfa
@@ -488,7 +488,7 @@
 
 (deftest read-next-test
   (testing "The read-next function."
-    (is (= {:state     "1"
+    (is (= {:state     #{1}
             :accepted? true}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
     (is (= {:state       nil
@@ -498,8 +498,8 @@
             :accepted? false}
            (-> a-fsm
                fsm/nfa->dfa
-               (fsm/read-next {:state "1" :accepted? true} "a"))))
-    (is (= {:state     "3"
+               (fsm/read-next {:state #{1} :accepted? true} "a"))))
+    (is (= {:state     #{3}
             :accepted? true}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]

@@ -4,4 +4,4 @@ clean:
 	rm -rf target
 
 ci: clean
-	clojure -M:test:runner
+	clojure -A:test:runner

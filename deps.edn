@@ -1,4 +1,4 @@
-{:paths ["resources" "src"]
+{:paths ["resources" "src/main"]
  :deps {org.clojure/clojure {:mvn/version "RELEASE"}
         org.clojure/core.match {:mvn/version "0.3.0"}
         com.jayway.jsonpath/json-path {:mvn/version "2.4.0"}
@@ -12,7 +12,7 @@
                                       :sha "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}
         }
  :aliases
- {:test {:extra-paths ["test"]
+ {:test {:extra-paths ["test" "src/test"]
          :extra-deps {org.clojure/test.check {:mvn/version "RELEASE"}}}
   :runner
   {:extra-deps {com.cognitect/test-runner

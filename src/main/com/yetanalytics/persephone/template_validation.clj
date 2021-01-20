@@ -2,8 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [clojure.walk :as w]
-            [com.yetanalytics.pan.objects.template :as template]
+            #_[com.yetanalytics.pan.objects.template :as template]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as emsg]))
 
@@ -85,7 +84,7 @@
    {:presence any
     :values values
     ;; must return bool
-    :pred-fn (fn [p v] (-> v (cset/intersection p) empty? not))}))
+    :pred-fn (fn [p v] (-> v (cset/intersection p) not-empty boolean))}))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'
 ;; and MUST NOT include any unmatchable values. In other words, the set of
@@ -189,12 +188,12 @@
             (if (coll? maybe-coll) maybe-coll [maybe-coll]))
           (get-by-loc [loc]
             ;; query `statement` based on `loc`
-                      (json/read-json statement loc))
+            (json/read-json statement loc))
           (mapcatv [f & colls]
             ;; semi silly refactor
             ;; - more concise/effecient than previous version
             ;; - TODO: worth porting to json?
-                   (->> colls (apply mapcat f) vec))]
+            (->> colls (apply mapcat f) vec))]
     (->> json-paths
          collify
          (mapcatv get-by-loc))))
@@ -318,14 +317,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TODO Currently unused; need to add this back in to validate Templates
-(defn template-valid
-  "Given a Statement Template, throw an exception if it is syntactically
-  invalid. If it's valid, return it instead (similar to spec/conform)."
-  [template]
-  (let [errors (s/explain-data ::template/template template)]
-    (if (some? errors)
-      (throw (ex-info "Template Validation Exception" errors))
-      template)))
+;; (defn template-valid
+;;   "Given a Statement Template, throw an exception if it is syntactically
+;;  invalid. If it's valid, return it instead (similar to spec/conform)."
+;;  [template]
+;;  (let [errors (s/explain-data ::template/template template)]
+;;    (if (some? errors)
+;;      (throw (ex-info "Template Validation Exception" errors))
+;;      template)))
 
 (defn validate-statement*
   "Given a Statement and a Statement Template, validate the Statement.

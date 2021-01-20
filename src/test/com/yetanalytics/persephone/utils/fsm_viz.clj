@@ -10,9 +10,9 @@
    [nodes (reduce
            (fn [accum state]
              (conj accum
-                   [state
+                   [(str state)
                     {:shape       :circle
-                     :label       state
+                     :label       (str state)
                      :peripheries (if (contains? (:accepts fsm) state) 2 1)}]))
            []
            (:states fsm))
@@ -21,14 +21,18 @@
              (concat accum
                      (reduce-kv
                       (fn [accum symb dests]
-                        (if (= (:type fsm) :nfa)
+                        (cond
+                          (= (:type fsm) :nfa)
                           (concat accum
                                   (reduce
                                    (fn [accum dest]
-                                     (conj accum [src dest {:label symb}]))
+                                     (conj accum [(str src)
+                                                  (str dest)
+                                                  {:label symb}]))
                                    []
                                    dests))
-                          (conj accum [src dests {:label symb}])))
+                          (= (:type fsm) :dfa)
+                          (conj accum [(str src) (str dests) {:label symb}])))
                       []
                       trans)))
            []
@@ -43,4 +47,4 @@
 (defn save-fsm
   "Save a FSM to an output file with the specified format."
   [fsm output-str format]
-  (-> fsm fsm->graphviz dorothy/dot (djvm/save! output-str format)))
+  (-> fsm fsm->graphviz dorothy/dot (djvm/save! output-str {:format format})))

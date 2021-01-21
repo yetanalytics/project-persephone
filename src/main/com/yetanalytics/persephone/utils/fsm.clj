@@ -35,7 +35,7 @@
 ;; {:symbols     {symbol predicate ...}
 ;;  :states      #{state ...}
 ;;  :start       state
-;;  :accepts     state
+;;  :accepts     #{state ...}
 ;;  :transitions {state {symbol #{state ...} ...} ...}
 ;; }
 ;; where "symbol" is a string or keyword, "predicate" is a predicate function,
@@ -107,7 +107,7 @@
     (-> nfa
         (update :states #(into #{} (mapv old-to-new-states %)))
         (update :start old-to-new-states)
-        (update :accept old-to-new-states)
+        (update :accepts #(->> % (mapv old-to-new-states) (into #{})))
         (update :transitions #(cset/rename-keys % old-to-new-states))
         (update :transitions update-dests))))
 
@@ -160,12 +160,12 @@
   "Create an NFA that accepts a single input."
   [fn-symbol f]
   (let [start (new-state) accept (new-state)]
-    {:type    :nfa
-     :symbols {fn-symbol f}
-     :states  #{start accept}
-     :start   start
-     :accept  accept
-     :transitions {start {fn-symbol #{accept}} accept {}}}))
+    {:type        :nfa
+     :symbols     {fn-symbol f}
+     :states      #{start accept}
+     :start       start
+     :accepts     #{accept}
+     :transitions {start  {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
 (defn concat-nfa
@@ -178,15 +178,15 @@
              fsm-list (rest nfa-coll)]
         (if-let [next-fsm (first fsm-list)]
           (let [new-fsm
-                {:type    :nfa
-                 :symbols (merge (:symbols fsm) (:symbols next-fsm))
-                 :states  (cset/union (:states fsm) (:states next-fsm))
-                 :start   (:start fsm)
-                 :accept  (:accept next-fsm)
+                {:type     :nfa
+                 :symbols  (merge (:symbols fsm) (:symbols next-fsm))
+                 :states   (cset/union (:states fsm) (:states next-fsm))
+                 :start    (:start fsm)
+                 :accepts  (:accepts next-fsm)
                  :transitions
                  (-> (merge (:transitions fsm) (:transitions next-fsm))
                      (update-in
-                      [(:accept fsm) :epsilon]
+                      [(-> fsm :accepts first) :epsilon]
                       (fn [nexts] (set (conj nexts (:start next-fsm))))))}]
             (recur new-fsm (rest fsm-list)))
           fsm)))
@@ -202,21 +202,21 @@
         new-start   (new-state)
         new-accept  (new-state)
         old-starts  (set (mapv :start nfa-coll))
-        old-accepts (mapv :accept nfa-coll)
+        old-accepts (mapv #(-> % :accepts first) nfa-coll)
         reduce-eps-trans
         (partial reduce
                  (fn [acc state]
                    (update-in acc
                               [state :epsilon]
                               (fn [d] (cset/union d #{new-accept})))))]
-    {:type    :nfa
-     :symbols (into {} (mapcat :symbols nfa-coll))
-     :states  (cset/union
-               (reduce
-                (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
-               #{new-start new-accept})
-     :start   new-start
-     :accept  new-accept
+    {:type     :nfa
+     :symbols  (into {} (mapcat :symbols nfa-coll))
+     :states   (cset/union
+                (reduce
+                 (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
+                #{new-start new-accept})
+     :start    new-start
+     :accepts  #{new-accept}
      :transitions
      (->
       (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} nfa-coll)
@@ -234,12 +234,12 @@
   (let [new-start  (new-state)
         new-accept (new-state)
         old-start  (:start nfa)
-        old-accept (:accept nfa)]
-    {:type    :nfa
-     :symbols (:symbols nfa)
-     :states  (cset/union (:states nfa) #{new-start new-accept})
-     :start   new-start
-     :accept  new-accept
+        old-accept (-> nfa :accepts first)]
+    {:type     :nfa
+     :symbols  (:symbols nfa)
+     :states   (cset/union (:states nfa) #{new-start new-accept})
+     :start    new-start
+     :accepts  #{new-accept}
      :transitions
      (->
       (:transitions nfa)
@@ -256,12 +256,12 @@
   (let [new-start  (new-state)
         new-accept (new-state)
         old-start  (:start nfa)
-        old-accept (:accept nfa)]
-    {:type    :nfa
-     :symbols (:symbols nfa)
-     :states  (cset/union (:states nfa) #{new-start new-accept})
-     :start   new-start
-     :accept  new-accept
+        old-accept (-> nfa :accepts first)]
+    {:type     :nfa
+     :symbols  (:symbols nfa)
+     :states   (cset/union (:states nfa) #{new-start new-accept})
+     :start    new-start
+     :accepts  #{new-accept}
      :transitions
      (->
       (:transitions nfa)
@@ -278,12 +278,12 @@
   (let [new-start  (new-state)
         new-accept (new-state)
         old-start  (:start nfa)
-        old-accept (:accept nfa)]
-    {:type    :nfa
-     :symbols (:symbols nfa)
-     :states  (cset/union (:states nfa) #{new-start new-accept})
-     :start   new-start
-     :accept  new-accept
+        old-accept (-> nfa :accepts first)]
+    {:type     :nfa
+     :symbols  (:symbols nfa)
+     :states   (cset/union (:states nfa) #{new-start new-accept})
+     :start    new-start
+     :accepts  #{new-accept}
      :transitions
      (->
       (:transitions nfa)
@@ -328,7 +328,7 @@
     nil))
 
 (defn- nfa-accept-states? [nfa nfa-states]
-  (contains? nfa-states (:accept nfa)))
+  (not-empty (cset/intersection nfa-states (:accepts nfa))))
 
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
@@ -404,7 +404,7 @@
             (recur dfa' queue''))
           dfa)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

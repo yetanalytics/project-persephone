@@ -8,39 +8,39 @@
              :symbols     {"a" odd?}
              :states      #{0 1}
              :start       0
-             :accept      1
+             :accepts     #{1}
              :transitions {0 {"b" #{1}} 1 {}}}
             {:type        :nfa
              :symbols     {"b" even?}
              :states      #{2 3}
              :start       2
-             :accept      3
+             :accepts     #{3}
              :transitions {2 {"b" #{3}} 3 {}}}]
            (fsm/alphatize-states
             [{:type        :nfa
               :symbols     {"a" odd?}
               :states      #{0 1}
               :start       0
-              :accept      1
+              :accepts     #{1}
               :transitions {0 {"b" #{1}} 1 {}}}
              {:type        :nfa
               :symbols     {"b" even?}
               :states      #{0 1}
               :start       0
-              :accept      1
+              :accepts     #{1}
               :transitions {0 {"b" #{1}} 1 {}}}])))
-    (is (= [{:type :dfa
-             :symbols {"a" odd?}
-             :states #{0 1}
-             :start 0
-             :accepts #{0}
+    (is (= [{:type        :dfa
+             :symbols     {"a" odd?}
+             :states      #{0 1}
+             :start       0
+             :accepts     #{0}
              :transitions {0 {"a" 0}}}]
            (fsm/alphatize-states
-            [{:type :dfa
-              :symbols {"a" odd?}
-              :states #{#{0 1 2 3 4 5} #{6 7 8 9 10}}
-              :start #{0 1 2 3 4 5}
-              :accepts #{#{0 1 2 3 4 5}}
+            [{:type        :dfa
+              :symbols     {"a" odd?}
+              :states      #{#{0 1 2 3 4 5} #{6 7 8 9 10}}
+              :start       #{0 1 2 3 4 5}
+              :accepts     #{#{0 1 2 3 4 5}}
               :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}])))))
 
 (fsm/reset-counter)
@@ -61,21 +61,21 @@
             :symbols     {"a" is-a?}
             :states      #{0 1}
             :start       0
-            :accept      1
+            :accepts     #{1}
             :transitions {0 {"a" #{1}} 1 {}}}
            a-fsm))
     (is (= {:type        :nfa
             :symbols     {"b" is-b?}
             :states      #{2 3}
             :start       2
-            :accept      3
+            :accepts     #{3}
             :transitions {2 {"b" #{3}} 3 {}}}
            b-fsm))
     (is (= {:type        :nfa
             :symbols     {"c" is-c?}
             :states      #{4 5}
             :start       4
-            :accept      5
+            :accepts     #{5}
             :transitions {4 {"c" #{5}} 5 {}}}
            c-fsm))))
 
@@ -85,7 +85,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1}
             :start       0
-            :accept      1
+            :accepts     #{1}
             :transitions {0 {"a" #{1}} 1 {}}}
            (fsm/concat-nfa [a-fsm])))
     (is (= {:type        :nfa
@@ -93,7 +93,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3}
             :start       0
-            :accept      3
+            :accepts     #{3}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{2}}
                           2 {"b" #{3}}
@@ -104,7 +104,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3}
             :start       0
-            :accept      3
+            :accepts     #{3}
             :transitions {0 {"b" #{1}}
                           1 {:epsilon #{2}}
                           2 {"a" #{3}}
@@ -116,7 +116,7 @@
                           "c" is-c?}
             :states      #{0 1 2 3 4 5}
             :start       0
-            :accept      5
+            :accepts     #{5}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{2}}
                           2 {"b" #{3}}
@@ -131,7 +131,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}
             :start       2
-            :accept      3
+            :accepts     #{3}
             :transitions {2 {:epsilon #{0}}
                           0 {"a" #{1}}
                           1 {:epsilon #{3}}
@@ -142,7 +142,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3 4 5}
             :start       4
-            :accept      5
+            :accepts     #{5}
             :transitions {4 {:epsilon #{0 2}}
                           0 {"b" #{1}}
                           2 {"a" #{3}}
@@ -155,7 +155,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3 4 5}
             :start       4
-            :accept      5
+            :accepts     #{5}
             :transitions {4 {:epsilon #{0 2}}
                           0 {"a" #{1}}
                           2 {"b" #{3}}
@@ -169,7 +169,7 @@
                           "c" is-c?}
             :states      #{0 1 2 3 4 5 6 7}
             :start       6
-            :accept      7
+            :accepts     #{7}
             :transitions {6 {:epsilon #{0 2 4}}
                           0 {"a" #{1}}
                           2 {"b" #{3}}
@@ -187,7 +187,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}
             :start       2
-            :accept      3
+            :accepts     #{3}
             :transitions {2 {:epsilon #{0 3}}
                           0 {"a" #{1}}
                           1 {:epsilon #{0 3}}
@@ -198,7 +198,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 4 5 6 7 8 9}
             :start       8
-            :accept      9
+            :accepts     #{9}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{0 5}}
                           4 {:epsilon #{0 5}}
@@ -216,7 +216,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}
             :start       2
-            :accept      3
+            :accepts     #{3}
             :transitions {2 {:epsilon #{0 3}}
                           0 {"a" #{1}}
                           1 {:epsilon #{3}}
@@ -226,7 +226,7 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 4 5 6 7 8 9}
             :start       8
-            :accept      9
+            :accepts     #{9}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{5}}
                           4 {:epsilon #{0 5}}
@@ -244,17 +244,17 @@
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}
             :start       2
-            :accept      3
-            :transitions {2 {:epsilon #{0}}
-                          0 {"a" #{1}}
-                          1 {:epsilon #{0 3}}
-                          3 {}}}
+            :accepts     #{3}
+                          :transitions {2 {:epsilon #{0}}
+                                        0 {"a" #{1}}
+                                        1 {:epsilon #{0 3}}
+                                        3 {}}}
            (fsm/plus-nfa a-fsm)))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
             :states      #{0 1 4 5 6 7 8 9}
             :start       8
-            :accept      9
+            :accepts     #{9}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{0 5}}
                           4 {:epsilon #{0}}
@@ -273,7 +273,7 @@
                           "c" is-c?}
             :states      #{0 1 2 3 4 5}
             :start       0
-            :accept      5
+            :accepts     #{5}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{2}}
                           2 {"b" #{3}}
@@ -288,7 +288,7 @@
                           "c" is-c?}
             :states      #{0 1 2 3 4 5 6 7}
             :start       0
-            :accept      7
+            :accepts     #{7}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{2}}
                           2 {"b" #{3}}
@@ -307,7 +307,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3 4 5 6 7 8 9}
             :start       8
-            :accept      9
+            :accepts     #{9}
             :transitions {0 {"a" #{1}}
                           1 {:epsilon #{5}}
                           2 {"b" #{3}}
@@ -327,7 +327,7 @@
                           "b" is-b?}
             :states      #{0 1 2 3 4 5}
             :start       2
-            :accept      5
+            :accepts     #{5}
             :transitions {2 {:epsilon #{0 3}}
                           0 {"a" #{1}}
                           1 {:epsilon #{0 3}}
@@ -380,7 +380,7 @@
                           :symbols     {"a" is-a?}
                           :states      #{0 1 2}
                           :start       0
-                          :accept      1
+                          :accept      #{1}
                           :transitions {0 {"a" #{1 2}}}}
                          "a"
                          0)))
@@ -389,7 +389,7 @@
                           :symbols     {"a" is-a? "b" is-b?}
                           :states      #{0 1 2}
                           :start       0
-                          :accept      1
+                          :accept      #{1}
                           :transitions {0 {"a" #{1} "b" #{2}}}}
                          "a"
                          0)))))
@@ -493,7 +493,7 @@
                                "b" is-b?}
                  :states      #{0 1 2 3}
                  :start       0
-                 :accept      3
+                 :accepts     #{3}
                  :transitions {0 {"a" #{1} :epsilon #{2}}
                                1 {"b" #{1 3}}
                                2 {"a" #{3}  :epsilon #{1}}

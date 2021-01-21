@@ -304,10 +304,10 @@
                         (rns-cmi abandoned-stmt))))
     ;; Just straight up failed
     (is (:accepted? (-> nil
-                      (rns-cmi launched-stmt)
-                      (rns-cmi initialized-stmt)
-                      (rns-cmi failed-stmt)
-                      (rns-cmi abandoned-stmt))))
+                        (rns-cmi launched-stmt)
+                        (rns-cmi initialized-stmt)
+                        (rns-cmi failed-stmt)
+                        (rns-cmi abandoned-stmt))))
     ;; Failed, then waived, then finally passed (yay!)
     (is (:accepted? (-> nil
                         (rns-cmi satisfied-stmt)

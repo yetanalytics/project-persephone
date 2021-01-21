@@ -126,7 +126,7 @@
    traversal."
   [pattern-tree]
   (fsm/reset-counter)
-  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa))
+  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
 
 (defn profile->fsms
   "Pipeline function that turns a Profile into a vectors of FSMs that can

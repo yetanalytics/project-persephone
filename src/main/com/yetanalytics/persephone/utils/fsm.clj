@@ -214,9 +214,7 @@
        :accepts  #{new-accept}
        :states
        (cset/union
-        (reduce
-         (fn [acc fsm]
-           (->> fsm :states (cset/union acc))) #{} nfa-coll)
+        (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
         #{new-start new-accept})
        :transitions
        (->

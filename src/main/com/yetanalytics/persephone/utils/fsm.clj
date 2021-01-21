@@ -210,15 +210,17 @@
           old-accepts (mapv #(-> % :accepts first) nfa-coll)]
       {:type     :nfa
        :symbols  (into {} (mapcat :symbols nfa-coll))
-       :states   (cset/union
-                  (reduce
-                   (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
-                  #{new-start new-accept})
        :start    new-start
        :accepts  #{new-accept}
+       :states
+       (cset/union
+        (reduce
+         (fn [acc fsm]
+           (->> fsm :states (cset/union acc))) #{} nfa-coll)
+        #{new-start new-accept})
        :transitions
        (->
-        (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} nfa-coll)
+        (reduce (fn [acc fsm] (->> fsm :transitions (merge acc))) {} nfa-coll)
         (add-epsilon-transitions old-accepts new-accept)
         (update-in [new-start :epsilon] (constantly old-starts))
         (update new-accept (constantly {})))})

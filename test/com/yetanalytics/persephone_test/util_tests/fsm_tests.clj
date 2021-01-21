@@ -81,6 +81,7 @@
 
 (deftest concat-fsm-test
   (testing "FSM composed of concatenating two or more smaller FSMs."
+    (is (thrown? Exception (fsm/concat-nfa [])))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
             :states      #{0 1}
@@ -127,6 +128,7 @@
 
 (deftest union-fsm-test
   (testing "FSM composed of unioning two or more smaller FSMs."
+    (is (thrown? Exception (fsm/union-nfa [])))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}
@@ -503,11 +505,11 @@
   (testing "The minimize-dfa function and Brzozowkski's Algorithm."
     (is (= {:type        :dfa
             :symbols     {"a" is-a? "b" is-b?}
-            :states      #{#{1} #{0 2}}
-            :start       #{0 2}
+            :states      #{#{0} #{1}}
+            :start       #{0}
             :accepts     #{#{1}}
-            :transitions {#{1}   {}
-                          #{0 2} {"a" #{1} "b" #{1}}}}
+            :transitions {#{0} {"a" #{1} "b" #{1}}
+                          #{1} {}}}
            (fsm/minimize-dfa
             {:type        :dfa
              :symbols     {"a" is-a? "b" is-b?}
@@ -515,7 +517,82 @@
              :start       #{0}
              :accepts     #{#{1} #{2}}
              :transitions {#{0} {"a" #{1}
-                                 "b" #{2}}}})))))
+                                 "b" #{2}}}})))
+    ;; From the Wikipedia page on DFA minimization.
+    ;; Note that this has one less state than the Wikipedia picture because the
+    ;; missing state is a guarenteed failure state.
+    (is (= {:type :dfa
+            :symbols     {"a" is-a? "b" is-b?}
+            :states      #{#{0} #{1}}
+            :start       #{0}
+            :accepts     #{#{1}}
+            :transitions {#{0} {"a" #{0}, "b" #{1}}, #{1} {"a" #{1}}}}
+         (fsm/minimize-dfa
+            {:type        :dfa
+             :symbols     {"a" is-a? "b" is-b?}
+             :states      #{0 1 2 3 4 5}
+             :start       0
+             :accepts     #{2 3 4}
+             :transitions {0 {"a" 1 "b" 2}
+                           1 {"a" 0 "b" 3}
+                           2 {"a" 4 "b" 5}
+                           3 {"a" 4 "b" 5}
+                           4 {"a" 4 "b" 5}
+                           5 {"a" 5 "b" 5}}})))
+    ;; Concatenation: structurally identical
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a? "b" is-b?}
+            :states      #{#{0} #{1} #{2}}
+            :start       #{0}
+            :accepts     #{#{2}}
+            :transitions {#{0} {"a" #{1}}
+                          #{1} {"b" #{2}}
+                          #{2} {}}}
+           (-> [a-fsm b-fsm]
+               fsm/concat-nfa
+               fsm/nfa->dfa
+               fsm/minimize-dfa)))
+    ;; Union: accept states consolidated into a single state
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a? "b" is-b? "c" is-c?}
+            :states      #{#{0} #{1}}
+            :start       #{0}
+            :accepts     #{#{1}}
+            :transitions {#{0} {"a" #{1} "b" #{1} "c" #{1}}
+                          #{1}   {}}}
+           (-> [a-fsm b-fsm c-fsm]
+               fsm/union-nfa
+               fsm/nfa->dfa
+               fsm/minimize-dfa)))
+    ;; Kleene: one state w/ looping transition
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a?}
+            :states      #{#{0}}
+            :start       #{0}
+            :accepts     #{#{0}}
+            :transitions {#{0} {"a" #{0}}}}
+           (do (fsm/reset-counter 2)
+               (-> a-fsm fsm/kleene-nfa fsm/nfa->dfa fsm/minimize-dfa))))
+    ;; Optional: structurally identical
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a?}
+            :states      #{#{0 1} #{0}}
+            :start       #{0 1}
+            :accepts     #{#{0 1} #{0}}
+            :transitions {#{0 1} {"a" #{0}}
+                          #{0}   {}}}
+           (do (fsm/reset-counter 2)
+               (-> a-fsm fsm/optional-nfa fsm/nfa->dfa fsm/minimize-dfa))))
+    ;; Plus: structually identical
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a?}
+            :states      #{#{0 1} #{0}}
+            :start       #{0}
+            :accepts     #{#{0 1}}
+            :transitions {#{0}     {"a" #{0 1}}
+                          #{0 1}   {"a" #{0 1}}}}
+           (do (fsm/reset-counter 2)
+               (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa))))))
 
 (deftest read-next-test
   (testing "The read-next function."

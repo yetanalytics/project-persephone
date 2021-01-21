@@ -48,11 +48,8 @@
 ;;  :accepts     #{state ...}
 ;;  :transitions {state {symbol state ...} ...}
 ;; }
-;; 
-;; The main differences are that a DFA can have multiple accept states and that
-;; eachs symbol in the transition map corresponds to only one state. NFAs having
-;; only one accept state is NOT a general property of NFAs, but it is an
-;; invariant under Thompson's Algorithm.
+;; where each source-symbol pair in the transition can correspond to only one
+;; destination state.
 ;; 
 ;; Note that since mutliple predicates may be valid for an input, we cannot
 ;; truly eliminate nondeterminism from our FSMs (unless we make each transition
@@ -64,6 +61,8 @@
 ;;   https://en.wikipedia.org/wiki/Thompson%27s_construction
 ;; - Powerset Construction:
 ;;   https://en.wikipedia.org/wiki/Powerset_construction
+;; - DFA minimization:
+;;   https://en.wikipedia.org/wiki/DFA_minimization
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utilities
@@ -89,7 +88,7 @@
   [{type :type states :states :as fsm}]
   (let [states'
         (if (coll? (first states))
-          (->> states (map sort) (map set))
+          (->> states (map sort) (sort-by first) (map set))
           (->> states sort))
         old-to-new-state
         (reduce (fn [acc state] (assoc acc state (new-state)))
@@ -129,6 +128,19 @@
       (recur (->> fsm alphatize-states-fsm (conj new-fsm-queue))
              (rest fsm-queue))
       new-fsm-queue)))
+
+;; Epsilon transition appending
+
+(defn- add-epsilon-transitions
+  "Update the transition table to add new epsilon transitions from a collection
+   of sources to a new destination."
+  [transitions sources new-dest]
+  (reduce (fn [trans src]
+            (update-in trans
+                       [src :epsilon]
+                       (fn [dests] (cset/union dests #{new-dest}))))
+          transitions
+          sources))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA Construction Functions
@@ -182,7 +194,7 @@
                       (fn [nexts] (set (conj nexts next-start)))))}]
             (recur new-fsm (rest fsm-list)))
           fsm)))
-    (throw (Exception. "Undefined for empty collection of FSMs"))))
+    (throw (Exception. "concat-nfa is undefined for empty FSM collection."))))
 
 ;;    + --> s ==> s --v
 ;; -> q               f
@@ -190,31 +202,27 @@
 (defn union-nfa
   "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
   [nfa-coll]
-  (let [nfa-coll    (alphatize-states nfa-coll)
-        new-start   (new-state)
-        new-accept  (new-state)
-        old-starts  (set (mapv :start nfa-coll))
-        old-accepts (mapv #(-> % :accepts first) nfa-coll)
-        reduce-eps-trans
-        (partial reduce
-                 (fn [acc state]
-                   (update-in acc
-                              [state :epsilon]
-                              (fn [d] (cset/union d #{new-accept})))))]
-    {:type     :nfa
-     :symbols  (into {} (mapcat :symbols nfa-coll))
-     :states   (cset/union
-                (reduce
-                 (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
-                #{new-start new-accept})
-     :start    new-start
-     :accepts  #{new-accept}
-     :transitions
-     (->
-      (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} nfa-coll)
-      (reduce-eps-trans old-accepts)
-      (update-in [new-start :epsilon] (constantly old-starts))
-      (update new-accept (constantly {})))}))
+  (if-not (empty? nfa-coll)
+    (let [nfa-coll    (alphatize-states nfa-coll)
+          new-start   (new-state)
+          new-accept  (new-state)
+          old-starts  (set (mapv :start nfa-coll))
+          old-accepts (mapv #(-> % :accepts first) nfa-coll)]
+      {:type     :nfa
+       :symbols  (into {} (mapcat :symbols nfa-coll))
+       :states   (cset/union
+                  (reduce
+                   (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
+                  #{new-start new-accept})
+       :start    new-start
+       :accepts  #{new-accept}
+       :transitions
+       (->
+        (reduce (fn [accum fsm] (->> fsm :transitions (merge accum))) {} nfa-coll)
+        (add-epsilon-transitions old-accepts new-accept)
+        (update-in [new-start :epsilon] (constantly old-starts))
+        (update new-accept (constantly {})))})
+    (throw (Exception. "union-nfa is undefined for empty FSM collection."))))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -328,27 +336,30 @@
 (defn- nfa-accept-states? [nfa nfa-states]
   (not-empty (cset/intersection nfa-states (:accepts nfa))))
 
-(defn nfa->dfa
-  "Given an NFA with epsilon transitions, perform the powerset construction in
-   order to (semi)-determinize it and remove epsilon transitions."
-  [nfa]
-  ;; Pseudocode from:
-  ;;    http://www.cs.nuim.ie/~jpower/Courses/Previous/parsing/node9.html
-  ;; 1. Create the start state of the DFA by taking the epsilon closure of the
-  ;;    start state of the NFA.
-  ;; 2. Perform the following for the new DFA state:
-  ;;    For each possible input symbol:
-  ;;     a) Apply move to the newly-created state and the input symbol; this
-  ;;        will return a set of states.
-  ;;     b) Apply the epsilon closure to this set of states, possibly resulting
-  ;;        in a new set.
-  ;;    This set of NFA states will be a single state in the DFA.
-  ;; 4. Each time we generate a new DFA state, we must apply step 2 to it. The
-  ;;    process is complete when applying step 2 does not yield any new states.
-  ;; 5. The finish states of the DFA are those which contain any of the finish
-  ;;    states of the NFA.
+(defn- nfa->dfa*
+  "Performs the following powerset construction algorithm from:
+   http://www.cs.nuim.ie/~jpower/Courses/Previous/parsing/node9.html
+   1. Create the start state of the DFA by taking the epsilon closure of the
+      start state of the NFA.
+   2. Perform the following for the new DFA state:
+      For each possible input symbol:
+      a) Apply move to the newly-created state and the input symbol; this
+         will return a set of states.
+      b) Apply the epsilon closure to this set of states, possibly resulting
+         in a new set.
+      This set of NFA states will be a single state in the DFA.
+   3. Each time we generate a new DFA state, we must apply step 2 to it. The
+      process is complete when applying step 2 does not yield any new states.
+   4. The accept states of the DFA are those which contain any of the accept
+      states of the NFA.
+   Internally, this performs a tree search that guarentees no unreachable
+   states."
+  [nfa dfa-start]
   (letfn [(add-state-to-dfa
             [dfa next-dfa-state prev-dfa-state symb]
+            ; An empty next-dfa-state value means that the symbol cannot be
+            ; read at the previous state in the NFA, so we avoid adding it so
+            ; it will also fail in the DFA.
             (if (not-empty next-dfa-state)
               (-> dfa
                   (update :states conj next-dfa-state)
@@ -367,42 +378,50 @@
               dfa))
           (add-state-to-queue
             [queue dfa next-dfa-state]
+            ; Don't add to queue if next-dfa-state is empty (signifying failure)
+            ; or if it's already in the DFA (i.e. it's already visited).
             (if (and (not-empty next-dfa-state)
                      (not (contains? (:states dfa) next-dfa-state)))
               (conj queue next-dfa-state)
               queue))]
-    (let [dfa-start (epsilon-closure nfa (:start nfa))
-          is-start-accepting  (nfa-accept-states? nfa dfa-start)]
-      (loop [dfa {:type        :dfa
-                  :symbols     (:symbols nfa)
-                  :states      #{dfa-start}
-                  :start       dfa-start
-                  :accepts     (if is-start-accepting #{dfa-start} #{})
-                  :transitions {}}
-             queue (init-queue dfa-start)]
-        (if-let [dfa-state (peek queue)]
-          (let [[queue'' dfa']
-                (reduce
-                 (fn [[queue dfa] symb]
-                   (let [next-dfa-state (->>
-                                         dfa-state
-                                         (mapcat (partial nfa-move nfa symb))
-                                         (mapcat (partial epsilon-closure nfa))
-                                         set)
-                         new-dfa         (add-state-to-dfa
-                                          dfa
-                                          next-dfa-state
-                                          dfa-state
-                                          symb)
-                         new-queue       (add-state-to-queue
-                                          queue
-                                          dfa
-                                          next-dfa-state)]
-                     [new-queue new-dfa]))
-                 [(pop queue) dfa]
-                 (-> nfa :symbols keys))]
-            (recur dfa' queue''))
-          dfa)))))
+    (loop [dfa {:type        :dfa
+                :symbols     (:symbols nfa)
+                :states      #{dfa-start}
+                :start       dfa-start
+                :accepts     (if (nfa-accept-states? nfa dfa-start)
+                               #{dfa-start}
+                               #{})
+                :transitions {}}
+           queue (init-queue dfa-start)]
+      (if-let [dfa-state (peek queue)]
+        (let [[queue'' dfa']
+              (reduce
+               (fn [[queue dfa] symb]
+                 (let [next-dfa-state (->>
+                                       dfa-state
+                                       (mapcat (partial nfa-move nfa symb))
+                                       (mapcat (partial epsilon-closure nfa))
+                                       set)
+                       new-dfa         (add-state-to-dfa
+                                        dfa
+                                        next-dfa-state
+                                        dfa-state
+                                        symb)
+                       new-queue       (add-state-to-queue
+                                        queue
+                                        dfa
+                                        next-dfa-state)]
+                   [new-queue new-dfa]))
+               [(pop queue) dfa]
+               (-> nfa :symbols keys))]
+          (recur dfa' queue''))
+        dfa))))
+
+(defn nfa->dfa
+  "Given an NFA with epsilon transitions, perform the powerset construction in
+   order to (semi)-determinize it and remove epsilon transitions."
+  [{start :start :as dfa}]
+  (nfa->dfa* dfa (epsilon-closure dfa start)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Minimization
@@ -413,7 +432,7 @@
    for each symbol. Since multiple source-symbol pairs may lead to the same
    destination state in the original DFA, this produces a NFA, where the new
    source-symbol pair leads to multiple new destinations."
-  [{transitions :transitions}]
+  [transitions]
   (letfn [(update-dests [src new-dests]
                         (if (nil? new-dests) #{src} (conj new-dests src)))]
     (reduce-kv
@@ -431,23 +450,20 @@
 (defn- reverse-dfa
   "Create a reverse NFA out of a DFA, where
    1. The original start state is an accept state
-   2. The original accept states form a start state (accomplished using epsilon
-   transitions)
+   2. The original accept states form a start state (so we represent the start
+      state with the set of accept states, rather than a single state)
    3. The transitions are reversed."
-  [dfa]
-  (let [{symbols :symbols
-         states  :states
-         start   :start
-         accepts :accepts}
-        dfa
-        new-start (new-state)]
-    {:type :nfa
-     :symbols symbols
-     :states states
-     :start new-start
-     :accepts #{start}
-     :transitions (merge {new-start {:epsilon accepts}}
-                         (reverse-transitions dfa))}))
+  [{symbols     :symbols
+    states      :states
+    start       :start
+    accepts     :accepts
+    transitions :transitions}]
+  {:type        :nfa
+   :symbols     symbols
+   :states      states
+   :start       accepts
+   :accepts     #{start}
+   :transitions (reverse-transitions transitions)})
 
 ;; For more information about Brzozowski's Algorithm, see:
 ;; https://cs.stackexchange.com/questions/1872/brzozowskis-algorithm-for-dfa-minimization
@@ -460,7 +476,8 @@
   (letfn [(construct-reverse-dfa
            [dfa]
            (reset-counter)
-           (-> dfa alphatize-states-fsm reverse-dfa nfa->dfa))]
+           (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
+             (nfa->dfa* rev-dfa (:start rev-dfa))))]
     (-> dfa construct-reverse-dfa construct-reverse-dfa)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

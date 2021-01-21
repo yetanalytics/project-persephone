@@ -107,6 +107,41 @@
 ;; CMI Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; A short summary of the CMI profile:
+;; 
+;; Statement Templates:
+;; - general-restrictions
+;; - launched
+;; - initialized
+;; - completed
+;; - passed
+;; - failed
+;; - abandoned
+;; - waived
+;; - terminated
+;; - satisfied
+;;
+;; Patterns:
+;; - satisfieds = satisfied*
+;; - waived-session = satisfieds waived satisfieds
+;; - no-result-session = launched initialized terminated-or-abandoned
+;; - completion-no-success-session = launched initialized completed satisfieds terminated-or-abandoned
+;; - passed-session = launched initialized completed-and-passed satisfieds terminated-or-abandoned
+;; - completion-passed-session = launched initialized completed-and-passed satisfieds terminated-or-abandoned
+;; - failed-session = launched initialized failed terminated-or-abandoned
+;; - completion-maybe-failed-session = launched initialized completed-and-maybe-failed satisfieds terminated-or-abandoned
+;; - terminated-or-abandoned = terminated | abandoned
+;; - completed-and-passed = completed-then-passed | passed-then-completed
+;; - completed-then-passed = completed satisfieds passed
+;; - passed-then-completed = passed satisfieds completed
+;; - completed-and-maybe-failed = maybe-completed-then-failed | failed-then-maybe-completed
+;; - maybe-completed-then-failed = maybe-completed satisfieds failed
+;; - failed-then-maybe-completed = failed maybe-completed
+;; - maybe-completed = completed?
+;; - typical-session = completion-maybe-failed-session | completion-passed-session | failed-session | no-result-session | passed-session | completion-no-success-session | waived-session
+;; - typical-sessions = typical-session*
+;; - pattern = satisfieds typical-sessions
+
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "resources/sample_profiles/cmi5.json"))
@@ -214,7 +249,6 @@
                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))))
 
 (defn rejected? [state-info] (-> state-info :state nil?))
-
 (def rns-cmi (partial per/read-next-statement cmi-fsm))
 
 (deftest pattern-validation-test
@@ -269,7 +303,7 @@
                         (rns-cmi failed-stmt)
                         (rns-cmi abandoned-stmt))))
     ;; Just straight up failed
-  (is (:accepted? (-> nil
+    (is (:accepted? (-> nil
                       (rns-cmi launched-stmt)
                       (rns-cmi initialized-stmt)
                       (rns-cmi failed-stmt)

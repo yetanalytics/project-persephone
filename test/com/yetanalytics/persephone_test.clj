@@ -241,6 +241,18 @@
                              (rns-cmi initialized-stmt)
                              (rns-cmi failed-stmt)
                              (rns-cmi satisfied-stmt)))))
+    ;; Just a bunch of satisfieds
+    (is (:accepted? (-> nil
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi satisfied-stmt))))
     ;; Waive, then pass
     (is (:accepted? (-> nil
                         (rns-cmi waived-stmt)
@@ -249,7 +261,20 @@
                         (rns-cmi passed-stmt)
                         (rns-cmi completed-stmt)
                         (rns-cmi terminated-stmt))))
-    ;; Failed, then waived, then finally passed
+    ;; Completed, then failed (oof!)
+    (is (:accepted? (-> nil
+                        (rns-cmi launched-stmt)
+                        (rns-cmi initialized-stmt)
+                        (rns-cmi completed-stmt)
+                        (rns-cmi failed-stmt)
+                        (rns-cmi abandoned-stmt))))
+    ;; Just straight up failed
+  (is (:accepted? (-> nil
+                      (rns-cmi launched-stmt)
+                      (rns-cmi initialized-stmt)
+                      (rns-cmi failed-stmt)
+                      (rns-cmi abandoned-stmt))))
+    ;; Failed, then waived, then finally passed (yay!)
     (is (:accepted? (-> nil
                         (rns-cmi satisfied-stmt)
                         (rns-cmi launched-stmt)

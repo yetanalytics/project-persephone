@@ -69,7 +69,7 @@
 ;; Utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; State creation utilities
+;; State creation
 
 (def counter (atom -1))
 
@@ -85,54 +85,37 @@
 
 ;; State alphatization
 
-(defn- alphatize-states-nfa
-  [nfa]
-  (let [old-to-new-states
+(defn- alphatize-states-fsm
+  [{type :type states :states :as fsm}]
+  (let [states'
+        (if (coll? (first states))
+          (->> states (map sort) (map set))
+          (->> states sort))
+        old-to-new-state
         (reduce (fn [acc state] (assoc acc state (new-state)))
                 {}
-                (sort (:states nfa))) ;; sort needed for debugging
+                states')
+        old-to-new-state-set
+        (fn [states]
+          (->> states (mapv old-to-new-state) (into #{})))
         update-dests
         (fn [transitions]
           (reduce-kv
            (fn [acc src trans]
              (assoc acc src (reduce-kv
                              (fn [acc symb dests]
-                               (assoc acc symb (->> dests
-                                                    (mapv old-to-new-states)
-                                                    (into #{}))))
+                               (if (= type :nfa)
+                                (assoc acc symb (old-to-new-state-set dests))
+                                (assoc acc symb (old-to-new-state dests))))
                              {}
                              trans)))
            {}
            transitions))]
-    (-> nfa
-        (update :states #(into #{} (mapv old-to-new-states %)))
-        (update :start old-to-new-states)
-        (update :accepts #(->> % (mapv old-to-new-states) (into #{})))
-        (update :transitions #(cset/rename-keys % old-to-new-states))
-        (update :transitions update-dests))))
-
-(defn- alphatize-states-dfa
-  [dfa]
-  (let [old-to-new-states
-        (reduce (fn [acc state] (assoc acc state (new-state)))
-                {}
-                (:states dfa)) ;; cannot apply sort to sets
-        update-dests
-        (fn [transitions]
-          (reduce-kv
-           (fn [acc src trans]
-             (assoc acc src (reduce-kv
-                             (fn [acc symb dests]
-                               (assoc acc symb (old-to-new-states dests)))
-                             {}
-                             trans)))
-           {}
-           transitions))]
-    (-> dfa
-        (update :states #(into #{} (mapv old-to-new-states %)))
-        (update :start old-to-new-states)
-        (update :accepts #(->> % (mapv old-to-new-states) (into #{})))
-        (update :transitions #(cset/rename-keys % old-to-new-states))
+    (-> fsm
+        (update :states old-to-new-state-set)
+        (update :start old-to-new-state)
+        (update :accepts old-to-new-state-set)
+        (update :transitions #(cset/rename-keys % old-to-new-state))
         (update :transitions update-dests))))
 
 (defn alphatize-states
@@ -143,11 +126,8 @@
   (loop [new-fsm-queue []
          fsm-queue nfa-coll]
     (if-let [fsm (first fsm-queue)]
-      (let [fsm'
-            (case (:type fsm)
-              :nfa (alphatize-states-nfa fsm)
-              :dfa (alphatize-states-dfa fsm))]
-        (recur (conj new-fsm-queue fsm') (rest fsm-queue)))
+      (recur (->> fsm alphatize-states-fsm (conj new-fsm-queue))
+             (rest fsm-queue))
       new-fsm-queue)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

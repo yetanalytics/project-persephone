@@ -499,6 +499,24 @@
                                2 {"a" #{3}  :epsilon #{1}}
                                3 {"a" #{2}}}}))))))
 
+(deftest minimize-dfa-test
+  (testing "The minimize-dfa function and Brzozowkski's Algorithm."
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a? "b" is-b?}
+            :states      #{#{1} #{0 2}}
+            :start       #{0 2}
+            :accepts     #{#{1}}
+            :transitions {#{1}   {}
+                          #{0 2} {"a" #{1} "b" #{1}}}}
+           (fsm/minimize-dfa
+            {:type        :dfa
+             :symbols     {"a" is-a? "b" is-b?}
+             :states      #{#{0} #{1} #{2}}
+             :start       #{0}
+             :accepts     #{#{1} #{2}}
+             :transitions {#{0} {"a" #{1}
+                                 "b" #{2}}}})))))
+
 (deftest read-next-test
   (testing "The read-next function."
     (is (= {:state     #{1}

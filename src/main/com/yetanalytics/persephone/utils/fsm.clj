@@ -404,6 +404,65 @@
             (recur dfa' queue''))
           dfa)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DFA Minimization
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- reverse-transitions
+  "Create a new transition table that reverses the source and destination states
+   for each symbol. Since multiple source-symbol pairs may lead to the same
+   destination state in the original DFA, this produces a NFA, where the new
+   source-symbol pair leads to multiple new destinations."
+  [{transitions :transitions}]
+  (letfn [(update-dests [src new-dests]
+                        (if (nil? new-dests) #{src} (conj new-dests src)))]
+    (reduce-kv
+     (fn [acc src trans]
+       (merge-with (partial merge-with cset/union)
+                   acc
+                   (reduce-kv
+                    (fn [acc symb dest]
+                      (update-in acc [dest symb] (partial update-dests src)))
+                    {}
+                    trans)))
+     {}
+     transitions)))
+
+(defn- reverse-dfa
+  "Create a reverse NFA out of a DFA, where
+   1. The original start state is an accept state
+   2. The original accept states form a start state (accomplished using epsilon
+   transitions)
+   3. The transitions are reversed."
+  [dfa]
+  (let [{symbols :symbols
+         states  :states
+         start   :start
+         accepts :accepts}
+        dfa
+        new-start (new-state)]
+    {:type :nfa
+     :symbols symbols
+     :states states
+     :start new-start
+     :accepts #{start}
+     :transitions (merge {new-start {:epsilon accepts}}
+                         (reverse-transitions dfa))}))
+
+;; For more information about Brzozowski's Algorithm, see:
+;; https://cs.stackexchange.com/questions/1872/brzozowskis-algorithm-for-dfa-minimization
+;; https://cs.stackexchange.com/questions/105574/proof-of-brzozowskis-algorithm-for-dfa-minimization
+
+(defn minimize-dfa
+  "Minimize the DFA using Brzozowski's Algorithm, which reverses and
+   determinizes the DFA twice."
+  [dfa]
+  (letfn [(construct-reverse-dfa
+           [dfa]
+           (reset-counter)
+           (-> dfa alphatize-states-fsm reverse-dfa nfa->dfa))]
+    (-> dfa construct-reverse-dfa construct-reverse-dfa)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

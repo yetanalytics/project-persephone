@@ -559,7 +559,7 @@
             :start       #{0}
             :accepts     #{#{1}}
             :transitions {#{0} {"a" #{1} "b" #{1} "c" #{1}}
-                          #{1}   {}}}
+                          #{1} {}}}
            (-> [a-fsm b-fsm c-fsm]
                fsm/union-nfa
                fsm/nfa->dfa

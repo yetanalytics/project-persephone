@@ -27,7 +27,7 @@
                {:id        "http://foo.org/p3"
                 :type      "Pattern"
                 :primary   true
-                :oneOrMore {:id "http://foo.org/p1"}}]})
+                :oneOrMore "http://foo.org/p1"}]})
 
 (deftest mapify-patterns-test
   (testing "mapify-patterns function"
@@ -44,7 +44,7 @@
             "http://foo.org/p3" {:id        "http://foo.org/p3"
                                  :type      "Pattern"
                                  :primary   true
-                                 :oneOrMore {:id "http://foo.org/p1"}}}
+                                 :oneOrMore "http://foo.org/p1"}}
            (pv/mapify-patterns ex-profile)))))
 
 (deftest mapify-templates-test
@@ -76,7 +76,7 @@
             "http://foo.org/p3" {:id        "http://foo.org/p3"
                                  :type      "Pattern"
                                  :primary   true
-                                 :oneOrMore {:id "http://foo.org/p1"}}
+                                 :oneOrMore "http://foo.org/p1"}
             "http://foo.org/t1" {:id   "http://foo.org/t1"
                                  :type "StatementTemplate"
                                  :verb "http://foo.org/verb1"}
@@ -98,7 +98,7 @@
              {:id        "http://foo.org/p3"
               :type      "Pattern"
               :primary   true
-              :oneOrMore {:id "http://foo.org/p1"}})
+              :oneOrMore "http://foo.org/p1"})
            (pv/primary-patterns ex-profile)))))
 
 (deftest create-zipper-test
@@ -120,7 +120,7 @@
     (is (= {:id        "http://foo.org/p3"
             :type      "Pattern"
             :primary   true
-            :oneOrMore {:id "http://foo.org/p1"}}
+            :oneOrMore "http://foo.org/p1"}
            (-> ex-profile :patterns (get 2) pv/create-zipper zip/node)))
     (is (= '("http://foo.org/p1")
            (-> ex-profile :patterns (get 2) pv/create-zipper zip/children)))
@@ -151,16 +151,16 @@
                         :verb "http://foo.org/verb3"}]}
            (-> ex-profile :patterns (get 1) pv/create-zipper
                (pv/update-children (pv/mapify-all ex-profile)) zip/node)))
-    (is (= (-> ex-profile :patterns (get 2) pv/create-zipper
-               (pv/update-children (pv/mapify-all ex-profile)) zip/node)
-           {:id        "http://foo.org/p3"
+    (is (= {:id        "http://foo.org/p3"
             :type      "Pattern"
             :primary   true
-            :oneOrMore [{:id         "http://foo.org/p1"
-                         :type       "Pattern"
-                         :primary    true
-                         :alternates ["http://foo.org/p2"
-                                      "http://foo.org/t1"]}]}))))
+            :oneOrMore {:id         "http://foo.org/p1"
+                        :type       "Pattern"
+                        :primary    true
+                        :alternates ["http://foo.org/p2"
+                                     "http://foo.org/t1"]}}
+           (-> ex-profile :patterns (get 2) pv/create-zipper
+               (pv/update-children (pv/mapify-all ex-profile)) zip/node)))))
 
 (deftest grow-pattern-tree-test
   (testing "grow-pattern-tree function (implicitly also tests update-children)"
@@ -184,21 +184,21 @@
     (is (= {:id        "http://foo.org/p3"
             :type      "Pattern"
             :primary   true
-            :oneOrMore [{:id         "http://foo.org/p1"
-                         :type       "Pattern"
-                         :primary    true
-                         :alternates [{:id       "http://foo.org/p2"
-                                       :type     "Pattern"
-                                       :primary  false
-                                       :sequence [{:id   "http://foo.org/t2"
-                                                   :type "StatementTemplate"
-                                                   :verb "http://foo.org/verb2"}
-                                                  {:id   "http://foo.org/t3"
-                                                   :type "StatementTemplate"
-                                                   :verb "http://foo.org/verb3"}]}
-                                      {:id   "http://foo.org/t1"
-                                       :type "StatementTemplate"
-                                       :verb "http://foo.org/verb1"}]}]}
+            :oneOrMore {:id         "http://foo.org/p1"
+                        :type       "Pattern"
+                        :primary    true
+                        :alternates [{:id       "http://foo.org/p2"
+                                      :type     "Pattern"
+                                      :primary  false
+                                      :sequence [{:id   "http://foo.org/t2"
+                                                  :type "StatementTemplate"
+                                                  :verb "http://foo.org/verb2"}
+                                                 {:id   "http://foo.org/t3"
+                                                  :type "StatementTemplate"
+                                                  :verb "http://foo.org/verb3"}]}
+                                     {:id   "http://foo.org/t1"
+                                      :type "StatementTemplate"
+                                      :verb "http://foo.org/verb1"}]}}
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 2))
                                  (pv/mapify-all ex-profile))))))
 

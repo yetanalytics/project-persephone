@@ -76,19 +76,21 @@
     :response   "Good job! Let's get dinner!"
     :timestamp  "2019-08-10T12:18:00+00:00"}
    :context
-   {:instructor        {:objectType "Agent"
-                        :name       "Will Hoyt"
-                        :mbox       "mailto:will@yetanalytics.com"}
-    :contextActivities {:parent   [{:objectType "Activity"
-                                    :id         "https://example.com/competency/clojure-skill"
-                                    :definition {:name        {:en "Skill in the Clojure Language"}
-                                                 :description {:en "This person is skilled in Clojure."}
-                                                 :type        "https://w3id.org/xapi/catch/activitytypes/competency"}}]
-                        :grouping [{:objectType "Activity"
-                                    :id         "https://example.com/domain/clojure"
-                                    :definition {:name        {:en "The World of Clojure"}
-                                                 :description {:en "The environment in which Clojure is used and learned."}
-                                                 :type        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
+   {:instructor
+    {:objectType "Agent"
+     :name       "Will Hoyt"
+     :mbox       "mailto:will@yetanalytics.com"}
+    :contextActivities
+    {:parent   [{:objectType "Activity"
+                 :id         "https://example.com/competency/clojure-skill"
+                 :definition {:name        {:en "Skill in the Clojure Language"}
+                              :description {:en "This person is skilled in Clojure."}
+                              :type        "https://w3id.org/xapi/catch/activitytypes/competency"}}]
+     :grouping [{:objectType "Activity"
+                 :id         "https://example.com/domain/clojure"
+                 :definition {:name        {:en "The World of Clojure"}
+                              :description {:en "The environment in which Clojure is used and learned."}
+                              :type        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
 
 (deftest profile-templates-test
   (testing "profile-templates using Will's CATCH profile"

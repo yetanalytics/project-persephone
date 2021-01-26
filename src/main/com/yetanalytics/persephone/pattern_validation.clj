@@ -49,17 +49,20 @@
               (contains? branch :alternates)
               (-> branch :alternates seq)
               (contains? branch :optional)
-              (if (map? (:optional branch))
+              (-> branch :optional list)
+              #_(if (map? (:optional branch))
                 (-> branch :optional :id list)
-                (-> branch :optional seq))
+                (-> branch :optional list))
               (contains? branch :oneOrMore)
-              (if (map? (:oneOrMore branch))
+              (-> branch :oneOrMore list)
+              #_(if (map? (:oneOrMore branch))
                 (-> branch :oneOrMore :id list)
-                (-> branch :oneOrMore seq))
+                (-> branch :oneOrMore list))
               (contains? branch :zeroOrMore)
-              (if (map? (:zeroOrMore branch))
+              (-> branch :zeroOrMore list)
+              #_(if (map? (:zeroOrMore branch))
                 (-> branch :zeroOrMore :id list)
-                (-> branch :zeroOrMore seq))))
+                (-> branch :zeroOrMore list))))
           (make-node [node children-seq]
             (let [children-vec (vec children-seq)]
               (cond
@@ -68,11 +71,11 @@
                 (contains? node :alternates)
                 (assoc node :alternates children-vec)
                 (contains? node :optional)
-                (assoc node :optional children-vec)
+                (assoc node :optional (first children-vec))
                 (contains? node :oneOrMore)
-                (assoc node :oneOrMore children-vec)
+                (assoc node :oneOrMore (first children-vec))
                 (contains? node :zeroOrMore)
-                (assoc node :zeroOrMore children-vec))))]
+                (assoc node :zeroOrMore (first children-vec)))))]
     (zip/zipper branch? children make-node pattern)))
 
 (defn update-children
@@ -111,11 +114,11 @@
     [{:type "Pattern" :alternates _}]
     (-> node :alternates fsm/union-nfa)
     [{:type "Pattern" :optional _}]
-    (-> node :optional first fsm/optional-nfa)
+    (-> node :optional fsm/optional-nfa)
     [{:type "Pattern" :zeroOrMore _}]
-    (-> node :zeroOrMore first fsm/kleene-nfa)
+    (-> node :zeroOrMore fsm/kleene-nfa)
     [{:type "Pattern" :oneOrMore _}]
-    (-> node :oneOrMore first fsm/plus-nfa)
+    (-> node :oneOrMore fsm/plus-nfa)
     [{:type "StatementTemplate"}]
     (fsm/transition-nfa (:id node) (partial tv/validate-statement node))
     ;; Node is not a map

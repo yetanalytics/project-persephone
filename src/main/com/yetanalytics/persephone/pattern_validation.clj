@@ -109,19 +109,18 @@
    nodes."
   [node]
   (m/match [node]
-    [{:type "Pattern" :sequence _}]
-    (-> node :sequence fsm/concat-nfa)
-    [{:type "Pattern" :alternates _}]
-    (-> node :alternates fsm/union-nfa)
-    [{:type "Pattern" :optional _}]
-    (-> node :optional fsm/optional-nfa)
-    [{:type "Pattern" :zeroOrMore _}]
-    (-> node :zeroOrMore fsm/kleene-nfa)
-    [{:type "Pattern" :oneOrMore _}]
-    (-> node :oneOrMore fsm/plus-nfa)
-    [{:type "StatementTemplate"}]
-    (fsm/transition-nfa (:id node) (partial tv/validate-statement node))
-    ;; Node is not a map
+    [{:type "Pattern" :sequence sqn}]
+    (fsm/concat-nfa sqn)
+    [{:type "Pattern" :alternates alt}]
+    (fsm/union-nfa alt)
+    [{:type "Pattern" :optional opt}]
+    (fsm/optional-nfa opt)
+    [{:type "Pattern" :zeroOrMore zom}]
+    (fsm/kleene-nfa zom)
+    [{:type "Pattern" :oneOrMore oom}]
+    (fsm/plus-nfa oom)
+    [{:type "StatementTemplate" :id node-id}]
+    (fsm/transition-nfa node-id (partial tv/validate-statement node))
     :else node))
 
 (defn pattern-tree->fsm

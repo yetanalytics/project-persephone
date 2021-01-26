@@ -50,19 +50,10 @@
               (-> branch :alternates seq)
               (contains? branch :optional)
               (-> branch :optional list)
-              #_(if (map? (:optional branch))
-                (-> branch :optional :id list)
-                (-> branch :optional list))
               (contains? branch :oneOrMore)
               (-> branch :oneOrMore list)
-              #_(if (map? (:oneOrMore branch))
-                (-> branch :oneOrMore :id list)
-                (-> branch :oneOrMore list))
               (contains? branch :zeroOrMore)
-              (-> branch :zeroOrMore list)
-              #_(if (map? (:zeroOrMore branch))
-                (-> branch :zeroOrMore :id list)
-                (-> branch :zeroOrMore list))))
+              (-> branch :zeroOrMore list)))
           (make-node [node children-seq]
             (let [children-vec (vec children-seq)]
               (cond

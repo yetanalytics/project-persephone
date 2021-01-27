@@ -1,21 +1,24 @@
 {:paths ["resources" "src/main"]
- :deps {org.clojure/clojure {:mvn/version "RELEASE"}
-        org.clojure/core.match {:mvn/version "0.3.0"}
+ :deps {org.clojure/clojure           {:mvn/version "RELEASE"}
+        org.clojure/clojurescript     {:mvn/version "RELEASE"}
+        org.clojure/core.match        {:mvn/version "0.3.0"}
+        cider/piggieback              {:mvn/version "0.5.2"}
         com.jayway.jsonpath/json-path {:mvn/version "2.4.0"}
-        json-path/json-path {:mvn/version "1.0.1"}
-        cheshire/cheshire {:mvn/version "5.8.1"}
+        json-path/json-path           {:mvn/version "1.0.1"}
+        cheshire/cheshire             {:mvn/version "5.8.1"}
         ;; Latest commit as of August 9, 2019
-        com.yetanalytics/project-pan {:git/url "git@github.com:yetanalytics/project-pan.git" 
-                                      :sha "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}
-        }
+        com.yetanalytics/project-pan
+        {:git/url "git@github.com:yetanalytics/project-pan.git" 
+         :sha     "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}}
  :aliases
- {:test {:extra-paths ["test" "src/test"]
-         :extra-deps {org.clojure/test.check {:mvn/version "RELEASE"}
-                      dorothy/dorothy {:mvn/version "0.0.7"}}}
+ {:test
+  {:extra-paths ["test" "src/test"]
+   :extra-deps  {org.clojure/test.check {:mvn/version "RELEASE"}
+                 dorothy/dorothy        {:mvn/version "0.0.7"}}}
   :runner
   {:extra-deps {com.cognitect/test-runner
                 {:git/url "https://github.com/cognitect-labs/test-runner"
-                 :sha "cb96e80f6f3d3b307c59cbeb49bb0dcb3a2a780b"}}
+                 :sha     "cb96e80f6f3d3b307c59cbeb49bb0dcb3a2a780b"}}
    :main-opts ["-m" "cognitect.test-runner"
                "-d" "test"]}}
  :mvn/repos {"jitpack" {:url "https://jitpack.io"}}}

@@ -6,7 +6,6 @@
         cider/piggieback              {:mvn/version "0.5.2"}
         com.jayway.jsonpath/json-path {:mvn/version "2.5.0"}
         json-path/json-path           {:mvn/version "1.0.1"}
-        cheshire/cheshire             {:mvn/version "5.8.1"}
         ;; Latest commit as of August 9, 2019
         com.yetanalytics/project-pan
         {:git/url "git@github.com:yetanalytics/project-pan.git" 

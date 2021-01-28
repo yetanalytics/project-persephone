@@ -26,3 +26,4 @@ package.json
 /out
 .cljs_node_repl
 node_modules
+cljs-test-runner-out

@@ -2,6 +2,13 @@
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]))
 
+;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
+
+#?(:cljs
+   (defn slurp [path]
+     (let [fs (js/require "fs")]
+       (.readFileSync fs path "utf8"))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Will Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,9 +103,6 @@
     (is (= 52 (count (per/profile-templates will-profile))))
     (is (= ex-template (first (per/profile-templates will-profile))))))
 
-;; FIXME It doesn't seem that our current JSONPath library is able to handle
-;; values that are of type string (only keywords). Thus we cannot validate
-;; rules involving iri-valued keys. Another reason to migrate to Jayway
 (deftest statement-validation-test
   (testing "validate statement using an example Template and Statement"
     (is (not (per/validate-statement ex-template ex-statement)))))
@@ -251,9 +255,8 @@
 (defn rejected? [state-info] (-> state-info :state nil?))
 (def rns-cmi (partial per/read-next-statement cmi-fsm))
 
-(deftest pattern-validation-test
-  (testing "Testing validation of a stream of Statements using Patterns from the
-            cmi5 Profile."
+(deftest pattern-validation-tests
+  (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
     (is (rejected? (rns-cmi nil ex-statement)))
     ;; Accepted by 'satisfied' Template
     (is (not (rejected? (rns-cmi nil satisfied-stmt))))

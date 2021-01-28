@@ -20,8 +20,8 @@
    recommended for IRI keys)."
   [json-str & {:keys [kwd] :or {kwd false}}]
   #?(:clj (if kwd
-            (json/read-str json-str)
-            (json/read-str json-str :key-fn keyword))
+            (json/read-str json-str :key-fn keyword)
+            (json/read-str json-str))
      :cljs (js->clj (.parse js/JSON json-str) :keywordize-keys kwd)))
 
 (defn edn-to-json
@@ -55,7 +55,6 @@
 
 ;; Need to manually customize the JSON Provider to Gson:
 ;; https://stackoverflow.com/questions/63644711/expected-to-find-an-object-with-property-xyz-in-path-but-found-org-json-j
-
 #?(:clj
    (defn- new-json-config [_]
      (-> (Configuration/builder)

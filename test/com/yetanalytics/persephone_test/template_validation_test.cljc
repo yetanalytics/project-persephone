@@ -1,5 +1,5 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
-  (:require [clojure.test :refer [deftest testing is function?]]
+  (:require [clojure.test :refer [deftest testing is #?(:clj function?)]]
             [clojure.spec.alpha :as s]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template-validation :as tv]))
@@ -15,10 +15,10 @@
 
 (deftest cond-on-val-test
   (testing "cond-on-val function test: if the value is nil, ignore predicate."
-    (is (function? (tv/cond-on-val some? "some")))
-    (is (function? (tv/cond-on-val some? nil)))
-    (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some")))
-    (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil)))
+    #?(:clj (is (function? (tv/cond-on-val some? "some"))))
+    #?(:clj (is (function? (tv/cond-on-val some? nil))))
+    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some"))))
+    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil))))
     (is (true? ((tv/cond-on-val (partial ex-predicate "foo") 2) "foo")))
     (is (false? ((tv/cond-on-val (partial ex-predicate "foo") 2) "bar")))
     (is (true? ((tv/cond-on-val (partial ex-predicate "foo") nil) "bar")))))
@@ -26,8 +26,8 @@
 (deftest cond-partial-test
   (testing "cond-partial function test: if the value is not nil, consider
            function and make it into a one-arg predicate."
-    (is (function? (tv/cond-partial ex-predicate "foo")))
-    (is (function? (tv/cond-partial ex-predicate nil)))
+    #?(:clj (is (function? (tv/cond-partial ex-predicate "foo"))))
+    #?(:clj (is (function? (tv/cond-partial ex-predicate nil))))
     (is (true? ((tv/cond-partial ex-predicate "foo") "foo")))
     (is (false? ((tv/cond-partial ex-predicate "foo") "bar")))
     (is (true? ((tv/cond-partial ex-predicate nil) "bar")))
@@ -51,6 +51,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#?(:cljs (defn slurp [path]
+           (let [fs (js/require "fs")]
+             (.readFileSync fs path "utf8"))))
 
 (def ex-statement-1
   (json/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
@@ -275,8 +279,10 @@
                                              :any ["Andrew Downes"]}))))
     (is (= (s/describe recommended-spec)
            (s/describe (tv/create-rule-spec {:any ["Andrew Downes"]}))))
-    (is (thrown? Exception (tv/create-rule-spec {:presence "foobar"})))
-    (is (thrown? Exception (tv/create-rule-spec {})))))
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (tv/create-rule-spec {:presence "foobar"})))
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (tv/create-rule-spec {})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests.
@@ -423,8 +429,8 @@
 (deftest create-rule-validator-test
   (testing "create-rule-validator function: Given a rule, create a validation
            function that accepts Statements"
-    (is (function? (tv/create-rule-validator {:presence "included"
-                                              :all ["Andrew Downes"]})))
+    #?(:clj (is (function? (tv/create-rule-validator {:presence "included"
+                                                      :all ["Andrew Downes"]}))))
     (is (nil? ((tv/create-rule-validator {:location "$.foo.bar"
                                           :presence "included"
                                           :any ["baz"]})

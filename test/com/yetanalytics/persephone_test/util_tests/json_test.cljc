@@ -153,6 +153,8 @@
       []
       "$.non-existent"
       []
+      "$.stire.book.*.author"
+      []
       "$.store.book[4]"
       []
       "%.store.book[*].blah")))

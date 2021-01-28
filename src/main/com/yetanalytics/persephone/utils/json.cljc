@@ -1,8 +1,7 @@
 (ns com.yetanalytics.persephone.utils.json
   (:require [clojure.string :as string]
             #?(:clj [clojure.data.json :as json])
-            #?(:cljs [jsonpath])
-            #_[cheshire.core :as cheshire])
+            #?(:cljs [jsonpath]))
   #?(:clj (:import [com.jayway.jsonpath
                     Configuration
                     JsonPath
@@ -16,24 +15,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn json-to-edn
-  [json-str]
-  #?(:clj (json/read-str json-str)
-     :cljs (->> json-str (.parse js/JSON) js->clj)))
+  "Convert a JSON data structure to EDN. By default, keys remain strings, but
+   passing \"true\" for \"kwd\" will result in keyword strings (which is not
+   recommended for IRI keys)."
+  [json-str & {:keys [kwd] :or {kwd false}}]
+  #?(:clj (if kwd
+            (json/read-str json-str)
+            (json/read-str json-str :key-fn keyword))
+     :cljs (js->clj (.parse js/JSON json-str) :keywordize-keys kwd)))
 
 (defn edn-to-json
+  "Convert an EDN data structure to JSON."
   [edn-data]
   #?(:clj (json/write-str edn-data)
      :cljs (->> edn-data clj->js (.stringify js/JSON))))
-
-#_(defn json-to-edn
-    "Convert a JSON data structure to EDN."
-    [js]
-    (cheshire/parse-string js true))
-
-#_(defn edn-to-json
-    "Convert an EDN data structure to JSON."
-    [edn]
-    (cheshire/generate-string edn))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath

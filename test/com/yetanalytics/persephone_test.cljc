@@ -54,43 +54,41 @@
      :scopeNote {:en "the time when the mentor submited the scored rubric"}}]})
 
 (def ex-statement
-  {:id
-   "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
-   :timestamp
-   "2019-08-09T12:17:00+00:00"
-   :actor
-   {:objectType "Agent"
-    :name       "Will Hoyt"
-    :mbox       "mailto:will@yetanalytics.com"}
-   :verb
-   {:id      "https://example.com/scores"
-    :display {:en-US "Scores"}}
-   :object
-   {:objectType "Agent"
-    :name       "Kelvin Qian"
-    :mbox       "mailto:kelvinqian@yetanalytics.com"}
-   :result
-   {:score      {:raw 99 :min 0 :max 100}
-    :success    true
-    :completion true
-    :response   "Good job! Let's get dinner!"
-    :timestamp  "2019-08-10T12:18:00+00:00"}
-   :context
-   {:instructor
-    {:objectType "Agent"
-     :name       "Will Hoyt"
-     :mbox       "mailto:will@yetanalytics.com"}
-    :contextActivities
-    {:parent   [{:objectType "Activity"
-                 :id         "https://example.com/competency/clojure-skill"
-                 :definition {:name        {:en "Skill in the Clojure Language"}
-                              :description {:en "This person is skilled in Clojure."}
-                              :type        "https://w3id.org/xapi/catch/activitytypes/competency"}}]
-     :grouping [{:objectType "Activity"
-                 :id         "https://example.com/domain/clojure"
-                 :definition {:name        {:en "The World of Clojure"}
-                              :description {:en "The environment in which Clojure is used and learned."}
-                              :type        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
+  {"id" "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+   "timestamp" "2019-08-09T12:17:00+00:00"
+   "actor"
+   {"objectType" "Agent"
+    "name"       "Will Hoyt"
+    "mbox"       "mailto:will@yetanalytics.com"}
+   "verb"
+   {"id"      "https://example.com/scores"
+    "display" {"en-US" "Scores"}}
+   "object"
+   {"objectType" "Agent"
+    "name"       "Kelvin Qian"
+    "mbox"       "mailto:kelvinqian@yetanalytics.com"}
+   "result"
+   {"score"      {"raw" 99 "min" 0 "max" 100}
+    "success"    true
+    "completion" true
+    "response"   "Good job! Let's get dinner!"
+    "timestamp"  "2019-08-10T12:18:00+00:00"}
+   "context"
+   {"instructor"
+    {"objectType" "Agent"
+     "name"       "Will Hoyt"
+     "mbox"       "mailto:will@yetanalytics.com"}
+    "contextActivities"
+    {"parent"   [{"objectType" "Activity"
+                  "id"         "https://example.com/competency/clojure-skill"
+                  "definition" {"name"        {"en" "Skill in the Clojure Language"}
+                                "description" {"en" "This person is skilled in Clojure."}
+                                "type"        "https://w3id.org/xapi/catch/activitytypes/competency"}}]
+     "grouping" [{"objectType" "Activity"
+                  "id"         "https://example.com/domain/clojure"
+                  "definition" {"name"        {"en" "The World of Clojure"}
+                                "description" {"en" "The environment in which Clojure is used and learned."}
+                                "type"        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
 
 (deftest profile-templates-test
   (testing "profile-templates using Will's CATCH profile"
@@ -152,75 +150,75 @@
 
 (def launched-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/launched")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (update :result dissoc :completion)))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/launched")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (update "result" dissoc "completion")))
 
 (def initialized-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/initialized")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (update :result dissoc :completion)))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/initialized")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (update "result" dissoc "completion")))
 
 (def completed-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/completed")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (assoc-in [:result :completion] true)
-      (assoc-in [:result :duration] "PT4H35M59.14S")
-      (assoc-in [:context :contextActivities :category]
-                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/completed")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (assoc-in ["result" "completion"] true)
+      (assoc-in ["result" "duration"] "PT4H35M59.14S")
+      (assoc-in ["context" "contextActivities" "category"]
+                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
 
 (def passed-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/passed")
-      (update :result dissoc :completion)
-      (assoc-in [:result :duration] "PT4H35M59.14S")
-      (assoc-in [:context :contextActivities :category]
-                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/passed")
+      (update "result" dissoc "completion")
+      (assoc-in ["result" "duration"] "PT4H35M59.14S")
+      (assoc-in ["context" "contextActivities" "category"]
+                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
 
 (def failed-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/failed")
-      (assoc-in [:result :success] false)
-      (update :result dissoc :completion)
-      (assoc-in [:result :duration] "P8W")
-      (assoc-in [:context :contextActivities :category]
-                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/failed")
+      (assoc-in ["result" "success"] false)
+      (update "result" dissoc "completion")
+      (assoc-in ["result" "duration"] "P8W")
+      (assoc-in ["context" "contextActivities" "category"]
+                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
 
 (def abandoned-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "https://w3id.org/xapi/adl/verbs/abandoned")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (update :result dissoc :completion)
-      (assoc-in [:result :duration] "P8W")))
+      (assoc-in ["verb" "id"] "https://w3id.org/xapi/adl/verbs/abandoned")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (update "result" dissoc "completion")
+      (assoc-in ["result" "duration"] "P8W")))
 
 (def waived-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/waived")
-      (update :result dissoc :score)
-      (assoc-in [:context :contextActivities :category]
-                [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/waived")
+      (update "result" dissoc "score")
+      (assoc-in ["context" "contextActivities" "category"]
+                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
 
 (def terminated-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/terminated")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (update :result dissoc :completion)
-      (assoc-in [:result :duration] "P8W")))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/terminated")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (update "result" dissoc "completion")
+      (assoc-in ["result" "duration"] "P8W")))
 
 (def satisfied-stmt
   (-> ex-statement
-      (assoc-in [:verb :id] "http://adlnet.gov/expapi/verbs/satisfied")
-      (update :result dissoc :score)
-      (update :result dissoc :success)
-      (update :result dissoc :completion)
-      (assoc-in [:object :definition :type] "https://w3id.org/xapi/cmi5/activitytype/course")))
+      (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/satisfied")
+      (update "result" dissoc "score")
+      (update "result" dissoc "success")
+      (update "result" dissoc "completion")
+      (assoc-in ["object" "definition" "type"] "https://w3id.org/xapi/cmi5/activitytype/course")))
 
 (deftest cmi-statements-test
   (testing "validating statements from the cmi5 profile"
@@ -241,14 +239,14 @@
               (get cmi-templates 6)
               (assoc-in
                abandoned-stmt
-               [:context :contextActivities :category]
-               [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))
+               ["context" "contextActivities" "category"]
+               [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))
     (is (not (per/validate-statement
               (get cmi-templates 8)
               (assoc-in
                terminated-stmt
-               [:context :contextActivities :category]
-               [{:id "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))))
+               ["context" "contextActivities" "category"]
+               [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))))
 
 (defn rejected? [state-info] (-> state-info :state nil?))
 (def rns-cmi (partial per/read-next-statement cmi-fsm))
@@ -262,7 +260,7 @@
     ;; Does not satifiy all rules in the 'satisfied' Template
     (is (rejected?
          (rns-cmi nil (assoc-in ex-statement
-                                [:verb :id]
+                                ["verb" "id"]
                                 "http://adlnet.gov/expapi/verbs/satisfied"))))
     ;; Forgot initialized-stmt
     (is (nil? (-> nil

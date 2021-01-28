@@ -225,30 +225,30 @@
             :accepted? true}
            (fsm/read-next template-1-fsm
                           nil
-                          {:verb {:id "http://foo.org/verb1"}})))
+                          {"verb" {"id" "http://foo.org/verb1"}})))
     (is (= {:state     nil
             :accepted? false}
            (fsm/read-next template-1-fsm
                           nil
-                          {:verb {:id "http://foo.org/verb9"}})))))
+                          {"verb" {"id" "http://foo.org/verb9"}})))))
 
 (deftest mechanize-pattern-test-1
   (testing "mechanize-pattern function on pattern #1"
     (let [read-nxt (partial fsm/read-next pattern-1-fsm)]
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
               :accepted?))
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb2"}})
-              (read-nxt {:verb {:id "http://foo.org/verb3"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb2"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb3"}})
               :accepted?))
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb9"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb9"}})
               :state
               nil?))
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
               :state
               nil?)))))
 
@@ -256,15 +256,15 @@
   (testing "mechanize-pattern function on pattern #2"
     (let [read-nxt (partial fsm/read-next pattern-2-fsm)]
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
               :accepted?))
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
               :accepted?))
       (is (-> nil
-              (read-nxt {:verb {:id "http://foo.org/verb1"}})
-              (read-nxt {:verb {:id "http://foo.org/verb9"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+              (read-nxt {"verb" {"id" "http://foo.org/verb9"}})
               :state
               nil?)))))
 
@@ -273,12 +273,12 @@
     (let [pattern-fsms (pv/profile->fsms ex-profile)
           read-nxt-1   (partial fsm/read-next (first pattern-fsms))
           read-nxt-2   (partial fsm/read-next (second pattern-fsms))
-          stmt-1       {:id "some-stmt-uuid"
-                        :verb {:id "http://foo.org/verb1"}}
-          stmt-2       {:id   "some-stmt-uuid"
-                        :verb {:id "http://foo.org/verb2"}}
-          stmt-3       {:id   "some-stmt-uuid"
-                        :verb {:id "http://foo.org/verb3"}}]
+          stmt-1       {"id" "some-stmt-uuid"
+                        "verb" {"id" "http://foo.org/verb1"}}
+          stmt-2       {"id"   "some-stmt-uuid"
+                        "verb" {"id" "http://foo.org/verb2"}}
+          stmt-3       {"id"   "some-stmt-uuid"
+                        "verb" {"id" "http://foo.org/verb3"}}]
       (is (= 2 (count pattern-fsms)))
       (is (every? #(= (-> % keys set)
                       #{:type :symbols :states :start :accepts :transitions})

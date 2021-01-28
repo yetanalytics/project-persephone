@@ -81,7 +81,8 @@
 
 (deftest concat-fsm-test
   (testing "FSM composed of concatenating two or more smaller FSMs."
-    (is (thrown? Exception (fsm/concat-nfa [])))
+    (is #?(:clj (thrown? Exception (fsm/concat-nfa []))
+           :cljs (thrown? js/Error (fsm/concat-nfa []))))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
             :states      #{0 1}
@@ -128,7 +129,8 @@
 
 (deftest union-fsm-test
   (testing "FSM composed of unioning two or more smaller FSMs."
-    (is (thrown? Exception (fsm/union-nfa [])))
+    (is #?(:clj (thrown? Exception (fsm/union-nfa []))
+           :cljs (thrown? js/Error (fsm/union-nfa []))))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
             :states      #{0 1 2 3}

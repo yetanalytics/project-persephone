@@ -106,7 +106,19 @@
         "title"    "The Lord of the Rings"
         "isbn"     "0-395-19395-8"
         "price"    22.99}]
-      "$..book[-1]"
+      "$..book[-1:]"
+      ; Last two books
+      [{"category" "fiction"
+        "author"   "Herman Melville"
+        "title"    "Moby Dick"
+        "isbn"     "0-553-21311-3"
+        "price"    8.99}
+       {"category" "fiction"
+        "author"   "J.R.R. Tolkien"
+        "title"    "The Lord of the Rings"
+        "isbn"     "0-395-19395-8"
+        "price"    22.99}]
+      "$..book[-2:]"
       ; The first and third books via subscript union
       [{"category" "reference"
         "author"   "Nigel Rees"
@@ -137,18 +149,6 @@
         "title"    "Sword of Honour"
         "price"    12.99}]
       "$..book[0:2]"
-      ; Last two books
-      [{"category" "fiction"
-        "author"   "Herman Melville"
-        "title"    "Moby Dick"
-        "isbn"     "0-553-21311-3"
-        "price"    8.99}
-       {"category" "fiction"
-        "author"   "J.R.R. Tolkien"
-        "title"    "The Lord of the Rings"
-        "isbn"     "0-395-19395-8"
-        "price"    22.99}]
-      "$..book[-2:]"
       ; Unmatchable values
       []
       "$.non-existent"

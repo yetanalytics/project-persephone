@@ -47,15 +47,19 @@
   Returns a vector of JSONPaths."
   [json-paths]
   (let [split-regex #"\s*\|\s*(?!([^\[]*\]))"]
-    (string/split json-paths split-regex)))
+    (->> (string/split json-paths split-regex)
+         #?(:clj identity
+            :cljs (filterv some?)))))
 
-;; Need to manually customize the JSON Provider to Gson:
-;; https://stackoverflow.com/questions/63644711/expected-to-find-an-object-with-property-xyz-in-path-but-found-org-json-j
+;; Clojure
 
 #?(:clj (def json-opts-list [Option/ALWAYS_RETURN_LIST
                              Option/SUPPRESS_EXCEPTIONS]))
 
 #?(:clj (def json-config (atom nil)))
+
+;; Need to manually customize the JSON Provider to Gson:
+;; https://stackoverflow.com/questions/63644711/expected-to-find-an-object-with-property-xyz-in-path-but-found-org-json-j
 
 #?(:clj
    (defn- new-json-config [_]
@@ -94,9 +98,22 @@
            (.read json-path (into-array Predicate []))
            gson->edn))))
 
+;; ClojureScript
+
+#?(:cljs
+   (defn- read-json-js [json json-path]
+     (letfn [(not-found-error?
+               [err]
+               (re-find #"Lexical error on line \d*\. Unrecognized text\."
+                        (ex-message err)))]
+       (try (js->clj (.query jsonpath (clj->js json) json-path))
+            (catch js/Error.
+                   e
+              (if (not-found-error? e) [] (throw e)))))))
+
+;; Putting it together
+
 (defn read-json
   [json json-path]
-  #?(:clj (let [res (read-json-java json json-path)]
-            res)
-     :cljs (js->clj
-            (.query jsonpath (clj->js json) json-path))))
+  #?(:clj (read-json-java json json-path)
+     :cljs (read-json-js json json-path)))

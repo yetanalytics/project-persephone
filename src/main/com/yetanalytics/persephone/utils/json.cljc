@@ -43,8 +43,8 @@
   [json-paths]
   (let [split-regex #"\s*\|\s*(?!([^\[]*\]))"]
     (->> (string/split json-paths split-regex)
-         #?(:clj identity
-            :cljs (filterv some?)))))
+         (filterv some?)
+         #?(:cljs (filterv some?)))))
 
 ;; Clojure
 

@@ -1,5 +1,5 @@
 (ns com.yetanalytics.persephone.pattern-validation
-  (:require [clojure.core.match :as m]
+  (:require #?(:clj [clojure.core.match :as m] :cljs [cljs.core.match :as m])
             [clojure.walk :as w]
             [clojure.zip :as zip]
             [com.yetanalytics.persephone.utils.fsm :as fsm]

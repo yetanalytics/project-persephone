@@ -1,28 +1,31 @@
-{:paths ["resources" "src/main"]
+{:paths ["src/main"]
  :deps {org.clojure/clojure           {:mvn/version "RELEASE"}
         org.clojure/clojurescript     {:mvn/version "RELEASE"}
         org.clojure/core.match        {:mvn/version "0.3.0"}
         org.clojure/data.json         {:mvn/version "1.0.0"}
-        cider/piggieback              {:mvn/version "0.5.2"}
         com.jayway.jsonpath/json-path {:mvn/version "2.5.0"}
-        json-path/json-path           {:mvn/version "1.0.1"}
         ;; Latest commit as of August 9, 2019
         com.yetanalytics/project-pan
         {:git/url "git@github.com:yetanalytics/project-pan.git" 
          :sha     "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}}
  :aliases
- {:test
-  {:extra-paths ["test" "src/test"]
-   :extra-deps  {org.clojure/test.check {:mvn/version "RELEASE"}
-                 dorothy/dorothy        {:mvn/version "0.0.7"}}}
+ {:dev
+  {:extra-paths ["src/dev"]
+   :extra-deps  {cider/piggieback {:mvn/version "0.5.2"}
+                 dorothy/dorothy  {:mvn/version "0.0.7"}}}
+  :test
+  {:extra-paths ["src/test" "test-resources"]
+   :extra-deps  {org.clojure/test.check {:mvn/version "RELEASE"}}}
   :runner-clj
   {:extra-deps {com.cognitect/test-runner
                 {:git/url "https://github.com/cognitect-labs/test-runner"
                  :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}
-   :main-opts ["-m" "cognitect.test-runner"
-               "-d" "test"]}
+   :main-opts  ["-m" "cognitect.test-runner"
+                "-d" "src/test"]}
   :runner-cljs
-  {:extra-deps {olical/cljs-test-runner {:mvn/version "3.8.0"}}
-   :main-opts ["-m" "cljs-test-runner.main"
-               "-c" "build.edn"]}}
+  {:extra-paths ["src/test"]
+   :extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.0"}}
+   :main-opts   ["-m" "cljs-test-runner.main"
+                 "-d" "src/test"
+                 "-c" "build.test.edn"]}}
  :mvn/repos {"jitpack" {:url "https://jitpack.io"}}}

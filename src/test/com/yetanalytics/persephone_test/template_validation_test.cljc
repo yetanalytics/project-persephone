@@ -57,13 +57,13 @@
              (.readFileSync fs path "utf8"))))
 
 (def ex-statement-1
-  (json/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_1.json")))
 (def ex-statement-2
-  (json/json-to-edn (slurp "resources/sample_statements/adl_2.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_2.json")))
 (def ex-statement-3
-  (json/json-to-edn (slurp "resources/sample_statements/adl_3.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_3.json")))
 (def ex-statement-4
-  (json/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_4.json")))
 
 ;; Statement that conforms to ex-template
 ;; Not a complete Statement, but has the minimum for validation

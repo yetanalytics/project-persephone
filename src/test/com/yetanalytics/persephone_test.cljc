@@ -13,7 +13,7 @@
 ;; Will Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def will-profile (slurp "resources/sample_profiles/will-catch.json"))
+(def will-profile (slurp "test-resources/sample_profiles/will-catch.json"))
 
 (deftest compile-profile-test
   (testing "compile-profile using Will's CATCH profile"
@@ -150,7 +150,7 @@
 
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
-(def cmi-profile (slurp "resources/sample_profiles/cmi5.json"))
+(def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
 (def cmi-templates (per/profile-templates cmi-profile))
 (def cmi-fsm (first (per/compile-profile cmi-profile)))
 

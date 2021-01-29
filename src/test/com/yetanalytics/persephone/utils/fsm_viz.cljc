@@ -1,6 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm-viz
   (:require [dorothy.core :as dorothy]
-            [dorothy.jvm :as djvm]))
+            #?(:clj [dorothy.jvm :as djvm])))
 
 (defn fsm->graphviz
   "Convert a FSM to a format readable by the Dorothy graphviz library."
@@ -38,12 +38,18 @@
            (:transitions fsm))]
     (dorothy/digraph (concat edges nodes))))
 
+#_{:clj-kondo/ignore [:unused-binding]} ; For cljs
 (defn show-fsm
   "Show a FSM as an image."
   [fsm]
-  (-> fsm fsm->graphviz dorothy/dot djvm/show!))
+  #?(:clj (-> fsm fsm->graphviz dorothy/dot djvm/show!)
+     :cljs (throw (js/Error. "show-fsm not available for cljs"))))
 
+#_{:clj-kondo/ignore [:unused-binding]} ; For cljs
 (defn save-fsm
   "Save a FSM to an output file with the specified format."
   [fsm output-str format]
-  (-> fsm fsm->graphviz dorothy/dot (djvm/save! output-str {:format format})))
+  #?(:clj (-> fsm fsm->graphviz dorothy/dot (djvm/save!
+                                             output-str
+                                             {:format format}))
+     :cljs (throw (js/Error. "save-fsm not available for cljs"))))

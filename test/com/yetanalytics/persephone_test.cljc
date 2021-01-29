@@ -95,7 +95,9 @@
                   "id"         "https://example.com/domain/clojure"
                   "definition" {"name"        {"en" "The World of Clojure"}
                                 "description" {"en" "The environment in which Clojure is used and learned."}
-                                "type"        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
+                                "type"        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}
+    "extensions"
+    {"https://w3id.org/xapi/cmi5/context/extensions/sessionid" 74}}})
 
 (deftest profile-templates-test
   (testing "profile-templates using Will's CATCH profile"
@@ -152,12 +154,21 @@
 (def cmi-templates (per/profile-templates cmi-profile))
 (def cmi-fsm (first (per/compile-profile cmi-profile)))
 
+; Note: we need to add ['*'] to the original JSONPath specs in the "all" rules.
 (def launched-stmt
   (-> ex-statement
       (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/launched")
       (update "result" dissoc "score")
       (update "result" dissoc "success")
-      (update "result" dissoc "completion")))
+      (update "result" dissoc "completion")
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/cmi5/context/extensions/launchmode"]
+                ["Normal" "Browse" "Review"])
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/cmi5/context/extensions/launchurl"]
+                "https://http://adlnet.gov/launchurl")
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/cmi5/context/extensions/moveon"]
+                ["Passed" "Completed" "CompletedAndPassed" "CompletedOrPassed" "NotApplicable"])
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/cmi5/context/extensions/launchparameters"]
+                {"parameter" true})))
 
 (def initialized-stmt
   (-> ex-statement
@@ -205,6 +216,8 @@
   (-> ex-statement
       (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/waived")
       (update "result" dissoc "score")
+      (assoc-in ["result" "extensions" "https://w3id.org/xapi/cmi5/result/extensions/reason"]
+                {"en-US" "Prerequisites not met."})
       (assoc-in ["context" "contextActivities" "category"]
                 [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
 
@@ -222,7 +235,8 @@
       (update "result" dissoc "score")
       (update "result" dissoc "success")
       (update "result" dissoc "completion")
-      (assoc-in ["object" "definition" "type"] "https://w3id.org/xapi/cmi5/activitytype/course")))
+      (assoc-in ["object" "definition" "type"]
+                "https://w3id.org/xapi/cmi5/activitytype/course")))
 
 (deftest cmi-statements-test
   (testing "validating statements from the cmi5 profile"

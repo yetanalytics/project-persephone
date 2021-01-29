@@ -23,8 +23,7 @@
    :main-opts  ["-m" "cognitect.test-runner"
                 "-d" "src/test"]}
   :runner-cljs
-  {:extra-paths ["src/test"]
-   :extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.0"}}
+  {:extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.0"}}
    :main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/test"
                  "-c" "build.test.edn"]}}

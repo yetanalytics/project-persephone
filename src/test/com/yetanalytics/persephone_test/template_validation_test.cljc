@@ -1,5 +1,5 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
-  (:require [clojure.test :refer [deftest testing is function?]]
+  (:require [clojure.test :refer [deftest testing is #?(:clj function?)]]
             [clojure.spec.alpha :as s]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template-validation :as tv]))
@@ -15,10 +15,10 @@
 
 (deftest cond-on-val-test
   (testing "cond-on-val function test: if the value is nil, ignore predicate."
-    (is (function? (tv/cond-on-val some? "some")))
-    (is (function? (tv/cond-on-val some? nil)))
-    (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some")))
-    (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil)))
+    #?(:clj (is (function? (tv/cond-on-val some? "some"))))
+    #?(:clj (is (function? (tv/cond-on-val some? nil))))
+    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some"))))
+    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil))))
     (is (true? ((tv/cond-on-val (partial ex-predicate "foo") 2) "foo")))
     (is (false? ((tv/cond-on-val (partial ex-predicate "foo") 2) "bar")))
     (is (true? ((tv/cond-on-val (partial ex-predicate "foo") nil) "bar")))))
@@ -26,8 +26,8 @@
 (deftest cond-partial-test
   (testing "cond-partial function test: if the value is not nil, consider
            function and make it into a one-arg predicate."
-    (is (function? (tv/cond-partial ex-predicate "foo")))
-    (is (function? (tv/cond-partial ex-predicate nil)))
+    #?(:clj (is (function? (tv/cond-partial ex-predicate "foo"))))
+    #?(:clj (is (function? (tv/cond-partial ex-predicate nil))))
     (is (true? ((tv/cond-partial ex-predicate "foo") "foo")))
     (is (false? ((tv/cond-partial ex-predicate "foo") "bar")))
     (is (true? ((tv/cond-partial ex-predicate nil) "bar")))
@@ -52,93 +52,106 @@
 ;; Statement Template Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#?(:cljs (defn slurp [path]
+           (let [fs (js/require "fs")]
+             (.readFileSync fs path "utf8"))))
+
 (def ex-statement-1
-  (json/json-to-edn (slurp "resources/sample_statements/adl_1.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_1.json")))
 (def ex-statement-2
-  (json/json-to-edn (slurp "resources/sample_statements/adl_2.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_2.json")))
 (def ex-statement-3
-  (json/json-to-edn (slurp "resources/sample_statements/adl_3.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_3.json")))
 (def ex-statement-4
-  (json/json-to-edn (slurp "resources/sample_statements/adl_4.json")))
+  (json/json-to-edn (slurp "test-resources/sample_statements/adl_4.json")))
+
+;; Statement that conforms to ex-template
+;; Not a complete Statement, but has the minimum for validation
+(def ex-statement-0
+  {"id"          "some-uuid"
+   "actor"       {"objectType" "Agent"
+                  "name"       "Yet Analytics Dev Team"
+                  "mbox"       "mailto:email@yetanalytics.io"
+                  "member"     [{"name" "Will Hoyt"}
+                                {"name" "Milt Reder"}
+                                {"name" "John Newman"}
+                                {"name" "Henk Reder"}
+                                {"name" "Erika Lee"}
+                                {"name" "Boris Boiko"}]}
+   "verb"        {"id" "http://foo.org/verb"}
+   "object"      {"id"          "http://www.example.com/object"
+                  "objectType" "Activity"
+                  "definition" {"type" "http://foo.org/oat"}}
+   "result"     {"score" {"raw" 9001}} ; It's over 9000!
+   "context"    {"contextActivities"
+                  {"parent"   [{"id"         "http://foo.org/ca1"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/cpat1"}}
+                               {"id"         "http://foo.org/ca2"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/cpat2"}}]
+                   "grouping" [{"id"         "http://foo.org/ca3"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/cgat1"}}
+                               {"id"         "http://foo.org/ca4"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/cgat2"}}]
+                   "category" [{"id"         "http://foo.org/ca5"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/ccat1"}}
+                               {"id"         "http://foo.org/ca6"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/ccat2"}}]
+                   "other"    [{"id"         "http://foo.org/ca7"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/coat1"}}
+                               {"id"         "http://foo.org/ca8"
+                                "objectType" "Activity"
+                                "definition" {"type" "http://foo.org/coat2"}}]}}
+   "attachments" [{"usageType" "http://foo.org/aut1"}
+                  {"usageType" "http://foo.org/aut2"}]})
 
 ;; Example template
+;; Note how while Statement keys are strings, Statement Template keys are
+;; keywords.
 (def ex-template
-  {:id "http://foo.org/example/template"
-   :type "StatementTemplate"
-   :inScheme "http://foo.org/profile/v1"
-   :prefLabel {:en "Example Template"}
-   :definition {:en "This template is an example template for test cases."}
+  {:id                          "http://foo.org/example/template"
+   :type                        "StatementTemplate"
+   :inScheme                    "http://foo.org/profile/v1"
+   :prefLabel                   {:en "Example Template"}
+   :definition                  {:en "This template is an example template for test cases."}
    ;; Determining Properties
-   :verb "http://foo.org/verb"
-   :objectActivityType "http://foo.org/oat"
+   :verb                        "http://foo.org/verb"
+   :objectActivityType          "http://foo.org/oat"
    :contextGroupingActivityType ["http://foo.org/cgat1" "http://foo.org/cgat2"]
-   :contextParentActivityType ["http://foo.org/cpat1" "http://foo.org/cpat2"]
-   :contextOtherActivityType ["http://foo.org/coat1" "http://foo.org/coat2"]
+   :contextParentActivityType   ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+   :contextOtherActivityType    ["http://foo.org/coat1" "http://foo.org/coat2"]
    :contextCategoryActivityType ["http://foo.org/ccat1" "http://foo.org/ccat2"]
-   :attachmentUsageType ["http://foo.org/aut1" "http://foo.org/aut2"]
+   :attachmentUsageType         ["http://foo.org/aut1" "http://foo.org/aut2"]
    ;; Statement Reference Templates
    ;; Because our activity must be of Activity type, we can't have a object-
    ;; StatementRefTemplate
    :contextStatementRefTemplate ["http://foo.org/templates/template3"
                                  "http://foo.org/templates/template4"]
    ;; Rules
-   :rules [{:location "$.actor.objectType" :presence "included"}
-           {:location "$.actor.member[*].name" :presence "included"
+   :rules [{:location "$.actor.objectType"
+            :presence "included"}
+           {:location "$.actor.member[*].name"
+            :presence "included"
             ;; Developers (and friends) only
-            :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
-                  "Erika Lee" "Boris Boiko"]
-            :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
-                   "Jeremy Gardner"]}
+            :any      ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
+                       "Erika Lee" "Boris Boiko"]
+            :none     ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
+                       "Jeremy Gardner"]}
            {:location "$.actor"
             :selector "$.mbox"
             :presence "included"}
            {:location "$.actor"
             :selector "$.mbox_sha1sum"
             :presence "excluded"}
-           {:location
-            "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
+           {:location "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
             :presence "included"
-            :all ["Activity"]}]})
-
-;; Statement that conforms to ex-template
-;; Not a complete Statement, but has the minimum for validation
-
-
-(def ex-statement-0
-  {:id "some-uuid"
-   :actor {:objectType "Agent"
-           :name "Yet Analytics Dev Team"
-           :mbox "mailto:email@yetanalytics.io"
-           :member [{:name "Will Hoyt"}
-                    {:name "Milt Reder"}
-                    {:name "John Newman"}
-                    {:name "Henk Reder"}
-                    {:name "Erika Lee"}
-                    {:name "Boris Boiko"}]}
-   :verb {:id "http://foo.org/verb"}
-   :object {:id "http://www.example.com/object"
-            :objectType "Activity"
-            :definition {:type "http://foo.org/oat"}}
-   :result {:score {:raw 9001}} ;; It's over 9000!
-   :context {:contextActivities
-             {:parent [{:id "http://foo.org/ca1" :objectType "Activity"
-                        :definition {:type "http://foo.org/cpat1"}}
-                       {:id "http://foo.org/ca2" :objectType "Activity"
-                        :definition {:type "http://foo.org/cpat2"}}]
-              :grouping [{:id "http://foo.org/ca3" :objectType "Activity"
-                          :definition {:type "http://foo.org/cgat1"}}
-                         {:id "http://foo.org/ca4" :objectType "Activity"
-                          :definition {:type "http://foo.org/cgat2"}}]
-              :category [{:id "http://foo.org/ca5" :objectType "Activity"
-                          :definition {:type "http://foo.org/ccat1"}}
-                         {:id "http://foo.org/ca6" :objectType "Activity"
-                          :definition {:type "http://foo.org/ccat2"}}]
-              :other [{:id "http://foo.org/ca7" :objectType "Activity"
-                       :definition {:type "http://foo.org/coat1"}}
-                      {:id "http://foo.org/ca8" :objectType "Activity"
-                       :definition {:type "http://foo.org/coat2"}}]}}
-   :attachments [{:usageType "http://foo.org/aut1"}
-                 {:usageType "http://foo.org/aut2"}]})
+            :all      ["Activity"]}]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Util function tests
@@ -170,7 +183,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; $.actor.member[*].name = ["Andrew Downes" "Toby Nichols" "Ena Hills"]
-(def name-values (-> ex-statement-3 :actor :member (tv/value-map :name)))
+(def name-values
+  (tv/value-map (get-in ex-statement-3 ["actor" "member"]) "name"))
 
 (deftest any-values-test
   (testing "any-values function: values MUST include at least one value that is
@@ -265,8 +279,10 @@
                                              :any ["Andrew Downes"]}))))
     (is (= (s/describe recommended-spec)
            (s/describe (tv/create-rule-spec {:any ["Andrew Downes"]}))))
-    (is (thrown? Exception (tv/create-rule-spec {:presence "foobar"})))
-    (is (thrown? Exception (tv/create-rule-spec {})))))
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (tv/create-rule-spec {:presence "foobar"})))
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (tv/create-rule-spec {})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests.
@@ -275,61 +291,62 @@
 (deftest evaluate-paths-test
   (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get
            a vector of evaluated values."
-    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.objectType"])
-           ["Agent"]))
-    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.member[*].name"])
-           ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]))
-    (is (= (tv/evaluate-paths ex-statement-0 ["$.actor.mbox" "$.actor.mbox_sha1sum"])
-           ["mailto:email@yetanalytics.io" nil]))
-    (is (= (tv/evaluate-paths
+    (is (= ["Agent"]
+           (tv/evaluate-paths ex-statement-0 ["$.actor.objectType"])))
+    (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+           (tv/evaluate-paths ex-statement-0 ["$.actor.member[*].name"])))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/evaluate-paths ex-statement-0 ["$.actor.mbox" "$.actor.mbox_sha1sum"])))
+    (is (= ["Activity"]
+           (tv/evaluate-paths
+            ex-statement-0
+            ["$.object.objectType"])))
+    (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
+           (tv/evaluate-paths
             ex-statement-0
             ["$.object.objectType"
              "$.context.contextActivities.parent[*].objectType"
              "$.context.contextActivities.grouping[*].objectType"
              "$.context.contextActivities.category[*].objectType"
-             "$.context.contextActivities.other[*].objectType"])
-           ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
-            "Activity" "Activity" "Activity"]))
-    (is (= (tv/evaluate-paths ex-statement-0 ["$.foo" "$.object.bar"])
-           [nil nil]))))
+             "$.context.contextActivities.other[*].objectType"])))
+    (is (= []
+           (tv/evaluate-paths ex-statement-0 ["$.foo" "$.object.bar"])))))
 
 (deftest find-values-test
   (testing "find-values: given a statement, location and selector, find the
           values evaluated by the JSONPath strings."
-    (is (= (tv/find-values ex-statement-0 "$.verb.id")
-           ["http://foo.org/verb"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor.objectType")
-           ["Agent"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor.member[*].name")
-           ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor.mbox")
-           ["mailto:email@yetanalytics.io"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor.mbox" nil)
-           ["mailto:email@yetanalytics.io"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox")
-           ["mailto:email@yetanalytics.io"]))
-    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox_sha1sum")
-           [nil]))
-    (is (= (tv/find-values ex-statement-0 "$.actor.mbox | $.actor.mbox_sha1sum")
-           ["mailto:email@yetanalytics.io" nil]))
-    (is (= (tv/find-values ex-statement-0 "$.actor" "$.mbox | $.mbox_sha1sum")
-           ["mailto:email@yetanalytics.io" nil]))
-    (is (= (tv/find-values ex-statement-0
+    (is (= ["http://foo.org/verb"]
+           (tv/find-values ex-statement-0 "$.verb.id")))
+    (is (= ["Agent"]
+           (tv/find-values ex-statement-0 "$.actor.objectType")))
+    (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+           (tv/find-values ex-statement-0 "$.actor.member[*].name")))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/find-values ex-statement-0 "$.actor.mbox")))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/find-values ex-statement-0 "$.actor.mbox" nil)))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/find-values ex-statement-0 "$.actor" "$.mbox")))
+    (is (= []
+           (tv/find-values ex-statement-0 "$.actor" "$.mbox_sha1sum")))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/find-values ex-statement-0 "$.actor.mbox | $.actor.mbox_sha1sum")))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (tv/find-values ex-statement-0 "$.actor" "$.mbox | $.mbox_sha1sum")))
+    (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
+           (tv/find-values ex-statement-0
                            "$.object.objectType 
                            | $.context.contextActivities.parent[*].objectType 
                            | $.context.contextActivities.grouping[*].objectType
                            | $.context.contextActivities.category[*].objectType
-                           | $.context.contextActivities.other[*].objectType")
-           ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity"
-            "Activity" "Activity" "Activity"]))
-    (is (= (tv/find-values ex-statement-0
+                           | $.context.contextActivities.other[*].objectType")))
+    (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
+           (tv/find-values ex-statement-0
                            "$.context.contextActivities"
                            "$.parent[*].objectType 
                           | $.grouping[*].objectType
                           | $.category[*].objectType
-                          | $.other[*].objectType")
-           ["Activity" "Activity" "Activity" "Activity" "Activity"
-            "Activity" "Activity" "Activity"]))
+                          | $.other[*].objectType")))
     (is (= 4 (count (tv/find-values ex-statement-0
                                     "$.context.contextActivities.parent 
                                    | $.context.contextActivities.grouping
@@ -341,79 +358,79 @@
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
                                  | $.context.contextActivities.other")))
-    (is (= (tv/find-values ex-statement-0
+    (is (= []
+           (tv/find-values ex-statement-0
                            "$.context.contextActivities.parent.fi
                           | $.context.contextActivities.grouping.fy
                                      | $.context.contextActivities.category.fo
-                                     | $.context.contextActivities.other.fum")
-           [nil nil nil nil]))
-    (is (= (set (tv/find-values ex-statement-0 "$..type"))
-           #{"http://foo.org/oat"
+                                     | $.context.contextActivities.other.fum")))
+    (is (= #{"http://foo.org/oat"
              "http://foo.org/cpat1" "http://foo.org/cpat2"
              "http://foo.org/cgat1" "http://foo.org/cgat2"
              "http://foo.org/ccat1" "http://foo.org/ccat2"
-             "http://foo.org/coat1" "http://foo.org/coat2"}))
-    (is (= (tv/find-values ex-statement-0 "$.result.score.raw") [9001]))))
-
-;; FIXME: This is a bug in gga/json-path!
-;; (tv/find-values ex-statement-0 "$..raw") will throw an exception
-;; Either switch to a more robust lib or warn the user about it
+             "http://foo.org/coat1" "http://foo.org/coat2"}
+           (set (tv/find-values ex-statement-0 "$..type"))))
+    (is (= [9001]
+           (tv/find-values ex-statement-0 "$.result.score.raw")))
+    (is (= [9001]
+           (tv/find-values ex-statement-0 "$..raw")))))
 
 ;; Determining Properties test
 (deftest add-det-properties
   (testing "add-det-properties function: Add the Determining Properties as 
            rules."
-    (is (= (tv/add-det-properties ex-template)
-           [{:location "$.verb.id"
-             :presence "included"
-             :all ["http://foo.org/verb"]
+    (is (= [{:location            "$.verb.id"
+             :presence            "included"
+             :all                 ["http://foo.org/verb"]
              :determiningProperty "Verb"}
-            {:location "$.object.definition.type"
-             :presence "included"
-             :all ["http://foo.org/oat"]
+            {:location            "$.object.definition.type"
+             :presence            "included"
+             :all                 ["http://foo.org/oat"]
              :determiningProperty "objectActivityType"}
-            {:location "$.context.contextActivities.parent[*].definition.type"
-             :presence "included"
-             :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+            {:location            "$.context.contextActivities.parent[*].definition.type"
+             :presence            "included"
+             :all                 ["http://foo.org/cpat1" "http://foo.org/cpat2"]
              :determiningProperty "contextParentActivityType"}
-            {:location "$.context.contextActivities.grouping[*].definition.type"
-             :presence "included"
-             :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+            {:location            "$.context.contextActivities.grouping[*].definition.type"
+             :presence            "included"
+             :all                 ["http://foo.org/cgat1" "http://foo.org/cgat2"]
              :determiningProperty "contextGroupingActivityType"}
-            {:location "$.context.contextActivities.category[*].definition.type"
-             :presence "included"
-             :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
+            {:location            "$.context.contextActivities.category[*].definition.type"
+             :presence            "included"
+             :all                 ["http://foo.org/ccat1" "http://foo.org/ccat2"]
              :determiningProperty "contextCategoryActivityType"}
-            {:location "$.context.contextActivities.other[*].definition.type"
-             :presence "included"
-             :all ["http://foo.org/coat1" "http://foo.org/coat2"]
+            {:location            "$.context.contextActivities.other[*].definition.type"
+             :presence            "included"
+             :all                 ["http://foo.org/coat1" "http://foo.org/coat2"]
              :determiningProperty "contextOtherActivityType"}
-            {:location "$.attachments[*].usageType"
-             :presence "included"
-             :all ["http://foo.org/aut1" "http://foo.org/aut2"]
+            {:location            "$.attachments[*].usageType"
+             :presence            "included"
+             :all                 ["http://foo.org/aut1" "http://foo.org/aut2"]
              :determiningProperty "attachmentUsageType"}
-            {:location "$.actor.objectType" :presence "included"}
-            {:location "$.actor.member[*].name" :presence "included"
-             :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
-                   "Erika Lee" "Boris Boiko"]
-             :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
-                    "Jeremy Gardner"]}
+            {:location "$.actor.objectType"
+             :presence "included"}
+            {:location "$.actor.member[*].name"
+             :presence "included"
+             :any      ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
+                        "Erika Lee" "Boris Boiko"]
+             :none     ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
+                        "Jeremy Gardner"]}
             {:location "$.actor"
              :selector "$.mbox"
              :presence "included"}
             {:location "$.actor"
              :selector "$.mbox_sha1sum"
              :presence "excluded"}
-            {:location
-             "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
+            {:location "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
              :presence "included"
-             :all ["Activity"]}]))))
+             :all      ["Activity"]}]
+           (tv/add-det-properties ex-template)))))
 
 (deftest create-rule-validator-test
   (testing "create-rule-validator function: Given a rule, create a validation
            function that accepts Statements"
-    (is (function? (tv/create-rule-validator {:presence "included"
-                                              :all ["Andrew Downes"]})))
+    #?(:clj (is (function? (tv/create-rule-validator {:presence "included"
+                                                      :all ["Andrew Downes"]}))))
     (is (nil? ((tv/create-rule-validator {:location "$.foo.bar"
                                           :presence "included"
                                           :any ["baz"]})
@@ -447,9 +464,7 @@
 
 (deftest error-msg-test
   (testing "error-message"
-    (is (= (with-out-str (tv/validate-statement ex-template ex-statement-1
-                                                :err-msg true))
-           (str "----- Invalid Statement -----\n"
+    (is (= (str "----- Invalid Statement -----\n"
                 "Statement ID: fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "Template ID: http://foo.org/example/template\n"
                 "\n"
@@ -517,4 +532,6 @@
                 "   no values found at location\n"
                 "\n"
                 "-----------------------------\n"
-                "Total errors found: 9\n\n")))))
+                "Total errors found: 9\n\n")
+           (with-out-str (tv/validate-statement ex-template ex-statement-1
+                                                :err-msg true))))))

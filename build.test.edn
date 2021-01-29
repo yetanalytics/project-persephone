@@ -1,0 +1,5 @@
+{
+ :install-deps true
+ :npm-deps     {"jsonpath" "1.1.0"}
+ :target       :nodejs
+ }

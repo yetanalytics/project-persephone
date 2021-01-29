@@ -104,8 +104,8 @@
              (assoc acc src (reduce-kv
                              (fn [acc symb dests]
                                (if (= type :nfa)
-                                (assoc acc symb (old-to-new-state-set dests))
-                                (assoc acc symb (old-to-new-state dests))))
+                                 (assoc acc symb (old-to-new-state-set dests))
+                                 (assoc acc symb (old-to-new-state dests))))
                              {}
                              trans)))
            {}
@@ -194,7 +194,9 @@
                       (fn [nexts] (set (conj nexts next-start)))))}]
             (recur new-fsm (rest fsm-list)))
           fsm)))
-    (throw (Exception. "concat-nfa is undefined for empty FSM collection."))))
+    (let [err-msg "concat-nfa is undefined for empty FSM collection."]
+      (throw #?(:clj (Exception. err-msg)
+                :cljs (js/Error. err-msg))))))
 
 ;;    + --> s ==> s --v
 ;; -> q               f
@@ -222,7 +224,9 @@
         (add-epsilon-transitions old-accepts new-accept)
         (update-in [new-start :epsilon] (constantly old-starts))
         (update new-accept (constantly {})))})
-    (throw (Exception. "union-nfa is undefined for empty FSM collection."))))
+    (let [err-msg "union-nfa is undefined for empty FSM collection."]
+      (throw #?(:clj (Exception. err-msg)
+                :cljs (js/Error. err-msg))))))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -302,7 +306,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- init-queue [init]
-  (conj clojure.lang.PersistentQueue/EMPTY init))
+  #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
+     :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
 
 (defn epsilon-closure
   "Given an NFA and a state, returns the epsilon closure for that state."
@@ -434,7 +439,7 @@
    source-symbol pair leads to multiple new destinations."
   [transitions]
   (letfn [(update-dests [src new-dests]
-                        (if (nil? new-dests) #{src} (conj new-dests src)))]
+            (if (nil? new-dests) #{src} (conj new-dests src)))]
     (reduce-kv
      (fn [acc src trans]
        (merge-with (partial merge-with cset/union)
@@ -474,10 +479,10 @@
    determinizes the DFA twice."
   [dfa]
   (letfn [(construct-reverse-dfa
-           [dfa]
-           (reset-counter)
-           (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
-             (nfa->dfa* rev-dfa (:start rev-dfa))))]
+            [dfa]
+            (reset-counter)
+            (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
+              (nfa->dfa* rev-dfa (:start rev-dfa))))]
     (-> dfa construct-reverse-dfa construct-reverse-dfa)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -499,7 +504,9 @@
       {:state     (first dests)
        :accepted? (boolean
                    (seq (filterv (partial contains? accepts) dests)))})
-    (throw (Exception. "State not found in the finite state machine"))))
+    (let [err-msg "State not found in the finite state machine"]
+      (throw #?(:clj (Exception. err-msg)
+                :cljs (js/Error. err-msg))))))
 
 (defn read-next
   "Given a compiled FSM, the current state info, and an input, let the FSM read

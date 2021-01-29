@@ -74,13 +74,13 @@
 (defn print-error
   "Prints an error message for all Template validation errors on a Statement."
   [error-vec tid sid]
-  (do (print (str "----- Invalid Statement -----\n"
-                  "Statement ID: " (str sid) "\n"
-                  "Template ID: " (str tid) "\n\n"))
-      (doseq [error error-vec]
-        (println (error-msg-str error)))
-      (print (str "-----------------------------\n"
-                  "Total errors found: " (pr-str (count error-vec)) "\n\n"))))
+  (print (str "----- Invalid Statement -----\n"
+              "Statement ID: " (str sid) "\n"
+              "Template ID: " (str tid) "\n\n"))
+  (doseq [error error-vec]
+    (println (error-msg-str error)))
+  (print (str "-----------------------------\n"
+              "Total errors found: " (pr-str (count error-vec)) "\n\n")))
 
 (defn print-bad-statement
   "Prints the Statmeent ID if it is rejected by a Pattern."

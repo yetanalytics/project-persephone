@@ -16,7 +16,7 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (-> profile json/json-to-edn p/profile->fsms)
+    (-> profile (json/json-to-edn :kwd true) p/profile->fsms)
     ;; EDN
     (-> profile p/profile->fsms)))
 
@@ -27,9 +27,9 @@
   [profile]
   (if (string? profile)
     ;; JSON-LD
-    (->> profile json/json-to-edn :templates)
+    (-> profile (json/json-to-edn :kwd true) :templates)
     ;; EDN
-    (->> profile :templates)))
+    (-> profile :templates)))
 
 (defn read-next-statement
   "Uses a compiled Pattern and its current state info to validate the next

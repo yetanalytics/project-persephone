@@ -343,12 +343,13 @@
   Set err-msg argument to true to print errors.
   Note: Assumes syntactically valid Template and Statement already."
   [template statement & {:keys [err-msg] :or {err-msg false}}]
-  (let [temp-id (:id template)
-        stmt-id (:id statement)
+  ; Statement Templates have keyword keys, but Statements have string keys
+  (let [template-id (:id template)
+        statement-id (get statement "id")
         error-vec (validate-statement* template statement)]
     (if-not (nil? error-vec)
       (if (true? err-msg)
-        (do (emsg/print-error (filter some? error-vec) temp-id stmt-id)
+        (do (emsg/print-error (filter some? error-vec) template-id statement-id)
             false)
         false)
       true)))

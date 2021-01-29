@@ -11,7 +11,19 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
+
+# Calva + linting
 .calva
 .clj-kondo
 .lsp
+
+# Image output files
 *.png
+
+# ClojureScript
+package-lock.json
+package.json
+/out
+.cljs_node_repl
+node_modules
+cljs-test-runner-out

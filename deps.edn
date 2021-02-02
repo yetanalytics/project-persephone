@@ -1,17 +1,28 @@
 {:paths ["src/main"]
  :deps {org.clojure/clojure           {:mvn/version "RELEASE"}
-        org.clojure/clojurescript     {:mvn/version "RELEASE"}
+        org.clojure/clojurescript     {:mvn/version "RELEASE"
+                                       :exclusions  [org.clojure/data.json]}
         org.clojure/core.match        {:mvn/version "0.3.0"}
-        org.clojure/data.json         {:mvn/version "1.0.0"}
-        com.jayway.jsonpath/json-path {:mvn/version "2.5.0"}
-        ;; Latest commit as of August 9, 2019
-        com.yetanalytics/project-pan
-        {:git/url "git@github.com:yetanalytics/project-pan.git" 
-         :sha     "e8bd1c3db516a1ec29883d6b19e19e3edd66304d"}}
+        org.clojure/data.json         {:mvn/version "1.0.0"} ; clj only
+        com.jayway.jsonpath/json-path {:mvn/version "2.5.0"} ; clj only
+        com.yetanalytics/xapi-schema ; Latest commit: 1/28/21
+        {:git/url    "git@github.com:yetanalytics/xapi-schema.git"
+         :sha        "0e552227e74913d1b35dfa648407b9a9ac4b6b00"
+         :exclusions [org.clojure/clojure
+                      org.clojure/clojurescript
+                      org.clojure/data.json]}
+        com.yetanalytics/project-pan ; Latest commit: 2/2/21
+        {:git/url    "git@github.com:yetanalytics/project-pan.git" 
+         :sha        "509aa0bdda8a209b7494365ac22e60f046343f1b"
+         :exclusions [org.clojure/clojure
+                      org.clojure/clojurescript
+                      org.clojure/core.match
+                      org.clojure/data.json
+                      com.yetanalytics/xapi-schema]}}
  :aliases
  {:dev
   {:extra-paths ["src/dev"]
-   :extra-deps  {cider/piggieback {:mvn/version "0.5.2"}
+   :extra-deps  {cider/piggieback {:mvn/version "0.5.2"} ; cljs only
                  dorothy/dorothy  {:mvn/version "0.0.7"}}}
   :test
   {:extra-paths ["src/test" "test-resources"]

@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing is are]]
             [com.yetanalytics.persephone.utils.json :as json]))
 
-;; TODO Test edn-to-json and read-json
+;; TODO Test edn->json and read-json
 
 (deftest split-json-path-test
   (testing "split-json-path test: given a string of multiple JSONPaths, split

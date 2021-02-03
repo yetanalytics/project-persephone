@@ -14,7 +14,7 @@
 ;; JSON-EDN conversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn json-to-edn
+(defn json->edn
   "Convert a JSON data structure to EDN. By default, keys remain strings, but
    passing \"true\" for \"kwd\" will result in keyword strings (which is not
    recommended for IRI keys)."
@@ -24,7 +24,7 @@
             (json/read-str json-str))
      :cljs (js->clj (.parse js/JSON json-str) :keywordize-keys kwd)))
 
-(defn edn-to-json
+(defn edn->json
   "Convert an EDN data structure to JSON."
   [edn-data]
   #?(:clj (json/write-str edn-data)
@@ -87,7 +87,7 @@
                     (swap! json-config new-json-config)
                     (deref json-config))]
        (-> (JsonPath/using config)
-           (.parse (edn-to-json json))
+           (.parse (edn->json json))
            (.read json-path (into-array Predicate []))
            gson->edn))))
 

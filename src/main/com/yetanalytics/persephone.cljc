@@ -68,7 +68,7 @@
    or the current one if validation fails. A nil value for the current state
    info indicates that we have not yet started reading statements."
   [pat-fsm curr-state-info stmt]
-  (let [statement       (if (string? stmt) (json/json-to-edn stmt) stmt)
+  (let [statement       (if (string? stmt) (json/json->edn stmt) stmt)
         next-state-info (fsm/read-next pat-fsm curr-state-info statement)]
     (if (-> next-state-info :state nil?)
       (do (err/print-bad-statement statement) next-state-info)
@@ -79,8 +79,8 @@
    and returns a boolean. If the function returns false, it prints an error
    message detailing all validation errors."
   [template stmt]
-  (let [statement (if (string? stmt) (json/json-to-edn stmt) stmt)
-        template  (if (string? template) (json/json-to-edn template) template)]
+  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
+        template  (if (string? template) (json/json->edn template) template)]
     (-> template
         conform-template
         (t/validate-statement statement :err-msg true))))

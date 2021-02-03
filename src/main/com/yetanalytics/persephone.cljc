@@ -86,6 +86,22 @@
       (do (err/print-bad-statement statement) next-state-info)
       next-state-info)))
 
+(defn read-next-statement-2
+  "Takes a compiled Pattern, current states info, and a Statement and
+   validates said Statement.  The current state info is a mapping
+   from registrations to the current state info for that
+   registration. Assumes all Statements without a registration
+   property have the same implicit registration.
+   Note: Subregistrations are not supported."
+  [pat-fsm curr-states-info stmt]
+  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
+        registration (get-in ["context" "registration"]
+                             statement
+                             :no-registration)]
+    (update curr-states-info
+            registration
+            (fn [state-info] (fsm/read-next pat-fsm state-info statement)))))
+
 (defn validate-statement
   "Takes in a Statement Template and a Statement as arguments, respectively,
    and returns a boolean. If the function returns false, it prints an error
@@ -98,21 +114,23 @@
         (t/validate-statement statement :err-msg true))))
 
 (defn validate-statement-vs-template
-  "Takes a Statement Template and a Statement as arguments, with the following
-   optional arguments:
+  "Takes a Statement Template and a Statement as arguments, with
+   the following optional arguments:
    :fn-type - Sets the return value and exception effects of the function:
-     :predicate  Returns true for a valid Statement, false otherwise. Default.
+     :predicate  Returns true for a valid Statement, false otherwise.
+                 Default.
      :option     Returns the Statement if it's valid, nil otherwise
                  (c.f. Option/Maybe types).
-     :result     Returns the validation error data if the Statement is invalid,
-                 nil otherwise (c.f. Result types).
-     :assertion  Returns nil on a valid Statement, throws an exception otherwise
-                 that carries the error map as extra data.
-     :printer    Prints an error message when the Statement is invalid. Always
-                 returns nil.
-   :validate-template? - If true, validate the Profile against the xAPI Profile
-                         spec. Default true; only set to false if you know what
-                         you're doing!"
+     :result     Returns the validation error data if the Statement
+                 is invalid, nil otherwise (c.f. Result types).
+     :assertion  Returns nil on a valid Statement, throws an
+                 exception otherwise that carries the error map as
+                 extra data.
+     :printer    Prints an error message when the Statement is
+                 invalid. Always returns nil.
+   :validate-template? - If true, validate the Profile against the
+   xAPI Profile spec. Default true; only set to false if you know
+   what you're doing!"
   [temp stmt {:keys [fn-type validate-template?]
               :or   {fn-type            :predicate
                      validate-template? true}}]
@@ -131,13 +149,14 @@
                      (throw (ex-info "Invalid Statement." err)))))))
 
 (defn validate-statement-vs-profile
-  "Takes a Profile and a Statement as arguments. The Statement is considered
-   valid if the Statement is valid for at least one Statement Template. Same
-   options as validate-statement-vs-templates, except :printer is not an
+  "Takes a Profile and a Statement as arguments. The Statement is
+   considered valid if the Statement is valid for at least one
+   Statement Template. Same options as
+   validate-statement-vs-templates, except :printer is not an
    available option for fn-type."
   [prof stmt {:keys [fn-type validate-profile?]
-              :or {fn-type           :predicate
-                   validate-profile? true}}]
+              :or   {fn-type           :predicate
+                     validate-profile? true}}]
   (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
         profile   (if (string? prof) (convert-json prof) prof)]
     (when validate-profile? (assert-profile profile))

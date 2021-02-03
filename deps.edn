@@ -1,6 +1,6 @@
 {:paths ["src/main"]
- :deps {org.clojure/clojure           {:mvn/version "RELEASE"}
-        org.clojure/clojurescript     {:mvn/version "RELEASE"
+ :deps {org.clojure/clojure           {:mvn/version "1.10.2"}
+        org.clojure/clojurescript     {:mvn/version "1.10.764"
                                        :exclusions  [org.clojure/data.json]}
         org.clojure/core.match        {:mvn/version "0.3.0"}
         org.clojure/data.json         {:mvn/version "1.0.0"} ; clj only
@@ -11,9 +11,9 @@
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json]}
-        com.yetanalytics/project-pan ; Latest commit: 2/2/21
+        com.yetanalytics/project-pan ; Latest commit: 2/3/21
         {:git/url    "git@github.com:yetanalytics/project-pan.git" 
-         :sha        "016f1de3453d6c63c3cc5b0ecdf31711d7ccf160"
+         :sha        "abc26a7a2c30be9e26009e945a402f913842e8d3"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/core.match
@@ -26,7 +26,7 @@
                  dorothy/dorothy  {:mvn/version "0.0.7"}}}
   :test
   {:extra-paths ["src/test" "test-resources"]
-   :extra-deps  {org.clojure/test.check {:mvn/version "RELEASE"}}}
+   :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}}}
   :runner-clj
   {:extra-deps {com.cognitect/test-runner
                 {:git/url "https://github.com/cognitect-labs/test-runner"

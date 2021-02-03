@@ -13,7 +13,7 @@
                       org.clojure/data.json]}
         com.yetanalytics/project-pan ; Latest commit: 2/2/21
         {:git/url    "git@github.com:yetanalytics/project-pan.git" 
-         :sha        "509aa0bdda8a209b7494365ac22e60f046343f1b"
+         :sha        "016f1de3453d6c63c3cc5b0ecdf31711d7ccf160"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/core.match

@@ -119,7 +119,11 @@
    traversal."
   [pattern-tree]
   (fsm/reset-counter)
-  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
+  (->> pattern-tree
+       (w/postwalk pattern->fsm)
+       fsm/nfa->dfa
+       fsm/minimize-dfa
+       fsm/alphatize-states-fsm))
 
 (defn profile->fsms
   "Pipeline function that turns a Profile into a vectors of FSMs that can
@@ -128,8 +132,6 @@
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]
-    (fsm/alphatize-states
-     (mapv (fn [pattern] (-> pattern
-                             (grow-pattern-tree temp-pat-map)
-                             pattern-tree->fsm))
-           pattern-seq))))
+    (mapv (fn [pattern]
+            (-> pattern (grow-pattern-tree temp-pat-map) pattern-tree->fsm))
+          pattern-seq)))

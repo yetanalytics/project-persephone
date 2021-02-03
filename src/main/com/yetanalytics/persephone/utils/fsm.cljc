@@ -84,7 +84,7 @@
 
 ;; State alphatization
 
-(defn- alphatize-states-fsm
+(defn alphatize-states-fsm
   [{type :type states :states :as fsm}]
   (let [states'
         (if (coll? (first states))

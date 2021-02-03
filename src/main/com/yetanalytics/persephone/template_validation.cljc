@@ -177,36 +177,12 @@
 ;; JSONPath 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn evaluate-paths
-  "Given a vector of JSONPath strings and a statement, return a flattened
-  vector of evaluated values."
-  [statement json-paths]
-  (letfn [(collify [maybe-coll]
-            ;; ensure proper processing within `json/read-json`
-            ;; - no other enformcent that `json-paths` is a coll
-            (if (coll? maybe-coll) maybe-coll [maybe-coll]))
-          (get-by-loc [loc]
-            ;; query `statement` based on `loc`
-            (json/read-json statement loc))
-          (mapcatv [f & colls]
-            ;; semi silly refactor
-            ;; - more concise/effecient than previous version
-            ;; - TODO: worth porting to json?
-            (->> colls (apply mapcat f) vec))]
-    (->> json-paths
-         collify
-         (mapcatv get-by-loc))))
-
-;; in clojure, the special form `recur` handles resource management under the hood
-;; - in the previous form of `find-values`, recursion without recur was used
-;; -- wasn't actually dangerous but this pattern should be avoided when possible
-
 (defn find-values
   "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
   values from a Statement as a vector."
   [statement location & [selector]]
   (let [locations (json/split-json-path location)
-        values (evaluate-paths statement locations)]
+        values (json/read-json-paths statement locations)]
     (if-not (some? selector)
       values
       ;; there's a selector
@@ -217,7 +193,7 @@
              format-selector
              ;; dive one level deeper into original location query results
              ;; - navigate into the results given selector location string
-             (evaluate-paths values))))))
+             (json/read-json-paths values))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties

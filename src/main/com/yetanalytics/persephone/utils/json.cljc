@@ -25,7 +25,7 @@
      :cljs (js->clj (.parse js/JSON json-str) :keywordize-keys kwd)))
 
 (defn edn->json
-  "Convert an EDN data structure to JSON."
+  "Convert an EDN data structure to a JSON string."
   [edn-data]
   #?(:clj (json/write-str edn-data)
      :cljs (->> edn-data clj->js (.stringify js/JSON))))
@@ -106,7 +106,24 @@
 
 ;; Putting it together
 
-(defn read-json
+(defn read-json-path
+  "Return a vector of JSON values from a JSON data structure via the given
+   JSONPath string."
   [json json-path]
   #?(:clj (read-json-java json json-path)
      :cljs (read-json-js json json-path)))
+
+(defn read-json-paths
+  "Given a singleton or a collction of JSONPath strings and a JSON value, return
+   a flattened vector of evaluated values."
+  [json json-paths]
+  (letfn [(collify [maybe-coll]
+            ;; ensure proper processing within `json/read-json-path`
+            (if (coll? maybe-coll) maybe-coll [maybe-coll]))
+          (mapcatv [f & colls]
+            ;; semi silly refactor
+            ;; - more concise/effecient than previous version
+            (->> colls (apply mapcat f) vec))]
+    (->> json-paths
+         collify
+         (mapcatv (partial read-json-path json)))))

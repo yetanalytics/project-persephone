@@ -288,30 +288,6 @@
 ;; JSONPath tests.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftest evaluate-paths-test
-  (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get
-           a vector of evaluated values."
-    (is (= ["Agent"]
-           (tv/evaluate-paths ex-statement-0 ["$.actor.objectType"])))
-    (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
-           (tv/evaluate-paths ex-statement-0 ["$.actor.member[*].name"])))
-    (is (= ["mailto:email@yetanalytics.io"]
-           (tv/evaluate-paths ex-statement-0 ["$.actor.mbox" "$.actor.mbox_sha1sum"])))
-    (is (= ["Activity"]
-           (tv/evaluate-paths
-            ex-statement-0
-            ["$.object.objectType"])))
-    (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
-           (tv/evaluate-paths
-            ex-statement-0
-            ["$.object.objectType"
-             "$.context.contextActivities.parent[*].objectType"
-             "$.context.contextActivities.grouping[*].objectType"
-             "$.context.contextActivities.category[*].objectType"
-             "$.context.contextActivities.other[*].objectType"])))
-    (is (= []
-           (tv/evaluate-paths ex-statement-0 ["$.foo" "$.object.bar"])))))
-
 (deftest find-values-test
   (testing "find-values: given a statement, location and selector, find the
           values evaluated by the JSONPath strings."

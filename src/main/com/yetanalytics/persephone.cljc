@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha :as s]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.pan.utils.json :as pan-json]
+            [com.yetanalytics.pan.utils.json :refer [convert-json]]
             [com.yetanalytics.pan.objects.template :as pan-template]
             [com.yetanalytics.persephone.template-validation :as t]
             [com.yetanalytics.persephone.pattern-validation :as p]
@@ -24,11 +24,23 @@
     (throw (ex-info "Invalid Profile." err))
     profile))
 
+(defn- assert-profile
+  [profile]
+  (if-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
+    (throw (ex-info "Invalid Profile." err))
+    nil))
+
 (defn- conform-template
   [template]
   (if-some [err (s/explain-data ::pan-template/template template)]
     (throw (ex-info "Invalid Statement Template." err))
     template))
+
+(defn- assert-template
+  [template]
+  (if-some [err (s/explain-data ::pan-template/template template)]
+    (throw (ex-info "Invalid Statement Template." err))
+    nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Core functions
@@ -45,7 +57,7 @@
   [profile]
   (let [profile (if (string? profile)
                   ; JSON (need to remove @ char)
-                  (pan-json/convert-json profile "_")
+                  (convert-json profile "_")
                   ; EDN
                   profile)]
     (-> profile conform-profile p/profile->fsms)))
@@ -57,7 +69,7 @@
   [profile]
   (let [profile (if (string? profile)
                   ; JSON (need to remove @ char)
-                  (pan-json/convert-json profile "_")
+                  (convert-json profile "_")
                   ; EDN
                   profile)]
     (-> profile conform-profile :templates)))
@@ -84,3 +96,62 @@
     (-> template
         conform-template
         (t/validate-statement statement :err-msg true))))
+
+(defn validate-statement-vs-template
+  "Takes a Statement Template and a Statement as arguments, with the following
+   optional arguments:
+   :fn-type - Sets the return value and exception effects of the function:
+     :predicate  Returns true for a valid Statement, false otherwise. Default.
+     :option     Returns the Statement if it's valid, nil otherwise
+                 (c.f. Option/Maybe types).
+     :result     Returns the validation error data if the Statement is invalid,
+                 nil otherwise (c.f. Result types).
+     :assertion  Returns nil on a valid Statement, throws an exception otherwise
+                 that carries the error map as extra data.
+     :printer    Prints an error message when the Statement is invalid. Always
+                 returns nil.
+   :validate-template? - If true, validate the Profile against the xAPI Profile
+                         spec. Default true; only set to false if you know what
+                         you're doing!"
+  [temp stmt {:keys [fn-type validate-template?]
+              :or   {fn-type            :predicate
+                     validate-template? true}}]
+  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
+        template  (if (string? temp) (json/json->edn temp) temp)]
+    (when validate-template? (assert-template template))
+    (let [err (t/validate-statement* template statement)]
+      (case fn-type
+        :predicate (nil? err)
+        :option    (if (nil? err) statement nil)
+        :result    err
+        :printer   (do (when (nil? err) (t/print-error template statement err))
+                       nil)
+        :assertion (if (nil? err)
+                     nil
+                     (throw (ex-info "Invalid Statement." err)))))))
+
+(defn validate-statement-vs-profile
+  "Takes a Profile and a Statement as arguments. The Statement is considered
+   valid if the Statement is valid for at least one Statement Template. Same
+   options as validate-statement-vs-templates, except :printer is not an
+   available option for fn-type."
+  [prof stmt {:keys [fn-type validate-profile?]
+              :or {fn-type           :predicate
+                   validate-profile? true}}]
+  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
+        profile   (if (string? prof) (convert-json prof) prof)]
+    (when validate-profile? (assert-profile profile))
+    (let [results   (->> profile
+                         :templates
+                         (mapv (fn [t] t/validate-statement* t statement)))
+          errors    (filterv some? results)
+          is-passed (not-empty (filterv nil? results))]
+      (case fn-type
+        :predicate (boolean is-passed)
+        :option    (if is-passed statement nil)
+        :result    (if is-passed nil errors)
+        :assertion (if is-passed
+                     nil
+                     (throw (ex-info "Invalid Statement." {:errors errors})))))))
+
+;; TODO: Add tests

@@ -318,3 +318,12 @@
             false)
         false)
       true)))
+
+(defn print-error
+  "Given a Statement Template, a Statement, and error data, print an appropriate
+   error message. Always returns nil."
+  [template statement error-vec]
+  (let [template-id (:id template)
+        statement-id (get statement "id")]
+    (emsg/print-error (filter some? error-vec) template-id statement-id)
+    nil))

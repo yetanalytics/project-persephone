@@ -128,7 +128,7 @@
 (defn profile->fsms
   "Pipeline function that turns a Profile into a vectors of FSMs that can
    perform Statement validation. Each entry corresponds to a primary Pattern.
-   Note: Assumes syntactically valid Patterns from a valid Profile."
+   Assumes a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]

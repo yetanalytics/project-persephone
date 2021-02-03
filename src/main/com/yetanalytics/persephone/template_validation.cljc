@@ -2,7 +2,6 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            #_[com.yetanalytics.pan.objects.template :as template]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as emsg]))
 
@@ -315,16 +314,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO Currently unused; need to add this back in to validate Templates
-;; (defn template-valid
-;;   "Given a Statement Template, throw an exception if it is syntactically
-;;  invalid. If it's valid, return it instead (similar to spec/conform)."
-;;  [template]
-;;  (let [errors (s/explain-data ::template/template template)]
-;;    (if (some? errors)
-;;      (throw (ex-info "Template Validation Exception" errors))
-;;      template)))
 
 (defn validate-statement*
   "Given a Statement and a Statement Template, validate the Statement.

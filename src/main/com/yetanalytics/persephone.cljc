@@ -6,7 +6,6 @@
             [com.yetanalytics.persephone.template-validation :as t]
             [com.yetanalytics.persephone.pattern-validation :as p]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone.utils.errors :as err]
             [com.yetanalytics.persephone.utils.json :as json]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -26,6 +25,12 @@
   [template]
   (if-some [err (s/explain-data ::pan-template/template template)]
     (throw (ex-info "Invalid Statement Template." err))
+    nil))
+
+(defn- assert-dfa
+  [pattern-fsm]
+  (if-not (= :dfa (:type pattern-fsm))
+    (throw (ex-info "Compiled pattern is invalid!" {:pattern pattern-fsm}))
     nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -162,6 +167,7 @@
    If the state value is nil, or if input is nil, return state-info
    without calling the FSM."
   [pat-fsm curr-state-info stmt]
+  (assert-dfa pat-fsm)
   (let [statement (if (string? stmt) (json/json->edn stmt) stmt)]
     (fsm/read-next pat-fsm curr-state-info statement)))
 
@@ -174,6 +180,7 @@
    match-next-statement* for details on the current state info map.
    Note: Subregistrations are not supported."
   [pat-fsm curr-states-info stmt]
+  (assert-dfa pat-fsm)
   (let [statement    (if (string? stmt) (json/json->edn stmt) stmt)
         registration (get-in ["context" "registration"]
                              statement

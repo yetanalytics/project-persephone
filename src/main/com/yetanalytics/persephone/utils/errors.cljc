@@ -64,9 +64,8 @@
 
 (defn error-msg-str
   "Create a pretty error log output when a property or rule is not followed."
-  [{:keys [error rule values]}]
-  (let [prop (get rule :determiningProperty nil)
-        pred (-> error :pred name)]
+  [{:keys [pred rule values]}]
+  (let [prop (get rule :determiningProperty nil)]
     (if (some? prop)
       (prop-error-str rule prop values)
       (rule-error-str rule pred values))))

@@ -419,27 +419,94 @@
                   (tv/create-rule-validators ex-template)))
     (is (= 12 (count (tv/create-rule-validators ex-template))))))
 
-(deftest validate-statement-test
-  (testing "validate-statement function: Validate an entire Statement!"
-    (is (tv/validate-statement ex-template ex-statement-0))
-    (is (tv/validate-statement
-         {:verb "http://example.com/xapi/verbs#sent-a-statement"}
-         ex-statement-1))
-    (is (tv/validate-statement
-         {:verb "http://adlnet.gov/expapi/verbs/attempted"}
-         ex-statement-2))
-    (is (tv/validate-statement
-         {:verb "http://adlnet.gov/expapi/verbs/attended"
-          :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-          :contextCategoryActivityType
-          ["http://example.com/expapi/activities/meetingcategory"]}
-         ex-statement-3))
-    (is (tv/validate-statement
-         {:verb "http://adlnet.gov/expapi/verbs/experienced"}
-         ex-statement-4))))
+;; (comment
+;;   (deftest validate-statement-test
+;;     (testing "validate-statement function: Validate an entire Statement!"
+;;       (is (tv/validate-statement ex-template ex-statement-0))
+;;       (is (tv/validate-statement
+;;            {:verb "http://example.com/xapi/verbs#sent-a-statement"}
+;;            ex-statement-1))
+;;       (is (tv/validate-statement
+;;            {:verb "http://adlnet.gov/expapi/verbs/attempted"}
+;;            ex-statement-2))
+;;       (is (tv/validate-statement
+;;            {:verb "http://adlnet.gov/expapi/verbs/attended"
+;;             :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+;;             :contextCategoryActivityType
+;;             ["http://example.com/expapi/activities/meetingcategory"]}
+;;            ex-statement-3))
+;;       (is (tv/validate-statement
+;;            {:verb "http://adlnet.gov/expapi/verbs/experienced"}
+;;            ex-statement-4)))))
 
-(deftest error-msg-test
-  (testing "error-message"
+(def err-vec (tv/validate-statement* ex-template ex-statement-1))
+
+(deftest validate-statement-test
+  (testing "validate-statement function"
+    (is (= [{:pred "rule-all?"
+             :values ["http://example.com/xapi/verbs#sent-a-statement"]
+             :rule {:location "$.verb.id", :presence "included", :all ["http://foo.org/verb"], :determiningProperty "Verb"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.object.definition.type"
+              :presence "included"
+              :all ["http://foo.org/oat"]
+              :determiningProperty "objectActivityType"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.context.contextActivities.parent[*].definition.type"
+              :presence "included"
+              :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+              :determiningProperty "contextParentActivityType"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.context.contextActivities.grouping[*].definition.type"
+              :presence "included"
+              :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+              :determiningProperty "contextGroupingActivityType"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.context.contextActivities.category[*].definition.type"
+              :presence "included"
+              :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
+              :determiningProperty "contextCategoryActivityType"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.context.contextActivities.other[*].definition.type"
+              :presence "included"
+              :all ["http://foo.org/coat1" "http://foo.org/coat2"]
+              :determiningProperty "contextOtherActivityType"}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.attachments[*].usageType"
+              :presence "included"
+              :all ["http://foo.org/aut1" "http://foo.org/aut2"]
+              :determiningProperty "attachmentUsageType"}}
+            ;; FIXME: This looks sus
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location "$.actor.member[*].name"
+              :presence "included"
+              :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+              :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
+            {:pred "all-matchable?"
+             :values []
+             :rule
+             {:location
+              "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
+              :presence "included"
+              :all ["Activity"]}}]
+           (filterv some? err-vec)))))
+
+(deftest print-error-test
+  (testing "printing an error message using the print-error fn"
     (is (= (str "----- Invalid Statement -----\n"
                 "Statement ID: fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "Template ID: http://foo.org/example/template\n"
@@ -509,5 +576,4 @@
                 "\n"
                 "-----------------------------\n"
                 "Total errors found: 9\n\n")
-           (with-out-str (tv/validate-statement ex-template ex-statement-1
-                                                :err-msg true))))))
+           (with-out-str (tv/print-error ex-template ex-statement-1 err-vec))))))

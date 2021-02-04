@@ -275,7 +275,10 @@
         ;; nil indicates success
         ;; spec error data the opposite
         (if-not (nil? error-data)
-          {:error (-> error-data ::s/problems first)
+          ;; :pred - the predicate that failed, causing this error
+          ;; :values - the values that the predicate failed on
+          ;; :rule - the Statement Template rule associated with the error
+          {:pred (-> error-data ::s/problems first :pred name)
            :values values
            :rule rule}
           nil)))))

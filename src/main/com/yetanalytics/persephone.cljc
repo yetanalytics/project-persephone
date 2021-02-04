@@ -153,7 +153,8 @@
    considered valid if the Statement is valid for at least one
    Statement Template. Same options as
    validate-statement-vs-templates, except :printer is not an
-   available option for fn-type."
+   available option for :fn-type and :validate-template? is
+   replaced by :validate-profile?."
   [prof stmt {:keys [fn-type validate-profile?]
               :or   {fn-type           :predicate
                      validate-profile? true}}]

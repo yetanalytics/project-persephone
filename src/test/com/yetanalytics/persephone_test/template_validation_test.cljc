@@ -2,51 +2,32 @@
   (:require [clojure.test :refer [deftest testing is #?(:clj function?)]]
             [clojure.spec.alpha :as s]
             [com.yetanalytics.persephone.utils.json :as json]
-            [com.yetanalytics.persephone.template-validation :as tv]))
+            [com.yetanalytics.persephone.template-validation :as tv
+             #?@(:clj [:refer [add-spec]]
+                 :cljs [:refer-macros [add-spec]])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utils Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn ex-predicate [arg1 arg2] (= arg1 arg2))
+(defn- gt-y? [y x] (< y x))
+(defn- lt-y? [y x] (> y x))
+(s/def ::odd-gt0-lt10 (-> (s/spec odd?)
+                          (add-spec gt-y? 0)
+                          (add-spec lt-y? 10)))
+(def y-nil nil)
 
-(def ex-map-vec [{:odd 1 :even 2} {:odd 3 :even 4}])
-(def ex-map-vec-2 [{:map {:odd 1 :even 2}} {:map {:odd 3 :even 4}}])
-
-(deftest cond-on-val-test
-  (testing "cond-on-val function test: if the value is nil, ignore predicate."
-    #?(:clj (is (function? (tv/cond-on-val some? "some"))))
-    #?(:clj (is (function? (tv/cond-on-val some? nil))))
-    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") "some"))))
-    #?(:clj (is (function? (tv/cond-on-val (partial ex-predicate "foo") nil))))
-    (is (true? ((tv/cond-on-val (partial ex-predicate "foo") 2) "foo")))
-    (is (false? ((tv/cond-on-val (partial ex-predicate "foo") 2) "bar")))
-    (is (true? ((tv/cond-on-val (partial ex-predicate "foo") nil) "bar")))))
-
-(deftest cond-partial-test
-  (testing "cond-partial function test: if the value is not nil, consider
-           function and make it into a one-arg predicate."
-    #?(:clj (is (function? (tv/cond-partial ex-predicate "foo"))))
-    #?(:clj (is (function? (tv/cond-partial ex-predicate nil))))
-    (is (true? ((tv/cond-partial ex-predicate "foo") "foo")))
-    (is (false? ((tv/cond-partial ex-predicate "foo") "bar")))
-    (is (true? ((tv/cond-partial ex-predicate nil) "bar")))
-    (is (true? ((tv/cond-partial ex-predicate nil) nil)))))
-
-;; Currently testing an unused function (except for in a test), but we're
-;; keeping it in case it gets used in the future.
-(deftest value-map-test
-  (testing "value-map test: given keys and a vector of maps, we get back a
-           vector of the appropriate values."
-    (is (= (tv/value-map ex-map-vec :odd) [1 3]))
-    (is (= (tv/value-map ex-map-vec :even) [2 4]))
-    (is (= (tv/value-map ex-map-vec :not-exist) [nil nil]))
-    ;; Multiple arguments
-    (is (= (tv/value-map ex-map-vec-2 :map :odd) [1 3]))
-    (is (= (tv/value-map ex-map-vec-2 :map :even) [2 4]))
-    (is (= (tv/value-map ex-map-vec-2 :not-exist :odd) [nil nil]))
-    (is (= (tv/value-map ex-map-vec-2 :map :not-exist) [nil nil]))
-    (is (= (tv/value-map ex-map-vec :map :odd) [nil nil]))))
+(deftest add-spec-test
+  (testing "add-spec test: given a spec, predicate, and value, create a new
+            s/and spec if the value is not nil."
+    (is (s/valid? ::odd-gt0-lt10 3))
+    (is (= "odd?" (-> (s/explain-data ::odd-gt0-lt10 2)
+                      tv/pred-name-of-error)))
+    (is (= "gt-y?" (-> (s/explain-data ::odd-gt0-lt10 -1)
+                       tv/pred-name-of-error)))
+    (is (= "lt-y?" (-> (s/explain-data ::odd-gt0-lt10 11)
+                       tv/pred-name-of-error)))
+    (is (s/valid? (tv/add-spec (s/spec odd?) gt-y? y-nil) 11))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
@@ -84,30 +65,30 @@
                   "definition" {"type" "http://foo.org/oat"}}
    "result"     {"score" {"raw" 9001}} ; It's over 9000!
    "context"    {"contextActivities"
-                  {"parent"   [{"id"         "http://foo.org/ca1"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/cpat1"}}
-                               {"id"         "http://foo.org/ca2"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/cpat2"}}]
-                   "grouping" [{"id"         "http://foo.org/ca3"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/cgat1"}}
-                               {"id"         "http://foo.org/ca4"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/cgat2"}}]
-                   "category" [{"id"         "http://foo.org/ca5"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/ccat1"}}
-                               {"id"         "http://foo.org/ca6"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/ccat2"}}]
-                   "other"    [{"id"         "http://foo.org/ca7"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/coat1"}}
-                               {"id"         "http://foo.org/ca8"
-                                "objectType" "Activity"
-                                "definition" {"type" "http://foo.org/coat2"}}]}}
+                 {"parent"   [{"id"         "http://foo.org/ca1"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cpat1"}}
+                              {"id"         "http://foo.org/ca2"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cpat2"}}]
+                  "grouping" [{"id"         "http://foo.org/ca3"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cgat1"}}
+                              {"id"         "http://foo.org/ca4"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cgat2"}}]
+                  "category" [{"id"         "http://foo.org/ca5"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/ccat1"}}
+                              {"id"         "http://foo.org/ca6"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/ccat2"}}]
+                  "other"    [{"id"         "http://foo.org/ca7"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/coat1"}}
+                              {"id"         "http://foo.org/ca8"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/coat2"}}]}}
    "attachments" [{"usageType" "http://foo.org/aut1"}
                   {"usageType" "http://foo.org/aut2"}]})
 
@@ -172,11 +153,18 @@
     (is (not (tv/none-matchable? [nil nil "what the pineapple"])))))
 
 (deftest any-matchable?-test
-  (testing "any-matchable? function: return true if some values are matchable."
+  (testing "any-matchable? function: return true iff some values are matchable."
     (is (tv/any-matchable? [nil nil "still good"]))
     (is (tv/any-matchable? ["foo" "bar" "all good"]))
     (is (not (tv/any-matchable? [])))
     (is (not (tv/any-matchable? [nil nil nil])))))
+
+(deftest none-unmatchable?-test
+  (testing "none-unmatchable function: return true iff all vals are matchable."
+    (is (tv/none-unmatchable? ["foo" "bar" "all good"]))
+    (is (not (tv/none-unmatchable? [nil nil "this is bad"])))
+    (is (not (tv/none-unmatchable? [nil nil])))
+    (is (not (tv/none-unmatchable? [])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicate tests.
@@ -241,8 +229,6 @@
   (testing "create-included-spec function: create a predicate when presence is
            'included'. Values MUST have at least one matchable value (and no
            unmatchable values) and MUST follow any/all/none reqs."
-    (is (= (s/describe included-spec) '(and all-matchable?
-                                            rule-any? rule-all? rule-none?)))
     (is (s/valid? included-spec name-values))
     (is (not (s/valid? included-spec ["Will Hoyt"])))
     (is (not (s/valid? included-spec [])))
@@ -251,7 +237,6 @@
 (deftest create-excluded-spec-test
   (testing "create-excluded-spec function: create a predicate when presence is
            'excluded.' There MUST NOT be any matchable values."
-    (is (= (s/describe excluded-spec) 'none-matchable?))
     (is (s/valid? excluded-spec []))
     (is (s/valid? excluded-spec [nil nil]))
     (is (not (s/valid? excluded-spec name-values)))
@@ -261,9 +246,7 @@
 (deftest create-recommended-spec-test
   (testing "create-recommended-spec function: create a predicate when presence
            is 'recommended'. MUST follow any/all/none reqs."
-    (is (= (s/describe recommended-spec)
-           '(or :missing none-matchable?
-                :not-missing (and any-matchable? rule-any? rule-all? rule-none?))))
+    (is (s/valid? recommended-spec []))
     (is (s/valid? recommended-spec name-values))
     (is (not (s/valid? recommended-spec ["Will Hoyt"])))))
 
@@ -419,69 +402,68 @@
                   (tv/create-rule-validators ex-template)))
     (is (= 12 (count (tv/create-rule-validators ex-template))))))
 
-;; (comment
-;;   (deftest validate-statement-test
-;;     (testing "validate-statement function: Validate an entire Statement!"
-;;       (is (tv/validate-statement ex-template ex-statement-0))
-;;       (is (tv/validate-statement
-;;            {:verb "http://example.com/xapi/verbs#sent-a-statement"}
-;;            ex-statement-1))
-;;       (is (tv/validate-statement
-;;            {:verb "http://adlnet.gov/expapi/verbs/attempted"}
-;;            ex-statement-2))
-;;       (is (tv/validate-statement
-;;            {:verb "http://adlnet.gov/expapi/verbs/attended"
-;;             :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-;;             :contextCategoryActivityType
-;;             ["http://example.com/expapi/activities/meetingcategory"]}
-;;            ex-statement-3))
-;;       (is (tv/validate-statement
-;;            {:verb "http://adlnet.gov/expapi/verbs/experienced"}
-;;            ex-statement-4)))))
+(deftest validate-statements-test
+  (testing "validate-statement function: Validate an entire Statement!"
+    (is (tv/validate-statement ex-template ex-statement-0))
+    (is (tv/validate-statement
+         {:verb "http://example.com/xapi/verbs#sent-a-statement"}
+         ex-statement-1))
+    (is (tv/validate-statement
+         {:verb "http://adlnet.gov/expapi/verbs/attempted"}
+         ex-statement-2))
+    (is (tv/validate-statement
+         {:verb "http://adlnet.gov/expapi/verbs/attended"
+          :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+          :contextCategoryActivityType
+          ["http://example.com/expapi/activities/meetingcategory"]}
+         ex-statement-3))
+    (is (tv/validate-statement
+         {:verb "http://adlnet.gov/expapi/verbs/experienced"}
+         ex-statement-4))))
 
 (def err-vec (tv/validate-statement* ex-template ex-statement-1))
 
 (deftest validate-statement-test
   (testing "validate-statement function"
-    (is (= [{:pred "rule-all?"
+    (is (= [{:pred "all-values?"
              :values ["http://example.com/xapi/verbs#sent-a-statement"]
              :rule {:location "$.verb.id", :presence "included", :all ["http://foo.org/verb"], :determiningProperty "Verb"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.object.definition.type"
               :presence "included"
               :all ["http://foo.org/oat"]
               :determiningProperty "objectActivityType"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.context.contextActivities.parent[*].definition.type"
               :presence "included"
               :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
               :determiningProperty "contextParentActivityType"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.context.contextActivities.grouping[*].definition.type"
               :presence "included"
               :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
               :determiningProperty "contextGroupingActivityType"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.context.contextActivities.category[*].definition.type"
               :presence "included"
               :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
               :determiningProperty "contextCategoryActivityType"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.context.contextActivities.other[*].definition.type"
               :presence "included"
               :all ["http://foo.org/coat1" "http://foo.org/coat2"]
               :determiningProperty "contextOtherActivityType"}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.attachments[*].usageType"
@@ -489,14 +471,14 @@
               :all ["http://foo.org/aut1" "http://foo.org/aut2"]
               :determiningProperty "attachmentUsageType"}}
             ;; FIXME: This looks sus
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location "$.actor.member[*].name"
               :presence "included"
               :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
               :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
-            {:pred "all-matchable?"
+            {:pred "any-matchable?"
              :values []
              :rule
              {:location
@@ -562,7 +544,7 @@
                 "   :presence \"included\",\n"
                 "   :any [\"Will Hoyt\" \"Milt Reder\" \"John Newman\" \"Henk Reder\" \"Erika Lee\" \"Boris Boiko\"],\n"
                 "   :none [\"Shelly Blake-Plock\" \"Brit Keller\" \"Mike Anthony\" \"Jeremy Gardner\"]}\n"
-                " failed 'included': not all evaluated values were matchable\n"
+                " failed: some evaluated values must be matchable\n"
                 " statement values:\n"
                 "   no values found at location\n"
                 "\n"
@@ -570,7 +552,7 @@
                 "  {:location \"$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType\",\n"
                 "   :presence \"included\",\n"
                 "   :all [\"Activity\"]}\n"
-                " failed 'included': not all evaluated values were matchable\n"
+                " failed: some evaluated values must be matchable\n"
                 " statement values:\n"
                 "   no values found at location\n"
                 "\n"

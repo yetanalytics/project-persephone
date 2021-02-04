@@ -84,7 +84,7 @@
 
 ;; State alphatization
 
-(defn alphatize-states-fsm
+(defn- alphatize-states-fsm*
   [{type :type states :states :as fsm}]
   (let [states'
         (if (coll? (first states))
@@ -117,6 +117,12 @@
         (update :transitions #(cset/rename-keys % old-to-new-state))
         (update :transitions update-dests))))
 
+(defn alphatize-states-fsm
+  "Rename all states in a single FSM."
+  [fsm]
+  (reset-counter)
+  (alphatize-states-fsm* fsm))
+
 (defn alphatize-states
   "Rename all states in a collection of NFAs such that no two states share the
    same name."
@@ -125,7 +131,7 @@
   (loop [new-fsm-queue []
          fsm-queue nfa-coll]
     (if-let [fsm (first fsm-queue)]
-      (recur (->> fsm alphatize-states-fsm (conj new-fsm-queue))
+      (recur (->> fsm alphatize-states-fsm* (conj new-fsm-queue))
              (rest fsm-queue))
       new-fsm-queue)))
 
@@ -480,7 +486,6 @@
   [dfa]
   (letfn [(construct-reverse-dfa
             [dfa]
-            (reset-counter)
             (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
               (nfa->dfa* rev-dfa (:start rev-dfa))))]
     (-> dfa construct-reverse-dfa construct-reverse-dfa)))
@@ -503,25 +508,30 @@
                (mapv (fn [[_ dest]] dest)))]
       {:state     (first dests)
        :accepted? (boolean
-                   (seq (filterv (partial contains? accepts) dests)))})
+                   (seq (filterv (partial contains? accepts) dests)))
+       :rejected? (nil? (first dests))})
     (let [err-msg "State not found in the finite state machine"]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
 
 (defn read-next
-  "Given a compiled FSM, the current state info, and an input, let the FSM read
-   that input; this function returns update state info. State info has the
-   following fields:
-     :next-state - The next state arrived at in the FSM after reading the input.
-     If the FSM cannot read the input, then next-state is nil.
-     :accepted? - True if the FSM as arrived at an accept state after reading
-     the input; false otherwise.
+  "Given a compiled FSM, the current state info, and an input, let
+   the FSM read that input; this function returns update state info.
+   The state info map has the following fields:
+     :next-state  The next state arrived at in the FSM after reading
+                  the input. If the FSM cannot read the input, then
+                  next-state is nil.
+     :accepted?   True if the FSM as arrived at an accept state
+                  after reading the input; false otherwise.
+     :rejected?   True if the FSM will not be able to read any more
+                  states, false otherwise. True iff :next-state
+                  is nil.
    If state-info is nil, the function starts at the start state.
-   If the state value is nil, or if input is nil, return state-info without
-   calling the FSM."
+   If the state value is nil, or if input is nil, return state-info
+   without calling the FSM."
   [{start :start accepts :accepts :as dfa} state-info input]
   (let [state       (if (nil? state-info) start (:state state-info))
         is-accepted (contains? accepts state)]
     (if-not (or (nil? state) (nil? input))
       (read-next* dfa state input)
-      {:state state :accepted? is-accepted})))
+      {:state state :accepted? is-accepted :rejected? true})))

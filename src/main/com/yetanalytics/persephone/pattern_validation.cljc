@@ -111,7 +111,7 @@
     [{:type "Pattern" :oneOrMore oom}]
     (fsm/plus-nfa oom)
     [{:type "StatementTemplate" :id node-id}]
-    (fsm/transition-nfa node-id (partial tv/validate-statement node))
+    (fsm/transition-nfa node-id (partial tv/valid-statement? node))
     :else node))
 
 (defn pattern-tree->fsm

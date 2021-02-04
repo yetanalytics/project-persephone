@@ -308,9 +308,9 @@
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn validate-statement*
+(defn validate-statement
   "Given a Statement and a Statement Template, validate the Statement.
- Returns nil if the Statement is valid, the spec error map otherwise"
+   Returns nil if the Statement is valid, the spec error map otherwise"
   [template statement]
   (let [new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)
@@ -319,28 +319,17 @@
       error-vec
       nil)))
 
-(defn validate-statement
+(defn valid-statement?
   "Given a Statement and a Statement Template, validate the Statement.
-  Returns true if Statement is valid, false otherwise.
-  Set err-msg argument to true to print errors.
-  Note: Assumes syntactically valid Template and Statement already."
-  [template statement & {:keys [err-msg] :or {err-msg false}}]
-  ; Statement Templates have keyword keys, but Statements have string keys
-  (let [template-id (:id template)
-        statement-id (get statement "id")
-        error-vec (validate-statement* template statement)]
-    (if-not (nil? error-vec)
-      (if (true? err-msg)
-        (do (emsg/print-error (filter some? error-vec) template-id statement-id)
-            false)
-        false)
-      true)))
+   Returns true if the Statement is valid, false otherwise"
+  [template statement]
+  (nil? (validate-statement template statement)))
 
 (defn print-error
   "Given a Statement Template, a Statement, and error data, print an appropriate
    error message. Always returns nil."
   [template statement error-vec]
-  (let [template-id (:id template)
+  (let [template-id  (:id template)
         statement-id (get statement "id")]
     (emsg/print-error (filter some? error-vec) template-id statement-id)
     nil))

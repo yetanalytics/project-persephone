@@ -37,5 +37,10 @@
   {:extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.0"}}
    :main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/test"
-                 "-c" "build.test.edn"]}}
+                 "-c" "build.test.edn"]}
+  :runner-cov
+  {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}
+   :main-opts  ["-m" "cloverage.coverage"
+                "-p" "src/main"
+                "-s" "src/test"]}}
  :mvn/repos {"jitpack" {:url "https://jitpack.io"}}}

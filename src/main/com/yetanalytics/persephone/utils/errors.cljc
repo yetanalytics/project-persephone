@@ -10,12 +10,13 @@
 
 ;; Statement Template error messages
 (def error-msgs
-  {"all-matchable?" "failed 'included': not all evaluated values were matchable"
-   "none-matchable?" "failed 'excluded': all evaluated values must not be matchable"
-   "any-matchable?" "failed: some evaluated values must be matchable"
-   "rule-any?" "failed 'any' property: evaluated values must include some values given by 'any'"
-   "rule-all?" "failed 'all' property: evaluated values must only include values given by 'all'"
-   "rule-none?" "failed 'none' property: evaluated values must exclude values given by 'none'"})
+  {"all-matchable?"    "failed all values are matchable requirement"
+   "none-matchable?"   "failed no matchable values requirement"
+   "any-matchable?"    "failed any matchable values requirement"
+   "none-unmatchable?" "failed no unmatchable values requirement"
+   "any-values?"       "failed 'any' property: evaluated values must include some values given by 'any'"
+   "all-values?"       "failed 'all' property: evaluated values must only include values given by 'all'"
+   "none-values?"      "failed 'none' property: evaluated values must exclude values given by 'none'"})
 
 (defn val-str
   "Create a pretty-print string representation of a vector, where each entry
@@ -64,9 +65,8 @@
 
 (defn error-msg-str
   "Create a pretty error log output when a property or rule is not followed."
-  [{:keys [error rule values]}]
-  (let [prop (get rule :determiningProperty nil)
-        pred (-> error :pred name)]
+  [{:keys [pred rule values]}]
+  (let [prop (get rule :determiningProperty nil)]
     (if (some? prop)
       (prop-error-str rule prop values)
       (rule-error-str rule pred values))))

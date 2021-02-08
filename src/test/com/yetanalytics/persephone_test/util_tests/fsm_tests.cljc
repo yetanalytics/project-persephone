@@ -599,18 +599,22 @@
 (deftest read-next-test
   (testing "The read-next function."
     (is (= {:state     #{1}
-            :accepted? true}
+            :accepted? true
+            :rejected? false}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
     (is (= {:state       nil
-            :accepted?   false}
+            :accepted?   false
+            :rejected?   true}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
     (is (= {:state     nil
-            :accepted? false}
+            :accepted? false
+            :rejected? true}
            (-> a-fsm
                fsm/nfa->dfa
                (fsm/read-next {:state #{1} :accepted? true} "a"))))
     (is (= {:state     #{3}
-            :accepted? true}
+            :accepted? true
+            :rejected? false}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]
              (-> nil (read-nxt "a") (read-nxt "b")))))))

@@ -111,7 +111,7 @@
     [{:type "Pattern" :oneOrMore oom}]
     (fsm/plus-nfa oom)
     [{:type "StatementTemplate" :id node-id}]
-    (fsm/transition-nfa node-id (partial tv/validate-statement node))
+    (fsm/transition-nfa node-id (partial tv/valid-statement? node))
     :else node))
 
 (defn pattern-tree->fsm
@@ -119,17 +119,19 @@
    traversal."
   [pattern-tree]
   (fsm/reset-counter)
-  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
+  (->> pattern-tree
+       (w/postwalk pattern->fsm)
+       fsm/nfa->dfa
+       fsm/minimize-dfa
+       fsm/alphatize-states-fsm))
 
 (defn profile->fsms
   "Pipeline function that turns a Profile into a vectors of FSMs that can
    perform Statement validation. Each entry corresponds to a primary Pattern.
-   Note: Assumes syntactically valid Patterns from a valid Profile."
+   Assumes a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]
-    (fsm/alphatize-states
-     (mapv (fn [pattern] (-> pattern
-                             (grow-pattern-tree temp-pat-map)
-                             pattern-tree->fsm))
-           pattern-seq))))
+    (mapv (fn [pattern]
+            (-> pattern (grow-pattern-tree temp-pat-map) pattern-tree->fsm))
+          pattern-seq)))

@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
-            [com.yetanalytics.persephone :as per]))
+            [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.pan.utils.json :as json]))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -15,9 +16,9 @@
 
 (def will-profile (slurp "test-resources/sample_profiles/will-catch.json"))
 
-(deftest compile-profile-test
-  (testing "compile-profile using Will's CATCH profile"
-    (is (some? (per/compile-profile will-profile)))))
+(comment (deftest compile-profile-test
+           (testing "compile-profile using Will's CATCH profile"
+             (is (some? (per/compile-profile will-profile))))))
 
 (def ex-template
   {:id
@@ -99,15 +100,11 @@
     "extensions"
     {"https://w3id.org/xapi/cmi5/context/extensions/sessionid" 74}}})
 
-(deftest profile-templates-test
-  (testing "profile-templates using Will's CATCH profile"
-    (is (vector? (per/profile-templates will-profile)))
-    (is (= 52 (count (per/profile-templates will-profile))))
-    (is (= ex-template (first (per/profile-templates will-profile))))))
 
 (deftest statement-validation-test
   (testing "validate statement using an example Template and Statement"
-    (is (not (per/validate-statement ex-template ex-statement)))))
+    (is (not (per/validate-statement-vs-template ex-template
+                                                 ex-statement)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CMI Profile
@@ -151,8 +148,7 @@
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
-(def cmi-templates (per/profile-templates cmi-profile))
-(def cmi-fsm (first (per/compile-profile cmi-profile)))
+(def cmi-templates (:templates (json/convert-json cmi-profile "_")))
 
 ; Note: we need to add ['*'] to the original JSONPath specs in the "all" rules.
 (def launched-stmt
@@ -238,53 +234,172 @@
       (assoc-in ["object" "definition" "type"]
                 "https://w3id.org/xapi/cmi5/activitytype/course")))
 
+(def cmi-tmpl-0 (get cmi-templates 0))
+(def cmi-tmpl-1 (get cmi-templates 1))
+(def cmi-tmpl-2 (get cmi-templates 2))
+(def cmi-tmpl-3 (get cmi-templates 3))
+(def cmi-tmpl-4 (get cmi-templates 4))
+(def cmi-tmpl-5 (get cmi-templates 5))
+(def cmi-tmpl-6 (get cmi-templates 6))
+(def cmi-tmpl-7 (get cmi-templates 7))
+(def cmi-tmpl-8 (get cmi-templates 8))
+(def cmi-tmpl-9 (get cmi-templates 9))
+
 (deftest cmi-statements-test
   (testing "validating statements from the cmi5 profile"
-    (is (per/validate-statement (get cmi-templates 0) ex-statement))
-    (is (per/validate-statement (get cmi-templates 1) launched-stmt))
-    (is (per/validate-statement (get cmi-templates 2) initialized-stmt))
-    (is (per/validate-statement (get cmi-templates 3) completed-stmt))
-    (is (per/validate-statement (get cmi-templates 4) passed-stmt))
-    (is (per/validate-statement (get cmi-templates 5) failed-stmt))
-    (is (per/validate-statement (get cmi-templates 6) abandoned-stmt))
-    (is (per/validate-statement (get cmi-templates 7) waived-stmt))
-    (is (per/validate-statement (get cmi-templates 8) terminated-stmt))
-    (is (per/validate-statement (get cmi-templates 9) satisfied-stmt))))
+    (is (per/validate-statement-vs-template cmi-tmpl-0 ex-statement))
+    (is (per/validate-statement-vs-template cmi-tmpl-1 launched-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-2 initialized-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-3 completed-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-4 passed-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-5 failed-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-6 abandoned-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-7 waived-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-8 terminated-stmt))
+    (is (per/validate-statement-vs-template cmi-tmpl-9 satisfied-stmt))))
 
 (deftest cmi-statement-test-2
+  (testing "calling validate-statement-vs-template with different modes"
+    ;; Valid Statement
+    (is (= ex-statement
+           (per/validate-statement-vs-template cmi-tmpl-0
+                                               ex-statement
+                                               :fn-type :option)))
+    (is (nil? (per/validate-statement-vs-template cmi-tmpl-0
+                                                  ex-statement
+                                                  :fn-type :result)))
+    (is (nil? (per/validate-statement-vs-template cmi-tmpl-0
+                                                  ex-statement
+                                                  :fn-type :assertion)))
+    (is (= "" (with-out-str
+                (per/validate-statement-vs-template cmi-tmpl-0
+                                                    ex-statement
+                                                    :fn-type :printer))))
+    ;; Invalid Statement
+    (is (nil? (per/validate-statement-vs-template cmi-tmpl-1
+                                                  ex-statement
+                                                  :fn-type :option)))
+    (is (some? (per/validate-statement-vs-template cmi-tmpl-1
+                                                   ex-statement
+                                                   :fn-type :result)))
+    (is (= {:pred   "all-values?"
+            :values ["https://example.com/scores"]
+            :rule
+            {:location "$.verb.id"
+             :presence "included"
+             :all      ["http://adlnet.gov/expapi/verbs/launched"]
+             :determiningProperty "Verb"}}
+           (first (per/validate-statement-vs-template cmi-tmpl-1
+                                                      ex-statement
+                                                      :fn-type :result))))
+    (is (= (per/validate-statement-vs-template cmi-tmpl-1
+                                               ex-statement
+                                               :fn-type :result)
+           (try (per/validate-statement-vs-template cmi-tmpl-1
+                                                    ex-statement
+                                                    :fn-type :assertion)
+                (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))
+    (is (not= "" (with-out-str
+                   (per/validate-statement-vs-template cmi-tmpl-1
+                                                       ex-statement
+                                                       :fn-type :printer))))))
+
+(deftest cmi-statement-test-3
   (testing "validating statements from cmi5 profile that exclude moveon"
-    (is (not (per/validate-statement
+    (is (not (per/validate-statement-vs-template
               (get cmi-templates 6)
               (assoc-in
                abandoned-stmt
                ["context" "contextActivities" "category"]
                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))
-    (is (not (per/validate-statement
+    (is (not (per/validate-statement-vs-template
               (get cmi-templates 8)
               (assoc-in
                terminated-stmt
                ["context" "contextActivities" "category"]
                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))))
 
-(defn rejected? [state-info] (-> state-info :state nil?))
-(def rns-cmi (partial per/read-next-statement cmi-fsm))
+(deftest cmi-statements-vs-profile-test
+  (testing "validating statements from the cmi5 profile, against the whole
+            profile"
+    ;; Valid Statement
+    (is (per/validate-statement-vs-profile cmi-profile
+                                           ex-statement
+                                           :fn-type :predicate
+                                           :validate-profile? false))
+    (is (= ex-statement
+           (per/validate-statement-vs-profile cmi-profile
+                                              ex-statement
+                                              :fn-type :option
+                                              :validate-profile? false)))
+    (is (nil? (per/validate-statement-vs-profile cmi-profile
+                                                 ex-statement
+                                                 :fn-type :result
+                                                 :validate-profile? false)))
+    (is (nil? (per/validate-statement-vs-profile cmi-profile
+                                                 ex-statement
+                                                 :fn-type :assertion
+                                                 :validate-profile? false)))
+    (is (= ["https://w3id.org/xapi/cmi5#generalrestrictions"]
+           (per/validate-statement-vs-profile cmi-profile
+                                              ex-statement
+                                              :fn-type :templates
+                                              :validate-profile? false)))
+    ;; Invalid Statement (just an empty map)
+    (is (not (per/validate-statement-vs-profile cmi-profile
+                                                {}
+                                                :fn-type :predicate
+                                                :validate-profile? false)))
+    (is (nil? (per/validate-statement-vs-profile cmi-profile
+                                                 {}
+                                                 :fn-type :option
+                                                 :validate-profile? false)))
+    (is (= [] (per/validate-statement-vs-profile cmi-profile
+                                                 {}
+                                                 :fn-type :templates
+                                                 :validate-profile? false)))
+    (is (= 10 (count
+               (per/validate-statement-vs-profile cmi-profile
+                                                  {}
+                                                  :fn-type :result
+                                                  :validate-profile? false))))
+    (is (= {:pred   "any-matchable?"
+            :values []
+            :rule   {:location "$.id" :presence "included"}}
+           (-> (per/validate-statement-vs-profile cmi-profile
+                                                  {}
+                                                  :fn-type :result
+                                                  :validate-profile? false)
+               first
+               first)))
+    (is (= (per/validate-statement-vs-profile cmi-profile
+                                              {}
+                                              :fn-type :result
+                                              :validate-profile? false)
+           (try (per/validate-statement-vs-profile cmi-profile
+                                                   {}
+                                                   :fn-type :result
+                                                   :validate-profile? false)
+                (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
+
+(def cmi-fsm (first (per/compile-profile cmi-profile)))
+(def rns-cmi (partial per/match-next-statement* cmi-fsm))
 
 (deftest pattern-validation-tests
   (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
-    (is (rejected? (rns-cmi nil ex-statement)))
+    (is (:rejected? (rns-cmi nil ex-statement)))
     ;; Accepted by 'satisfied' Template
-    (is (not (rejected? (rns-cmi nil satisfied-stmt))))
+    (is (not (:rejected? (rns-cmi nil satisfied-stmt))))
     ;; Does not satifiy all rules in the 'satisfied' Template
-    (is (rejected?
+    (is (:rejected?
          (rns-cmi nil (assoc-in ex-statement
                                 ["verb" "id"]
                                 "http://adlnet.gov/expapi/verbs/satisfied"))))
     ;; Forgot initialized-stmt
-    (is (nil? (-> nil
+    (is (:rejected? (-> nil
                   (rns-cmi satisfied-stmt)
                   (rns-cmi launched-stmt)
-                  (rns-cmi failed-stmt)
-                  :state)))
+                  (rns-cmi failed-stmt))))
     ;; Session not completed yet
     (is (not (:accepted? (-> nil
                              (rns-cmi satisfied-stmt)
@@ -341,3 +456,27 @@
                         (rns-cmi satisfied-stmt)
                         (rns-cmi passed-stmt)
                         (rns-cmi terminated-stmt))))))
+
+(def rns-cmi-2 (partial per/match-next-statement cmi-fsm))
+
+(deftest match-next-statement-test
+  (testing "the match-next-statement function"
+    (is (:accepted? (-> {}
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 launched-stmt)
+                        (rns-cmi-2 initialized-stmt)
+                        (rns-cmi-2 failed-stmt)
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 abandoned-stmt)
+                        (rns-cmi-2 waived-stmt)
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 launched-stmt)
+                        (rns-cmi-2 initialized-stmt)
+                        (rns-cmi-2 completed-stmt)
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 passed-stmt)
+                        (rns-cmi-2 terminated-stmt)
+                        :no-registration)))))
+
+;; TODO: Test match-next-statement with mutltiple registrations
+;; This is where DATASIM can come in

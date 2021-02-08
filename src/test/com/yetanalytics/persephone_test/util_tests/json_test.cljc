@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing is are]]
             [com.yetanalytics.persephone.utils.json :as json]))
 
-;; TODO Test edn-to-json and read-json
+;; TODO Test edn->json and read-json-path
 
 (deftest split-json-path-test
   (testing "split-json-path test: given a string of multiple JSONPaths, split
@@ -47,7 +47,7 @@
 (deftest read-json-test-1
   (testing "Testing JSONPath on example provided by Goessner"
     (are [expected path]
-         (= expected (json/read-json example-1 path))
+         (= expected (json/read-json-path example-1 path))
       ; The authors of all books in the store
       ["Nigel Rees" "Evelyn Waugh" "Herman Melville" "J.R.R. Tolkien"]
       "$.store.book[*].author"
@@ -236,9 +236,9 @@
              "objectType" "Activity"}})
 
 (deftest read-json-test-2
-  (testing "read-json on a sample xAPI Statement"
+  (testing "read-json-path on a sample xAPI Statement"
     (are [expected path]
-         (= expected (json/read-json example-2 path))
+         (= expected (json/read-json-path example-2 path))
       ;; Hits
       ["6690e6c9-3ef0-4ed3-8b37-7f3964730bee"]
       "$.id"
@@ -267,3 +267,73 @@
       [] "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/moveon']"
       [] "$.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/launchparameters']"
       [] "$.result['https://w3id.org/xapi/cmi5/result/extensions/reason']")))
+
+;; Example 3: Another xAPI Statement (from template-validation-test)
+
+(def example-3
+  {"id"          "some-uuid"
+   "actor"       {"objectType" "Agent"
+                  "name"       "Yet Analytics Dev Team"
+                  "mbox"       "mailto:email@yetanalytics.io"
+                  "member"     [{"name" "Will Hoyt"}
+                                {"name" "Milt Reder"}
+                                {"name" "John Newman"}
+                                {"name" "Henk Reder"}
+                                {"name" "Erika Lee"}
+                                {"name" "Boris Boiko"}]}
+   "verb"        {"id" "http://foo.org/verb"}
+   "object"      {"id"          "http://www.example.com/object"
+                  "objectType" "Activity"
+                  "definition" {"type" "http://foo.org/oat"}}
+   "result"     {"score" {"raw" 9001}} ; It's over 9000!
+   "context"    {"contextActivities"
+                 {"parent"   [{"id"         "http://foo.org/ca1"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cpat1"}}
+                              {"id"         "http://foo.org/ca2"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cpat2"}}]
+                  "grouping" [{"id"         "http://foo.org/ca3"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cgat1"}}
+                              {"id"         "http://foo.org/ca4"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/cgat2"}}]
+                  "category" [{"id"         "http://foo.org/ca5"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/ccat1"}}
+                              {"id"         "http://foo.org/ca6"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/ccat2"}}]
+                  "other"    [{"id"         "http://foo.org/ca7"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/coat1"}}
+                              {"id"         "http://foo.org/ca8"
+                               "objectType" "Activity"
+                               "definition" {"type" "http://foo.org/coat2"}}]}}
+   "attachments" [{"usageType" "http://foo.org/aut1"}
+                  {"usageType" "http://foo.org/aut2"}]})
+
+(deftest evaluate-paths-test
+  (testing "evaluate-paths: given a bunch of JSONPaths and a Statement, get
+           a vector of evaluated values."
+    (is (= ["Agent"]
+           (json/read-json-paths example-3 ["$.actor.objectType"])))
+    (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+           (json/read-json-paths example-3 ["$.actor.member[*].name"])))
+    (is (= ["mailto:email@yetanalytics.io"]
+           (json/read-json-paths example-3 ["$.actor.mbox" "$.actor.mbox_sha1sum"])))
+    (is (= ["Activity"]
+           (json/read-json-paths
+            example-3
+            ["$.object.objectType"])))
+    (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
+           (json/read-json-paths
+            example-3
+            ["$.object.objectType"
+             "$.context.contextActivities.parent[*].objectType"
+             "$.context.contextActivities.grouping[*].objectType"
+             "$.context.contextActivities.category[*].objectType"
+             "$.context.contextActivities.other[*].objectType"])))
+    (is (= []
+           (json/read-json-paths example-3 ["$.foo" "$.object.bar"])))))

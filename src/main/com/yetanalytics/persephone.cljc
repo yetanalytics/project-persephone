@@ -17,21 +17,18 @@
 
 (defn- assert-profile
   [profile]
-  (if-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
-    (throw (ex-info "Invalid Profile." err))
-    nil))
+  (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
+    (throw (ex-info "Invalid Profile." err))))
 
 (defn- assert-template
   [template]
-  (if-some [err (s/explain-data ::pan-template/template template)]
-    (throw (ex-info "Invalid Statement Template." err))
-    nil))
+  (when-some [err (s/explain-data ::pan-template/template template)]
+    (throw (ex-info "Invalid Statement Template." err))))
 
 (defn- assert-dfa
   [pattern-fsm]
-  (if-not (= :dfa (:type pattern-fsm))
-    (throw (ex-info "Compiled pattern is invalid!" {:pattern pattern-fsm}))
-    nil))
+  (when-not (= :dfa (:type pattern-fsm))
+    (throw (ex-info "Compiled pattern is invalid!" {:pattern pattern-fsm}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions

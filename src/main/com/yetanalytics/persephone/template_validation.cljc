@@ -315,9 +315,7 @@
   (let [new-rules (add-det-properties template)
         validators (mapv create-rule-validator new-rules)
         error-vec (map #(% statement) validators)]
-    (if-not (none-matchable? error-vec)
-      error-vec
-      nil)))
+    (when-not (none-matchable? error-vec) error-vec)))
 
 (defn valid-statement?
   "Given a Statement and a Statement Template, validate the Statement.
@@ -331,5 +329,4 @@
   [template statement error-vec]
   (let [template-id  (:id template)
         statement-id (get statement "id")]
-    (emsg/print-error (filter some? error-vec) template-id statement-id)
-    nil))
+    (emsg/print-error (filter some? error-vec) template-id statement-id)))

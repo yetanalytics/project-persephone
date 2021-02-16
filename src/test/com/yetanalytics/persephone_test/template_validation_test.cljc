@@ -380,6 +380,7 @@
 
 ;; This set of tests is a spec for the Statement Template rule logic.
 ;; NOTE: validator-fn returns nil on success, error data on failure.
+;;       The :pred field is the name of the predicate that failed.
 (deftest create-rule-validator-test
   (testing "create-rule-validator function: Given a rule, create a validation
             function that accepts Statements."
@@ -415,6 +416,7 @@
       (is (= "any-matchable?" (:pred (validator-fn [nil nil]))))
       ;; MUST NOT include any unmatchable values if presence is included
       (is (= "all-matchable?" (:pred (validator-fn [nil "foo" nil]))))
+      (is (= "all-matchable?" (:pred (validator-fn [nil "bar" nil]))))
       ;; MUST NOT, if none is provided, include any values in none as matchable values
       (is (nil? (validator-fn ["bar"])))
       (is (= "no-none-values?" (:pred (validator-fn ["foo" "bar"])))))

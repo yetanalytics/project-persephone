@@ -286,11 +286,11 @@
            (tv/find-values ex-statement-0 "$.actor.mbox" nil)))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0 "$.actor" "$.mbox")))
-    (is (= []
+    (is (= [nil]
            (tv/find-values ex-statement-0 "$.actor" "$.mbox_sha1sum")))
-    (is (= ["mailto:email@yetanalytics.io"]
+    (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0 "$.actor.mbox | $.actor.mbox_sha1sum")))
-    (is (= ["mailto:email@yetanalytics.io"]
+    (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0 "$.actor" "$.mbox | $.mbox_sha1sum")))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
@@ -317,7 +317,7 @@
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
                                  | $.context.contextActivities.other")))
-    (is (= []
+    (is (= [nil nil nil nil]
            (tv/find-values ex-statement-0
                            "$.context.contextActivities.parent.fi
                           | $.context.contextActivities.grouping.fy
@@ -390,10 +390,10 @@
            function that accepts Statements"
     #?(:clj (is (function? (tv/create-rule-validator {:presence "included"
                                                       :all ["Andrew Downes"]}))))
-    (is (nil? ((tv/create-rule-validator {:location "$.foo.bar"
-                                          :presence "included"
-                                          :any ["baz"]})
-               {:foo {:bar "baz"}})))))
+    (let [validator-fn (tv/create-rule-validator {:location "$.foo.bar"
+                                                  :presence "included"
+                                                  :any ["baz"]})]
+      (is (nil? (validator-fn {"foo" {"bar" "baz"}}))))))
 
 (deftest create-rule-validators-test
   (testing "create-rule-validators function: Create a vector of validation
@@ -406,15 +406,15 @@
   (testing "validate-statement function: Validate an entire Statement!"
     (is (nil? (tv/validate-statement ex-template ex-statement-0)))
     (is (nil? (tv/validate-statement
-               {:verb "http://example.com/xapi/verbs#sent-a-statement"}
+               {"verb" "http://example.com/xapi/verbs#sent-a-statement"}
                ex-statement-1)))
     (is (nil? (tv/validate-statement
-               {:verb "http://adlnet.gov/expapi/verbs/attempted"}
+               {"verb" "http://adlnet.gov/expapi/verbs/attempted"}
                ex-statement-2)))
     (is (nil? (tv/validate-statement
-               {:verb "http://adlnet.gov/expapi/verbs/attended"
-                :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-                :contextCategoryActivityType
+               {"verb" "http://adlnet.gov/expapi/verbs/attended"
+                "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
+                "contextCategoryActivityType"
                 ["http://example.com/expapi/activities/meetingcategory"]}
                ex-statement-3)))
     (is (nil? (tv/validate-statement
@@ -425,19 +425,19 @@
   (testing "valid-statement? function: Predicate on an entire Statement!"
     (is (tv/valid-statement? ex-template ex-statement-0))
     (is (tv/valid-statement?
-          {:verb "http://example.com/xapi/verbs#sent-a-statement"}
+          {"verb" "http://example.com/xapi/verbs#sent-a-statement"}
           ex-statement-1))
     (is (tv/valid-statement?
-          {:verb "http://adlnet.gov/expapi/verbs/attempted"}
+          {"verb" "http://adlnet.gov/expapi/verbs/attempted"}
           ex-statement-2))
     (is (tv/valid-statement?
-          {:verb "http://adlnet.gov/expapi/verbs/attended"
-           :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-           :contextCategoryActivityType
+          {"verb" "http://adlnet.gov/expapi/verbs/attended"
+           "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
+           "contextCategoryActivityType"
            ["http://example.com/expapi/activities/meetingcategory"]}
           ex-statement-3))
     (is (tv/valid-statement?
-          {:verb "http://adlnet.gov/expapi/verbs/experienced"}
+          {"verb" "http://adlnet.gov/expapi/verbs/experienced"}
           ex-statement-4))))
 
 (def err-vec (tv/validate-statement ex-template ex-statement-1))
@@ -446,59 +446,61 @@
   (testing "validate-statement function"
     (is (= [{:pred "all-values?"
              :values ["http://example.com/xapi/verbs#sent-a-statement"]
-             :rule {:location "$.verb.id", :presence "included", :all ["http://foo.org/verb"], :determiningProperty "Verb"}}
+             :rule {:location "$.verb.id"
+                    :presence "included"
+                    :all ["http://foo.org/verb"]
+                    :determiningProperty "Verb"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.object.definition.type"
               :presence "included"
               :all ["http://foo.org/oat"]
               :determiningProperty "objectActivityType"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.context.contextActivities.parent[*].definition.type"
               :presence "included"
               :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
               :determiningProperty "contextParentActivityType"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.context.contextActivities.grouping[*].definition.type"
               :presence "included"
               :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
               :determiningProperty "contextGroupingActivityType"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.context.contextActivities.category[*].definition.type"
               :presence "included"
               :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
               :determiningProperty "contextCategoryActivityType"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.context.contextActivities.other[*].definition.type"
               :presence "included"
               :all ["http://foo.org/coat1" "http://foo.org/coat2"]
               :determiningProperty "contextOtherActivityType"}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.attachments[*].usageType"
               :presence "included"
               :all ["http://foo.org/aut1" "http://foo.org/aut2"]
               :determiningProperty "attachmentUsageType"}}
-            ;; FIXME: This looks sus
             {:pred "any-matchable?"
-             :values []
+             :values [nil]
              :rule
              {:location "$.actor.member[*].name"
               :presence "included"
               :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
               :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
             {:pred "any-matchable?"
-             :values []
+             :values [nil nil nil nil nil]
              :rule
              {:location
               "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"

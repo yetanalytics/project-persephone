@@ -364,7 +364,7 @@
                                                   :fn-type :result
                                                   :validate-profile? false))))
     (is (= {:pred   "any-matchable?"
-            :values []
+            :values [nil]
             :rule   {:location "$.id" :presence "included"}}
            (-> (per/validate-statement-vs-profile cmi-profile
                                                   {}

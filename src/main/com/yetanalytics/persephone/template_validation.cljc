@@ -2,7 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.pathetic :as json-path]
             [com.yetanalytics.persephone.utils.errors :as emsg])
   #?(:cljs (:require-macros [com.yetanalytics.persephone.template-validation
                              :refer [add-spec]])))
@@ -191,22 +191,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn find-values
-  "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
-  values from a Statement as a vector."
-  [statement location & [selector]]
-  (let [locations (json/split-json-path location)
-        values (json/read-json-paths statement locations)]
-    (if-not (some? selector)
-      values
-      ;; there's a selector
-      (letfn [(format-selector [sel]
-                ;; format for use within `evaluate-paths`
-                (-> sel (string/replace #"(\$)" "$1[*]") json/split-json-path))]
-        (->> selector
-             format-selector
-             ;; dive one level deeper into original location query results
-             ;; - navigate into the results given selector location string
-             (json/read-json-paths values))))))
+  "Given a Statement, a location JSONPath string, and an optional selector
+   JSONPath string, return a vector of the selected values. Unmatchable
+   values are returned as nils."
+  [stmt loc-path & [select-path]]
+  (let [locations (json-path/get-values stmt loc-path :return-missing? true)]
+    (if-not select-path
+      ;; No selector - return locations
+      locations
+      ;; Locations is a JSON array, so we can query it using the selector
+      ;; by adding a wildcard at the beginning
+      (let [select-path' (string/replace select-path #"(\$)" "$1[*]")]
+        (json-path/get-values locations select-path' :return-missing? true)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties

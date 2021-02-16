@@ -459,6 +459,9 @@
 
 (def rns-cmi-2 (partial per/match-next-statement cmi-fsm))
 
+(def satisfied-stmt-2
+  (assoc-in satisfied-stmt ["context" "registration"] "registration-2"))
+
 (deftest match-next-statement-test
   (testing "the match-next-statement function"
     (is (:accepted? (-> {}
@@ -476,7 +479,22 @@
                         (rns-cmi-2 satisfied-stmt)
                         (rns-cmi-2 passed-stmt)
                         (rns-cmi-2 terminated-stmt)
-                        :no-registration)))))
+                        :no-registration)))
+    (is (:accepted? (-> {}
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (get "registration-2"))))
+    (is (:accepted? (-> {}
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (rns-cmi-2 launched-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (rns-cmi-2 initialized-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (rns-cmi-2 failed-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (rns-cmi-2 abandoned-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (get "registration-2"))))))
 
-;; TODO: Test match-next-statement with mutltiple registrations
-;; This is where DATASIM can come in
+;; TODO: Add DATASIM tests

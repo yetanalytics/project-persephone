@@ -176,8 +176,8 @@
   [pat-fsm curr-states-info stmt]
   (assert-dfa pat-fsm)
   (let [statement    (if (string? stmt) (json/json->edn stmt) stmt)
-        registration (get-in ["context" "registration"]
-                             statement
+        registration (get-in statement
+                             ["context" "registration"]
                              :no-registration)]
     (update curr-states-info
             registration

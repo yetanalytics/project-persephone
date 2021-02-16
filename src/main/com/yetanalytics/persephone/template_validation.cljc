@@ -152,11 +152,6 @@
 (defn create-default-spec
   "Returns a predicate for when presence is 'recommended' or is missing."
   [{:keys [any all none]}]
-  #_(-> (s/spec (constantly true))
-      (add-spec some-any-values? any)
-      (add-spec only-all-values? all)
-      (add-spec no-unmatch-vals? all)
-      (add-spec no-none-values? none))
   (s/or :some-matchables (-> (s/spec any-matchable?)
                              (add-spec some-any-values? any)
                              (add-spec only-all-values? all)

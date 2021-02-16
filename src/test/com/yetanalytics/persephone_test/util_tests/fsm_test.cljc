@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-test.util-tests.fsm-tests
+(ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
 

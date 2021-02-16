@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-test.util-tests.json-tests
+(ns com.yetanalytics.persephone-test.util-tests.json-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.json :as json]))
 

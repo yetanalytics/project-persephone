@@ -10,13 +10,13 @@
 
 ;; Statement Template error messages
 (def error-msgs
-  {"all-matchable?"    "failed all values are matchable requirement"
-   "none-matchable?"   "failed no matchable values requirement"
-   "any-matchable?"    "failed any matchable values requirement"
-   "none-unmatchable?" "failed no unmatchable values requirement"
-   "any-values?"       "failed 'any' property: evaluated values must include some values given by 'any'"
-   "all-values?"       "failed 'all' property: evaluated values must only include values given by 'all'"
-   "none-values?"      "failed 'none' property: evaluated values must exclude values given by 'none'"})
+  {"all-matchable?"    "failed: all values need to be matchable"
+   "none-matchable?"   "failed: no values can be matchable"
+   "any-matchable?"    "failed: at least one matchable value must exist"
+   "some-any-values?"  "failed 'any' property: evaluated values must include some values given by 'any'"
+   "only-all-values?"  "failed 'all' property: evaluated values must only include values given by 'all'"
+   "no-unmatch-vals?"  "failed 'all' property: evaluated values must not include unmatchable values"
+   "no-none-values?"   "failed 'none' property: evaluated values must exclude values given by 'none'"})
 
 (defn val-str
   "Create a pretty-print string representation of a vector, where each entry

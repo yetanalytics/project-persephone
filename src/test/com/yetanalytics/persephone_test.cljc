@@ -1,7 +1,11 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.pan.utils.json :as json]))
+            [com.yetanalytics.persephone.utils.json :as jsn]
+            #?@(:clj [[com.yetanalytics.datasim.xapi.profile :as ds-prof]
+                      [com.yetanalytics.datasim.random       :as ds-rand]
+                      [com.yetanalytics.datasim.sim   :as sim]
+                      [com.yetanalytics.datasim.input :as sim-input]])))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -148,7 +152,7 @@
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
-(def cmi-templates (:templates (json/convert-json cmi-profile "_")))
+(def cmi-templates (:templates (jsn/json->edn cmi-profile :at-replace "_")))
 
 ; Note: we need to add ['*'] to the original JSONPath specs in the "all" rules.
 (def launched-stmt
@@ -397,9 +401,9 @@
                                 "http://adlnet.gov/expapi/verbs/satisfied"))))
     ;; Forgot initialized-stmt
     (is (:rejected? (-> nil
-                  (rns-cmi satisfied-stmt)
-                  (rns-cmi launched-stmt)
-                  (rns-cmi failed-stmt))))
+                        (rns-cmi satisfied-stmt)
+                        (rns-cmi launched-stmt)
+                        (rns-cmi failed-stmt))))
     ;; Session not completed yet
     (is (not (:accepted? (-> nil
                              (rns-cmi satisfied-stmt)
@@ -497,4 +501,55 @@
                         (rns-cmi-2 satisfied-stmt-2)
                         (get "registration-2"))))))
 
-;; TODO: Add DATASIM tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DATASIM tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+#?(:clj
+   (comment
+     (defn gen-single-walk
+       "Given a Profile, generate a single walk on a DATASIM path"
+       [profile]
+       (let [prof-vec [(jsn/convert-json profile "_")]
+             rng      (ds-rand/seed-rng (rand-int 1000))
+             pat-zip  (ds-prof/rand-pattern-zip prof-vec nil rng)]
+         (keep (fn [loc]
+                 (let [loc-obj (ds-prof/loc-object loc)]
+                   (when (= "StatementTemplate" (:type loc-obj)) loc-obj)))
+               (ds-prof/walk-once pat-zip))))
+
+     (defn statement-seq-matches?
+       [profile]
+       (let [dfa (-> profile per/compile-profile first)]
+         (loop [stmts      (take 10 (gen-single-walk profile))
+                state-info {}]
+           (if-let [next-stmt (first stmts)]
+             (let [state-info' (per/match-next-statement dfa state-info next-stmt)
+                   si-maps     (vals state-info')]
+               (if (or (some :rejected? si-maps)
+                       (nil? (:next-state si-maps)))
+                 false
+                 (recur (rest stmts) state-info')))
+             true))))
+
+     (let [dfa (-> cmi-profile per/compile-profile first)
+           next-stmt (first (take 1 (gen-single-walk cmi-profile)))
+           state-info {}]
+       (per/match-next-statement dfa state-info next-stmt)))
+
+   ;;;;;;;;;;;
+
+   (def tc3-inputs
+     (sim-input/from-location :input :json "test-resources/tc3_inputs.json"))
+   
+   (def tc3-profile (get-in tc3-inputs [:profiles 0]))
+
+   (def tc3-stmt-seq (take 100 (sim/sim-seq tc3-inputs)))
+
+   (def tc3-dfa (-> tc3-profile per/compile-profile first))
+  
+   (let [dfa        (-> tc3-profile per/compile-profile first)
+         next-stmt  (first tc3-stmt-seq)
+         state-info {}]
+     (per/match-next-statement dfa state-info next-stmt)))

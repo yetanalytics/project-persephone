@@ -33,7 +33,13 @@
                  dorothy/dorothy  {:mvn/version "0.0.7"}}}
   :test
   {:extra-paths ["src/test" "test-resources"]
-   :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}}}
+   :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}
+                 com.yetanalytics/datasim
+                 {:git/url    "git@github.com:yetanalytics/datasim.git"
+                  :sha        "09748698bbdbb29934e3970dca66b0aa98c9271c"
+                  :exclusions [org.clojure/test.check
+                               com.yetanalytics/project-pan
+                               com.yetanalytics/xapi-schema]}}}
   :runner-clj
   {:extra-deps {com.cognitect/test-runner
                 {:git/url "https://github.com/cognitect-labs/test-runner"

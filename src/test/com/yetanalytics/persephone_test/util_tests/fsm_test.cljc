@@ -249,10 +249,10 @@
             :states      #{0 1 2 3}
             :start       2
             :accepts     #{3}
-                          :transitions {2 {:epsilon #{0}}
-                                        0 {"a" #{1}}
-                                        1 {:epsilon #{0 3}}
-                                        3 {}}}
+            :transitions {2 {:epsilon #{0}}
+                          0 {"a" #{1}}
+                          1 {:epsilon #{0 3}}
+                          3 {}}}
            (fsm/plus-nfa a-fsm)))
     (is (= {:type        :nfa
             :symbols     {"a" is-a?}
@@ -529,7 +529,7 @@
             :start       #{0}
             :accepts     #{#{1}}
             :transitions {#{0} {"a" #{0}, "b" #{1}}, #{1} {"a" #{1}}}}
-         (fsm/minimize-dfa
+           (fsm/minimize-dfa
             {:type        :dfa
              :symbols     {"a" is-a? "b" is-b?}
              :states      #{0 1 2 3 4 5}
@@ -598,23 +598,49 @@
 
 (deftest read-next-test
   (testing "The read-next function."
-    (is (= {:state     #{1}
+    (is (= {:states    #{#{1}}
             :accepted? true
             :rejected? false}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
-    (is (= {:state       nil
+    (is (= {:states      #{}
             :accepted?   false
             :rejected?   true}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
-    (is (= {:state     nil
+    (is (= {:states    #{}
             :accepted? false
             :rejected? true}
            (-> a-fsm
                fsm/nfa->dfa
-               (fsm/read-next {:state #{1} :accepted? true} "a"))))
-    (is (= {:state     #{3}
+               (fsm/read-next {:states #{#{1}} :accepted? true} "a"))))
+    (is (= {:states    #{#{3}}
             :accepted? true
             :rejected? false}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]
-             (-> nil (read-nxt "a") (read-nxt "b")))))))
+             (-> nil (read-nxt "a") (read-nxt "b"))))))
+  (testing "The read-next function when multiple transitions can be accepted"
+    (let [num-fsm {:type :dfa
+                   :symbols {"even" even? "lt10" (fn [x] (< x 10))}
+                   :states #{0 1 2 3 4 5 6}
+                   :start 0
+                   :accepts #{3 4 5 6}
+                   :transitions {0 {"even" 1 "lt10" 2}
+                                 1 {"even" 3 "lt10" 4}
+                                 2 {"even" 5 "lt10" 6}
+                                 3 {}
+                                 4 {}
+                                 5 {}
+                                 6 {}}}
+          read-nxt (partial fsm/read-next num-fsm)]
+      (is (= {:states    #{1 2}
+              :accepted? false
+              :rejected? false}
+             (-> nil (read-nxt 2))))
+      (is (= {:states    #{3 4 5 6}
+              :accepted? true
+              :rejected? false}
+             (-> nil (read-nxt 2) (read-nxt 4))))
+      (is (= {:states    #{}
+              :accepted? false
+              :rejected? true}
+             (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))

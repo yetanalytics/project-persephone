@@ -374,13 +374,13 @@
 
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
-    (is (= {:state     (-> template-1-fsm :accepts first)
+    (is (= {:states    #{(-> template-1-fsm :accepts first)}
             :accepted? true
             :rejected? false}
            (fsm/read-next template-1-fsm
                           nil
                           {"verb" {"id" "http://foo.org/verb1"}})))
-    (is (= {:state     nil
+    (is (= {:states    #{}
             :accepted? false
             :rejected? true}
            (fsm/read-next template-1-fsm

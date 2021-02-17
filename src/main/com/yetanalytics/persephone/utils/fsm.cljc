@@ -497,19 +497,20 @@
 ;; TODO: Handle situations when number of states returned is greater than 1.
 
 (defn- read-next*
-  "Like read-next, except it takes in the state directly, rather than state
-   info. The read-next function is more useful for threading."
+  "Like read-next, except it takes in the state directly, rather than
+   state info. Returns a set of destination states.
+   The read-next function is more useful for threading."
   [{symbols :symbols accepts :accepts transitions :transitions} state input]
   (if-let [trans (-> transitions (get state))]
     (let [dests
           (->> trans
-               (filterv (fn [[symb _]]
-                          (let [pred? (get symbols symb)] (pred? input))))
+               (filterv (fn [[symb _]] (let [pred? (get symbols symb)]
+                                         (pred? input))))
                (mapv (fn [[_ dest]] dest)))]
-      {:state     (first dests)
-       :accepted? (boolean
-                   (seq (filterv (partial contains? accepts) dests)))
-       :rejected? (nil? (first dests))})
+      {:states    (set dests)
+       :accepted? (-> (filterv (partial contains? accepts) dests)
+                      not-empty
+                      boolean)})
     (let [err-msg "State not found in the finite state machine"]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
@@ -517,21 +518,26 @@
 (defn read-next
   "Given a compiled FSM, the current state info, and an input, let
    the FSM read that input; this function returns update state info.
-   The state info map has the following fields:
-     :next-state  The next state arrived at in the FSM after reading
-                  the input. If the FSM cannot read the input, then
-                  next-state is nil.
+   The state info has the following fields:
+     :states      The set of next states arrived at in the FSM
+                  after reading the input.
      :accepted?   True if the FSM as arrived at an accept state
                   after reading the input; false otherwise.
-     :rejected?   True if the FSM will not be able to read any more
-                  states, false otherwise. True iff :next-state
-                  is nil.
-   If state-info is nil, the function starts at the start state.
-   If the state value is nil, or if input is nil, return state-info
-   without calling the FSM."
-  [{start :start accepts :accepts :as dfa} state-info input]
-  (let [state       (if (nil? state-info) start (:state state-info))
-        is-accepted (contains? accepts state)]
-    (if-not (or (nil? state) (nil? input))
-      (read-next* dfa state input)
-      {:state state :accepted? is-accepted :rejected? true})))
+     :rejected?   True if the FSM was not able to read any more
+                  states, false otherwise. If :states is
+                  empty, then :rejected? is true.
+   If the state info is nil, the function starts at the start state.
+   If :states is empty or if input is nil, return state-info without
+   calling the FSM, and set :rejected? to true."
+  [{start :start :as dfa} {accepted? :accepted? :as state-info} input]
+  (let [states      (if (nil? state-info) #{start} (:states state-info))]
+    (if-not (or (empty? states) (nil? input))
+      (reduce (fn [{:keys [states accepted? rejected?] :as acc}
+                   {m-states :states m-accepted? :accepted?}]
+                (-> acc
+                    (assoc :states (cset/union states m-states))
+                    (assoc :accepted? (or accepted? m-accepted?))
+                    (assoc :rejected? (and rejected? (empty? m-states)))))
+              {:states #{} :accepted? false :rejected? true}
+              (map #(read-next* dfa % input) states))
+      {:states states :accepted? accepted? :rejected? true})))

@@ -1,7 +1,10 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
             [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
+
+;; Spec + util tests
 
 (deftest fsm-spec-tests
   (testing "NFA specs"
@@ -52,13 +55,13 @@
                                   :transitions {0 {"b" #{1}}
                                                 1 {}}}))))
   (testing "DFA specs"
-    (is (s/valid? ::fsm/dfa {:type        :dfa
-                             :symbols     {"a" odd?}
-                             :states      #{0 1}
-                             :start       0
-                             :accepts     #{0}
-                             :transitions {0 {"a" 0}
-                                           1 {}}}))
+    (is (s/explain-data ::fsm/dfa {:type        :dfa
+                                   :symbols     {"a" odd?}
+                                   :states      #{0 1}
+                                   :start       0
+                                   :accepts     #{0}
+                                   :transitions {0 {"a" 0}
+                                                 1 {}}}))
     ;; Destinations cannot be sets
     (is (not (s/valid? ::fsm/dfa {:type        :dfa
                                   :symbols     {"a" odd?}
@@ -116,6 +119,8 @@
               :start       #{0 1 2 3 4 5}
               :accepts     #{#{0 1 2 3 4 5}}
               :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}])))))
+
+;; Create building blocks
 
 (fsm/reset-counter)
 
@@ -718,3 +723,22 @@
               :accepted? false
               :rejected? true}
              (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))
+
+;; Generative tests
+
+(deftest generative-tests
+  (let [results
+        (stest/check #{`fsm/alphatize-states-fsm
+                       `fsm/alphatize-states
+                       `fsm/transition-nfa
+                       `fsm/concat-nfa
+                       `fsm/union-nfa
+                       `fsm/kleene-nfa
+                       `fsm/optional-nfa
+                       `fsm/plus-nfa
+                       `fsm/nfa->dfa
+                       `fsm/minimize-dfa}
+                     {:clojure.spec.test.check/opts {:num-tests 2}})
+        {:keys [total check-passed]}
+        (stest/summarize-results results)]
+    (is (= total check-passed))))

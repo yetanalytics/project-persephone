@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm
-  (:require [clojure.set :as cset]))
+  (:require [clojure.spec.alpha :as s]
+            [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -38,8 +39,8 @@
 ;;  :accepts     #{state ...}
 ;;  :transitions {state {symbol #{state ...} ...} ...}
 ;; }
-;; where "symbol" is a string or keyword, "predicate" is a predicate function,
-;; and "state" is a number.
+;; where "symbol" is some key, "predicate" is a predicate function, and "state"
+;; is a number.
 ;; 
 ;; We encode a DFA as the following:
 ;; {:symbols     {symbol predicate ...}
@@ -63,6 +64,99 @@
 ;;   https://en.wikipedia.org/wiki/Powerset_construction
 ;; - DFA minimization:
 ;;   https://en.wikipedia.org/wiki/DFA_minimization
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Specs + Spec Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn valid-start-state?
+  "Is the start state in the state set?"
+  [{:keys [states start] :as _fsm}]
+  (contains? states start))
+
+(defn valid-accept-states?
+  "Are all the accept states in the state set?"
+  [{:keys [states accepts] :as _fsm}]
+  (cset/superset? states accepts))
+
+(defn valid-transition-src-states?
+  "Are all source states in the transition table in the state set?"
+  [{:keys [states transitions] :as _fsm}]
+  (let [trans-srcs (reduce-kv (fn [acc src _] (conj acc src)) #{} transitions)]
+    (= states trans-srcs)))
+
+(defn- valid-transition-dest-states?
+  [collect-dest-fn {:keys [states transitions] :as _fsm}]
+  (letfn [(is-valid-trans-dests?
+           [trans]
+           (cset/superset?
+            states
+            (reduce-kv (fn [acc _ dests] (collect-dest-fn acc dests))
+                       #{}
+                       trans)))]
+    (nil? (some (complement is-valid-trans-dests?) (vals transitions)))))
+
+(defn valid-transition-dest-states-nfa?
+  "Are all dest states in the transition table in the NFA's state set?"
+  [nfa]
+  (valid-transition-dest-states? (fn [acc dests] (cset/union acc dests)) nfa))
+
+(defn valid-transition-dest-states-dfa?
+  "Are all dest states in the transition table in the DFA's state set?"
+  [dfa]
+  (valid-transition-dest-states? (fn [acc dest] (conj acc dest)) dfa))
+
+(defn valid-transition-symbols?
+  "Are all the symbols in the transition table in the alphabet?"
+  [{:keys [symbols transitions] :as _fsm}]
+  (let [trans-symbols
+        (reduce-kv (fn [acc _ trans]
+                     (cset/union acc
+                                 (reduce-kv (fn [acc sym _] (conj acc sym))
+                                            #{}
+                                            trans)))
+                   #{}
+                   transitions)]
+    (cset/superset? symbols trans-symbols)))
+
+(s/def :fsm/type (s/or :dfa #(= :dfa %) :nfa #(= :nfa %)))
+(s/def :fsm/symbols (s/every-kv any? fn?))
+
+(s/def :nfa/state int?)
+(s/def :nfa/states (s/coll-of :nfa/state :kind set? :min-count 1))
+(s/def :nfa/start :nfa/state)
+(s/def :nfa/accepts (s/coll-of :nfa/state :kind set?))
+(s/def :nfa/transitions (s/map-of :nfa/state (s/map-of any? :nfa/states)))
+(s/def ::nfa (s/and (s/keys :req-un [:fsm/type
+                                     :fsm/symbols
+                                     :nfa/states
+                                     :nfa/start
+                                     :nfa/accepts
+                                     :nfa/transitions])
+                    valid-start-state?
+                    valid-accept-states?
+                    valid-transition-src-states?
+                    valid-transition-dest-states-nfa?
+                    valid-transition-symbols?))
+
+(s/def :dfa/state (s/or :int int? :set (s/coll-of int? :kind set?)))
+(s/def :dfa/states (s/coll-of :dfa/state :kind set? :min-count 1))
+(s/def :dfa/start :dfa/state)
+(s/def :dfa/accepts (s/coll-of :dfa/state :kind set?))
+(s/def :dfa/transitions (s/map-of :dfa/state (s/map-of any? :dfa/state)))
+(s/def ::dfa (s/and (s/keys :req-un [:fsm/type
+                                     :fsm/symbols
+                                     :dfa/states
+                                     :dfa/start
+                                     :dfa/accepts
+                                     :dfa/transitions])
+                    valid-start-state?
+                    valid-accept-states?
+                    valid-transition-src-states?
+                    valid-transition-dest-states-dfa?
+                    valid-transition-symbols?))
+
+(s/def ::fsm (s/or :nfa ::nfa :dfa ::dfa))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utilities

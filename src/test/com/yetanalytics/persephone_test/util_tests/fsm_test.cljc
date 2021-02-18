@@ -1,6 +1,80 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
+            [clojure.spec.alpha :as s]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
+
+(deftest fsm-spec-tests
+  (testing "NFA specs"
+    (is (s/valid? ::fsm/nfa {:type        :nfa
+                             :symbols     {"a" odd?}
+                             :states      #{0 1}
+                             :start       0
+                             :accepts     #{1}
+                             :transitions {0 {"a" #{1}}
+                                           1 {}}}))
+    ;; Invalid start state
+    (is (not (s/valid? ::fsm/nfa {:type        :nfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       2
+                                  :accepts     #{1}
+                                  :transitions {0 {"a" #{1}}
+                                                1 {}}})))
+    ;; Invalid accept states
+    (is (not (s/valid? ::fsm/nfa {:type        :nfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{1 2}
+                                  :transitions {0 {"a" #{1}}
+                                                1 {}}})))
+    ;; Missing transition src states
+    (is (not (s/valid? ::fsm/nfa {:type        :nfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{1 2}
+                                  :transitions {0 {"a" #{1}}}})))
+    ;; Invalid transition dest states
+    (is (not (s/valid? ::fsm/nfa {:type        :nfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{1}
+                                  :transitions {0 {"a" #{1 2}}
+                                                1 {}}})))
+    ;; Invalid transition symbol
+    (is (not (s/valid? ::fsm/nfa {:type        :nfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{1}
+                                  :transitions {0 {"b" #{1}}
+                                                1 {}}}))))
+  (testing "DFA specs"
+    (is (s/valid? ::fsm/dfa {:type        :dfa
+                             :symbols     {"a" odd?}
+                             :states      #{0 1}
+                             :start       0
+                             :accepts     #{0}
+                             :transitions {0 {"a" 0}
+                                           1 {}}}))
+    ;; Destinations cannot be sets
+    (is (not (s/valid? ::fsm/dfa {:type        :dfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{0}
+                                  :transitions {0 {"a" #{0}}
+                                                1 {}}})))
+    ;; Invalid transition dest states
+    (is (not (s/valid? ::fsm/dfa {:type        :dfa
+                                  :symbols     {"a" odd?}
+                                  :states      #{0 1}
+                                  :start       0
+                                  :accepts     #{0}
+                                  :transitions {0 {"a" 0}
+                                                1 {"a" 2}}})))))
 
 (deftest alphatize-states-test
   (testing "State alphatization"

@@ -115,23 +115,23 @@
     :else node))
 
 (defn pattern-tree->fsm
-  "Turn a Pattern tree data structure into an FSM using a post-order DFS tree
-   traversal."
+  "Turn a Pattern tree data structure into an FSM using a post-order
+   DFS tree traversal."
   [pattern-tree]
   (fsm/reset-counter)
-  (->> pattern-tree
-       (w/postwalk pattern->fsm)
-       fsm/nfa->dfa
-       fsm/minimize-dfa
-       fsm/alphatize-states-fsm))
+  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
 
 (defn profile->fsms
-  "Pipeline function that turns a Profile into a vectors of FSMs that can
-   perform Statement validation. Each entry corresponds to a primary Pattern.
+  "Given a Profile, returns a map between primary Pattern IDs and
+   their respective FSMs that can perform Statement validation.
    Assumes a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]
-    (mapv (fn [pattern]
-            (-> pattern (grow-pattern-tree temp-pat-map) pattern-tree->fsm))
-          pattern-seq)))
+    (reduce (fn [acc {pat-id :id :as pattern}]
+              (let [pat-fsm (-> pattern
+                                (grow-pattern-tree temp-pat-map)
+                                pattern-tree->fsm)]
+                (assoc acc pat-id pat-fsm)))
+            {}
+            pattern-seq)))

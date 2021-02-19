@@ -1,7 +1,6 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha :as s]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.pan.utils.json :refer [convert-json]]
             [com.yetanalytics.pan.objects.template :as pan-template]
             [com.yetanalytics.persephone.template-validation :as t]
             [com.yetanalytics.persephone.pattern-validation :as p]
@@ -61,7 +60,7 @@
                 :or   {fn-type            :predicate
                        validate-template? true}}]
   (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
-        template  (if (string? temp) (json/json->edn temp) temp)]
+        template  (if (string? temp) (json/json->edn temp :keywordize? true) temp)]
     (when validate-template? (assert-template template))
     (let [errs (t/validate-statement template statement)]
       (case fn-type
@@ -102,14 +101,14 @@
   [prof stmt & {:keys [fn-type validate-profile?]
                 :or   {fn-type           :predicate
                        validate-profile? true}}]
-  (let [statement   (if (string? stmt) (json/json->edn stmt) stmt)
-        profile     (if (string? prof) (convert-json prof) prof)
-        reduce-fn   (fn [[template-ids results] template]
-                      (if-let [errs (t/validate-statement template statement)]
-                        [template-ids
-                         (conj results errs)]
-                        [(conj template-ids (:id template))
-                         results]))]
+  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
+        profile   (if (string? prof) (json/json->edn prof :keywordize? true) prof)
+        reduce-fn (fn [[template-ids results] template]
+                    (if-let [errs (t/validate-statement template statement)]
+                      [template-ids
+                       (conj results errs)]
+                      [(conj template-ids (:id template))
+                       results]))]
     (when validate-profile? (assert-profile profile))
     (let [[tmpl-ids errors] (reduce reduce-fn [[] []] (:templates profile))
           is-passed         (or (empty? (:templates profile)) ; vacuously true
@@ -138,9 +137,7 @@
    profile."
   [profile]
   (let [profile (if (string? profile)
-                  ; JSON (need to remove @ char)
-                  (convert-json profile "_")
-                  ; EDN
+                  (json/json->edn profile :keywordize? true)
                   profile)]
     ;; TODO: Make assert-profile toggleable?
     (assert-profile profile)
@@ -179,8 +176,8 @@
   [pat-fsm curr-states-info stmt]
   (assert-dfa pat-fsm)
   (let [statement    (if (string? stmt) (json/json->edn stmt) stmt)
-        registration (get-in ["context" "registration"]
-                             statement
+        registration (get-in statement
+                             ["context" "registration"]
                              :no-registration)]
     (update curr-states-info
             registration

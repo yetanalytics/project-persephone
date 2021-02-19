@@ -1,7 +1,6 @@
 {
  :install-deps true
- :npm-deps     {"jsonpath"   "1.1.0"
-                ; From project-pan
+ :npm-deps     {; From project-pan
                 ; Somehow this is not being installed even though the docs say
                 ; upstream npm deps are installed when :install-deps is true.
                 "jsonschema" "1.4.0"}

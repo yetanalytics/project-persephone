@@ -2,7 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.pathetic :as json-path]
             [com.yetanalytics.persephone.utils.errors :as emsg])
   #?(:cljs (:require-macros [com.yetanalytics.persephone.template-validation
                              :refer [add-spec]])))
@@ -55,8 +55,8 @@
 (defn all-matchable?
   "Returns true iff every value in `coll` is matchable."
   [coll]
-  (and (not-empty coll)
-       (every? some? coll)))
+  (or (empty? coll)
+      (every? some? coll)))
 
 (defn none-matchable?
   "Returns true iff no value in `coll` is matchable."
@@ -64,15 +64,9 @@
   (->> coll (filterv some?) empty?))
 
 (defn any-matchable?
-  "Returns true iff at least one value in `coll` is matchable."
+  "Returns true iff at least one matchable value in `coll` exists."
   [coll]
   (->> coll (filterv some?) not-empty boolean))
-
-(defn none-unmatchable?
-  "Returns true iff no values in `coll` are unmatchable."
-  [coll]
-  (and (not-empty coll)
-       (->> coll (filterv nil?) empty?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicates.
@@ -90,34 +84,40 @@
 ;; If 'any' is provided, evaluated values MUST include at least one value
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
-(defn any-values?
+(defn some-any-values?
   "Return true if there's at least one value in 'any'; false otherwise."
   [any-coll values-coll]
   (presence-pred-fn any-coll
-                    values-coll
+                    (filter some? values-coll)
                     (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
 
-;; If 'all' is provided, evaluated values MUST only include values in 'all'
-;; and MUST NOT include any unmatchable values. In other words, the set of
-;; 'all' MUST be a superset of the evaluated values.
-(defn all-values?
+;; If 'all' is provided, evaluated values MUST only include values in 'all'.
+;; In other words, the set of 'all' MUST be a superset of the evaluated values.
+(defn only-all-values?
   "Return true is every value is in 'all'; false otherwise."
   [all-coll values-coll]
-  (if-not (all-matchable? values-coll)
-    false
-    (presence-pred-fn all-coll
-                      values-coll
-                      (fn [p v] (and (all-matchable? v) (cset/subset? v p))))))
+  (presence-pred-fn all-coll
+                    (filter some? values-coll)
+                    (fn [p v] (cset/subset? v p))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
 ;; intersect.
-(defn none-values?
+(defn no-none-values?
   "Return true if there are no values in 'none'; false otherwise."
   [none-coll values-coll]
   (presence-pred-fn none-coll
-                    values-coll
+                    (filter some? values-coll)
                     (fn [p v] (-> (cset/intersection v p) empty?))))
+
+;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
+;; values.
+(defn no-unmatch-vals?
+  "Return true if no unmatchable values exist; false otherwise."
+  [presence-coll values-coll]
+  (presence-pred-fn presence-coll
+                    values-coll ;; don't ignore unmatchable values
+                    (fn [_ v] (all-matchable? v))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rule spec creation.
@@ -132,10 +132,10 @@
 (defn create-included-spec
   "Returns a clojure spec for when presence is 'included.'"
   [{:keys [any all none]}]
-  (-> (s/and any-matchable? none-unmatchable?)
-      (add-spec any-values? any)
-      (add-spec all-values? all)
-      (add-spec none-values? none)))
+  (-> (s/and any-matchable? all-matchable?)
+      (add-spec some-any-values? any)
+      (add-spec only-all-values? all) ;; no-unmatch-vals? is redundant
+      (add-spec no-none-values? none)))
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
@@ -152,11 +152,12 @@
 (defn create-default-spec
   "Returns a predicate for when presence is 'recommended' or is missing."
   [{:keys [any all none]}]
-  (s/or :no-matchables   none-matchable?
-        :some-matchables (-> (s/and any-matchable? none-unmatchable?)
-                             (add-spec any-values? any)
-                             (add-spec all-values? all)
-                             (add-spec none-values? none))))
+  (s/or :some-matchables (-> (s/spec any-matchable?)
+                             (add-spec some-any-values? any)
+                             (add-spec only-all-values? all)
+                             (add-spec no-unmatch-vals? all)
+                             (add-spec no-none-values? none))
+        :no-matchables   (s/spec none-matchable?)))
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
@@ -172,9 +173,8 @@
 ;; Should never happen with a validated Statement Template or Profile
 (defn- assert-valid-rule
   [rule]
-  (if-let [err (s/explain-data ::rule rule)]
-    (throw (ex-info "Invalid Rule!" err))
-    nil))
+  (when-let [err (s/explain-data ::rule rule)]
+    (throw (ex-info "Invalid Rule!" err))))
 
 (defn create-rule-spec
   "Given a rule, create a spec that will validate a Statement against it."
@@ -191,22 +191,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn find-values
-  "Using the 'location' and 'selector' JSONPath strings, return the evaluated 
-  values from a Statement as a vector."
-  [statement location & [selector]]
-  (let [locations (json/split-json-path location)
-        values (json/read-json-paths statement locations)]
-    (if-not (some? selector)
-      values
-      ;; there's a selector
-      (letfn [(format-selector [sel]
-                ;; format for use within `evaluate-paths`
-                (-> sel (string/replace #"(\$)" "$1[*]") json/split-json-path))]
-        (->> selector
-             format-selector
-             ;; dive one level deeper into original location query results
-             ;; - navigate into the results given selector location string
-             (json/read-json-paths values))))))
+  "Given a Statement, a location JSONPath string, and an optional selector
+   JSONPath string, return a vector of the selected values. Unmatchable
+   values are returned as nils."
+  [stmt loc-path & [select-path]]
+  (let [locations (json-path/get-values stmt loc-path :return-missing? true)]
+    (if-not select-path
+      ;; No selector - return locations
+      locations
+      ;; Locations is a JSON array, so we can query it using the selector
+      ;; by adding a wildcard at the beginning
+      (let [select-path' (string/replace select-path #"(\$)" "$1[*]")]
+        (json-path/get-values locations select-path' :return-missing? true)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties

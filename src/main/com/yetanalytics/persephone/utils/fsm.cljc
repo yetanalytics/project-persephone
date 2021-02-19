@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone.utils.fsm
   (:require [clojure.spec.alpha :as s]
-            [clojure.test.check.generators :as gen]
-            [clojure.set :as cset]))
+            [clojure.set :as cset]
+            [com.yetanalytics.persephone.utils.fsm-specs :as fs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -67,250 +67,6 @@
 ;;   https://en.wikipedia.org/wiki/DFA_minimization
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Specs + Spec Functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Validation fns
-
-(defn- alphatized-states? [states]
-  (and (every? int? states)
-       (= states (set (range 0 (count states))))))
-
-(defn- alphatized-fsm? [{states :states}]
-  (alphatized-states? states))
-
-(defn- non-access-start?
-  "Is the start state of the NFA not accessible from any other state?"
-  [{:keys [start transitions] :as _nfa}]
-  (every? (fn [[_ trans]]
-            (every? (fn [[_ dest]] (not= start dest))
-                    trans))
-          transitions))
-
-(defn- non-coaccess-accept?
-  "Is there (a) only one accept state and (b) it is not co-accessible
-   from any other state, i.e. it cannot access any other state?"
-  [{:keys [accepts transitions] :as _nfa}]
-  (and (= 1 (count accepts))
-       (= {} (get transitions (first accepts)))))
-
-(defn valid-start-state?
-  "Is the start state in the state set?"
-  [{:keys [states start] :as _fsm}]
-  (contains? states start))
-
-(defn valid-accept-states?
-  "Are all the accept states in the state set?"
-  [{:keys [states accepts] :as _fsm}]
-  (cset/superset? states accepts))
-
-(defn valid-transition-src-states?
-  "Are all source states in the transition table in the state set?"
-  [{:keys [states transitions] :as _fsm}]
-  (let [trans-srcs (reduce-kv (fn [acc src _] (conj acc src))
-                              #{}
-                              transitions)]
-    (= states trans-srcs)))
-
-(defn- valid-transition-dest-states?
-  [collect-dest-fn {:keys [states transitions] :as _fsm}]
-  (letfn [(is-valid-trans-dests?
-            [trans]
-            (cset/superset?
-             states
-             (reduce-kv (fn [acc _ dests] (collect-dest-fn acc dests))
-                        #{}
-                        trans)))]
-    (nil? (some (complement is-valid-trans-dests?) (vals transitions)))))
-
-(defn valid-transition-dest-states-nfa?
-  "Are all dest states in the transition table in the NFA's state set?"
-  [nfa]
-  (valid-transition-dest-states? (fn [acc dests] (cset/union acc dests)) nfa))
-
-(defn valid-transition-dest-states-dfa?
-  "Are all dest states in the transition table in the DFA's state set?"
-  [dfa]
-  (valid-transition-dest-states? (fn [acc dest] (conj acc dest)) dfa))
-
-(defn- valid-transition-symbols?
-  "Are all the symbols in the transition table in the alphabet?"
-  [conj-epsilon? {:keys [symbols transitions] :as _fsm}]
-  (let [symbols
-        (if conj-epsilon?
-          (conj symbols [:epsilon nil])
-          symbols)
-        trans-symbols
-        (reduce-kv (fn [acc _ trans]
-                     (cset/union acc
-                                 (reduce-kv (fn [acc sym _] (conj acc sym))
-                                            #{}
-                                            trans)))
-                   #{}
-                   transitions)]
-    (cset/superset? symbols trans-symbols)))
-
-(defn valid-transition-symbols-nfa?
-  [nfa]
-  (valid-transition-symbols? true nfa))
-
-(defn valid-transition-symbols-dfa?
-  [dfa]
-  (valid-transition-symbols? false dfa))
-
-;; Common specs and generators
-
-(defn- pred-gen []
-  (gen/fmap (fn [s] #(contains? s %))
-            (gen/set gen/any-equatable {:max-elements 10})))
-
-(s/def :fsm/symbol-id (s/or :keyword keyword? :string string?))
-(s/def :fsm/symbol-pred (s/with-gen fn? pred-gen))
-(s/def :fsm/symbols (s/every-kv :fsm/symbol-id
-                                :fsm/symbol-pred
-                                :min-count 1))
-
-(defn- override-fsm-fn
-  "Use with fgen to replace the value for :start, :accept, and
-   :transition to be conformant with the FSM specs."
-  [symbols start accepts src-states dest-states trans-start select-dests-fn fsm]
-  (-> fsm
-      (assoc :start start)
-      (assoc :accepts accepts)
-      (assoc :transitions
-             (reduce (fn [acc src]
-                       (let [symbs (random-sample 0.33 (keys symbols))
-                             trans (reduce
-                                    (fn [acc sym]
-                                      (assoc acc sym (select-dests-fn
-                                                      dest-states)))
-                                    {}
-                                    symbs)]
-                         (assoc acc src trans)))
-                     trans-start
-                     src-states))))
-
-;; NFA specs and generators
-
-(s/def :nfa/type (s/with-gen #(= :nfa %) (fn [] (gen/return :nfa))))
-(s/def :nfa/state int?)
-(s/def :nfa/states (s/coll-of :nfa/state :kind set? :min-count 1))
-(s/def :nfa/start :nfa/state)
-(s/def :nfa/accepts (s/coll-of :nfa/state :kind set?))
-(s/def :nfa/transitions (s/map-of :nfa/state
-                                  (s/every-kv
-                                   (s/with-gen
-                                     (s/or :symbol :fsm/symbol-id
-                                           :epsilon #(= :epsilon %))
-                                     (fn [] (s/gen :fsm/symbol-id)))
-                                   :nfa/states)))
-(s/def :nfa/nfa (s/keys :req-un [:fsm/symbols
-                                 :nfa/type
-                                 :nfa/states
-                                 :nfa/start
-                                 :nfa/accepts
-                                 :nfa/transitions]))
-
-(defn- nfa-gen []
-  (gen/fmap (fn [{:keys [symbols states] :as nfa}]
-              (override-fsm-fn (conj symbols [:epsilon nil])
-                               (rand-nth (seq states))
-                               (set (random-sample 0.33 states))
-                               states
-                               states
-                               {}
-                               (fn [s] (set (random-sample 0.25 s)))
-                               nfa))
-            (s/gen :nfa/nfa)))
-
-(s/def ::nfa (s/with-gen (s/and :nfa/nfa
-                                valid-start-state?
-                                valid-accept-states?
-                                valid-transition-src-states?
-                                valid-transition-dest-states-nfa?
-                                valid-transition-symbols-nfa?)
-               nfa-gen))
-
-(defn- tnfa-gen []
-  (gen/fmap (fn [{:keys [symbols states] :as nfa}]
-              (let [start  (rand-nth (seq states))
-                    accept (rand-nth (seq states))]
-                (override-fsm-fn (conj symbols [:epsilon nil])
-                                 start
-                                 #{accept}
-                                 (disj states accept)
-                                 (disj states start)
-                                 {accept {}}
-                                 (fn [s] (set (random-sample 0.25 s)))
-                                 nfa)))
-            (s/gen :nfa/nfa)))
-
-(s/def ::thompsons-nfa (s/with-gen
-                         (s/and :nfa/nfa
-                                valid-start-state?
-                                valid-accept-states?
-                                valid-transition-src-states?
-                                valid-transition-dest-states-nfa?
-                                valid-transition-symbols-nfa?
-                                non-access-start?
-                                non-coaccess-accept?)
-                         tnfa-gen))
-
-;; DFA specs and generators
-
-(s/def :dfa/type (s/with-gen #(= :dfa %) (fn [] (gen/return :dfa))))
-
-(s/def :int-dfa/state int?)
-(s/def :int-dfa/states (s/coll-of :int-dfa/state :kind set? :min-count 1))
-(s/def :int-dfa/start :int-dfa/state)
-(s/def :int-dfa/accepts (s/coll-of :int-dfa/state :kind set?))
-(s/def :int-dfa/transitions (s/map-of :int-dfa/state
-                                      (s/map-of :fsm/symbol-id :int-dfa/state)))
-(s/def :int-dfa/dfa (s/keys :req-un [:fsm/symbols
-                                     :dfa/type
-                                     :int-dfa/states
-                                     :int-dfa/start
-                                     :int-dfa/accepts
-                                     :int-dfa/transitions]))
-
-(s/def :set-dfa/state (s/every int? :kind set? :min-count 1))
-(s/def :set-dfa/states (s/coll-of :set-dfa/state :kind set? :min-count 1))
-(s/def :set-dfa/start :set-dfa/state)
-(s/def :set-dfa/accepts (s/coll-of :set-dfa/state :kind set?))
-(s/def :set-dfa/transitions (s/map-of :set-dfa/state
-                                      (s/map-of :fsm/symbol-id :set-dfa/state)))
-(s/def :set-dfa/dfa (s/keys :req-un [:fsm/symbols
-                                     :dfa/type
-                                     :set-dfa/states
-                                     :set-dfa/start
-                                     :set-dfa/accepts
-                                     :set-dfa/transitions]))
-
-(defn- dfa-gen []
-  (gen/fmap (fn [{:keys [symbols states] :as dfa}]
-             (override-fsm-fn symbols
-                              (rand-nth (seq states))
-                              (set (random-sample 0.33 states))
-                              states
-                              states
-                              {}
-                              (fn [s] (rand-nth (seq s)))
-                              dfa))
-            (gen/one-of [(s/gen :int-dfa/dfa) (s/gen :set-dfa/dfa)])))
-
-;; Mut put s/or at end due to tags added to conformed value
-(s/def ::dfa (s/with-gen (s/and valid-start-state?
-                                valid-accept-states?
-                                valid-transition-src-states?
-                                valid-transition-dest-states-dfa?
-                                valid-transition-symbols-dfa?
-                                (s/or :ints :int-dfa/dfa
-                                      :sets :set-dfa/dfa))
-               dfa-gen))
-
-(s/def ::fsm (s/or :nfa ::nfa :dfa ::dfa))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -327,6 +83,13 @@
 
 (defn- new-state []
   (swap! counter (partial + 1)))
+
+;; State counting
+
+(defn- count-states [fsm-coll]
+  (reduce (fn [cnt {:keys [states]}] (+ cnt (count states)))
+          0
+          fsm-coll))
 
 ;; State alphatization
 
@@ -364,8 +127,8 @@
         (update :transitions update-dests))))
 
 (s/fdef alphatize-states-fsm
-  :args (s/cat :fsm ::fsm)
-  :ret (s/and alphatized-fsm? ::fsm)
+  :args (s/cat :fsm ::fs/fsm)
+  :ret ::fs/fsm
   :fn (fn [{:keys [args ret]}]
         (= (count (:states args))
            (count (:states ret)))))
@@ -377,16 +140,11 @@
   (alphatize-states-fsm* fsm))
 
 (s/fdef alphatize-states
-  :args (s/cat :fsm-coll (s/every ::fsm))
-  :ret (s/and (s/every ::fsm)
-              (fn [nfa-coll]
-                (let [states (apply cset/union (map :states nfa-coll))]
-                  (alphatized-states? states))))
-        :fn (fn [{:keys [args ret]}]
-              (= (reduce (fn [cnt {:keys [states]}] (+ cnt (count states)))
-                         0
-                         args)
-                 (count (:states ret)))))
+  :args (s/cat :fsm-coll ::fs/fsm-coll)
+  :ret ::fs/fsm-coll
+  :fn (fn [{:keys [args ret]}]
+        (= (count-states args)
+           (count (:states ret)))))
 
 (defn alphatize-states
   "Rename all states in a collection of FSMs such that no two states share the
@@ -413,12 +171,14 @@
           transitions
           sources))
 
+;; Misc asserts and predicates
+
 (defn- assert-nonempty-fsm-coll
   [fsm-coll fn-name]
   (when (empty? fsm-coll)
     (throw (ex-info (str fn-name " is undefined for empty FSM collection.")
-                    {:error :empty-fsm-coll
-                     :fn    (keyword fn-name)}))))
+                    {:type :empty-fsm-coll
+                     :fn   (keyword fn-name)}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA Construction Functions
@@ -428,9 +188,10 @@
 ;; x ---> a
 
 (s/fdef transition-nfa
-  :args (s/cat :fn-symbol :fsm/symbol-id
-               :f :fsm/symbol-pred)
-  :ret (s/and ::thompsons-nfa))
+  :args (s/cat :fn-symbol ::fs/symbol-id
+               :f ::fs/symbol-pred)
+  :ret (and ::fs/thompsons-nfa
+            (fn [{:keys [states]}] (= 2 (count states)))))
 
 (defn transition-nfa
   "Create an NFA that accepts a single input."
@@ -446,8 +207,10 @@
 ;; -> q ==> s --> s ==> a
 
 (s/fdef concat-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1))
-  :ret (s/and ::thompsons-nfa alphatized-fsm?))
+  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::fs/thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (count-states (:nfa-coll args)) (count (:states ret)))))
 
 (defn concat-nfa
   "Concat a collection of NFAs in sequential order. The function throws an
@@ -489,8 +252,10 @@
 ;;    + --> s ==> s --^
 
 (s/fdef union-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1))
-  :ret (s/and ::thompsons-nfa alphatized-fsm?))
+  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::fs/thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (+ 2 (count-states (:nfa-coll args))) (count (:states ret)))))
 
 (defn union-nfa
   "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
@@ -521,15 +286,17 @@
 ;;    +-----------------^
 
 (s/fdef kleene-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
 
 (defn kleene-nfa
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
    means the NFA can be taken zero or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -539,22 +306,24 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
 
 (s/fdef optional-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
 
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
    means the NFA may or may not be taken."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -564,22 +333,26 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
       (update new-accept (constantly {})))}))
+
+(update-in {4 {:epsilon #{4}}} [(first #{4}) :epsilon] #(cset/union % #{4}))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 
 (s/fdef plus-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
 
 (defn plus-nfa
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
    means the NFA can be taken one or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -589,7 +362,7 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -723,8 +496,8 @@
                          states)))))))
 
 (s/fdef nfa->dfa
-  :args (s/cat :nfa ::nfa)
-  :ret ::dfa)
+  :args (s/cat :nfa ::fs/nfa)
+  :ret ::fs/dfa)
 
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
@@ -742,8 +515,9 @@
    destination state in the original DFA, this produces a NFA, where the new
    source-symbol pair leads to multiple new destinations."
   [transitions]
-  (letfn [(update-dests [src new-dests]
-            (if (nil? new-dests) #{src} (conj new-dests src)))]
+  (letfn [(update-dests
+           [src new-dests]
+           (if (nil? new-dests) #{src} (conj new-dests src)))]
     (reduce-kv
      (fn [acc src trans]
        (merge-with (partial merge-with cset/union)
@@ -775,25 +549,35 @@
 ;; https://cs.stackexchange.com/questions/105574/proof-of-brzozowskis-algorithm-for-dfa-minimization
 
 (s/fdef minimize-dfa
-  :args (s/cat :dfa (s/with-gen ::dfa
-                                (fn [] (gen/such-that
-                                        #(< 0 (count (:accepts %)))
-                                        (s/gen ::dfa)))))
-  :ret ::dfa
+  :args (s/cat :dfa ::fs/accepting-dfa)
+  :ret ::fs/dfa
   :fn (fn [{:keys [args ret]}]
         (<= (-> ret :states count)
-            (-> args :states count))))
+            (-> args :dfa :states count))))
 
 (defn minimize-dfa
   "Minimize the DFA using Brzozowski's Algorithm, which reverses and
    determinizes the DFA twice."
   [dfa]
-  (assert (< 0 (count (:accepts dfa))))
+  #_(assert (< 0 (count (:accepts dfa))))
   (letfn [(construct-reverse-dfa
             [dfa]
             (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
               (nfa->dfa* rev-dfa (:start rev-dfa))))]
-    (-> dfa construct-reverse-dfa construct-reverse-dfa)))
+    (-> dfa
+        construct-reverse-dfa
+        construct-reverse-dfa
+        alphatize-states-fsm)))
+
+(comment
+  (minimize-dfa
+   {:symbols     {:a odd?}
+    :type        :dfa
+    :states      #{0 1}
+    :start       0
+    :accepts     #{}
+    :transitions {0 {}
+                  1 {}}}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading

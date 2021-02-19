@@ -24,12 +24,14 @@ accomplished via these two functions:
 The other task is to validate streams/collections of Statements against
 Patterns, which are accomplished by the following functions:
 - `compile-profile`: Takes a Profile and compiles it to a form usable by
-  the library to validate Statement streams. Returns a vector of compiled
-  Patterns.
-- `match-next-statement`: Takes a compiled Pattern, a current state info
-  map, and a Statement, and matches the Statement against the Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
-- `match-next-statement*`: Same as above, except that it assumes that all
-  Statements have the same `registration` property.
+  the library to validate Statement streams. Returns a map between
+  primary Pattern IDs and their respective compiled Patterns.
+- `match-next-statement`: Takes a compiled Profile, a current state info
+  map that is the return value of a previous `match-next-statement` call,
+  and a Statement, and matches the Statement against the Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
+- `match-next-statement*`: Takes a single compiled Pattern, a current
+  state info map that is the return value of a previous `match-next-statement*`
+  call, and a Statement, and matches the Statement against that Pattern.
 
 ### Validation on Statement Template
 
@@ -130,10 +132,10 @@ least one time. Equivalent of the `+` operator in a regex.
 - `optional`: The Pattern matches if the Template or Pattern matches exactly
 once, or not at all. Equivalent of the `?` operator in a regex.
 
-Using `match-next-statement`, a compiled Pattern can read a stream of 
-Statements (e.g. from a Kafka stream); in addition to the compiled Pattern 
-and a Statement, the function also takes a current state info map, which
-is an association between registration IDs and a map of the following fields:
+Using `match-next-statement`, a compiled Profile can read a stream of 
+Statements (e.g. from a Kafka stream). Each call to `match-next-statement`
+returns a map between Statement registration values and a map between
+Pattern IDs to state info. Each state info map has the following fields:
 - `:state` - The state that the FSM is currently at.
 - `:accepted?` - Whether the current state is an accept state; this indicates
   that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
@@ -141,13 +143,19 @@ is an association between registration IDs and a map of the following fields:
   If this is set to `true`, this signifies that the Statement stream fails
   to conform to the Pattern.
 
-`match-next-statement*` is similar, except the current state info map is a
-map containing the above three fields.
+That state info map is the return value for `match-next-statement*`, which
+is designed to be used with single Patterns instead of a whole Profile.
 
-If the state info map is `nil`, then `read-next-statement` will begin at the
+If the state info map is `nil`, then `read-next-statement*` will begin at the
 start state of the FSM. If the `state` value is `nil`, then 
-`read-next-statement` will return the same map, since it cannot read any m
-ore states; otherwise, it returns an updated map with a new `state` value.
+`read-next-statement*` will return the same map, since it cannot read any m
+ore states; otherwise, it returns an updated map with a new `:state` value.
+
+`match-next-statement` attempts to call `match-next-statement*` on each
+compiled Pattern in the Pattern map. If a sequence of Statements with
+different registrations is passed to `match-next-statement`, then each
+set of same-registration Patterns is treated as its own stream, hence the
+need for a mapping between registrations and state info.
 
 For more information about the technical implementation details (including 
 about the composition, determinization, and minimization of FSMs), please 

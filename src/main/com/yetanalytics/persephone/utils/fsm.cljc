@@ -95,17 +95,13 @@
 
 (defn- alphatize-states-fsm*
   [{type :type states :states :as fsm}]
-  (let [states'
-        (if (coll? (first states))
-          (->> states (map sort) (map vec) sort reverse (map set))
-          (->> states sort))
-        old-to-new-state
+  (let [old-to-new-state-map
         (reduce (fn [acc state] (assoc acc state (new-state)))
                 {}
-                states')
+                states)
         old-to-new-state-set
         (fn [states]
-          (->> states (mapv old-to-new-state) (into #{})))
+          (->> states (mapv old-to-new-state-map) (into #{})))
         update-dests
         (fn [transitions]
           (reduce-kv
@@ -114,16 +110,16 @@
                              (fn [acc symb dests]
                                (if (= type :nfa)
                                  (assoc acc symb (old-to-new-state-set dests))
-                                 (assoc acc symb (old-to-new-state dests))))
+                                 (assoc acc symb (old-to-new-state-map dests))))
                              {}
                              trans)))
            {}
            transitions))]
     (-> fsm
         (update :states old-to-new-state-set)
-        (update :start old-to-new-state)
+        (update :start old-to-new-state-map)
         (update :accepts old-to-new-state-set)
-        (update :transitions #(cset/rename-keys % old-to-new-state))
+        (update :transitions #(cset/rename-keys % old-to-new-state-map))
         (update :transitions update-dests))))
 
 (s/fdef alphatize-states-fsm

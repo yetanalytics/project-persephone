@@ -125,15 +125,18 @@
 
 ;; Create building blocks
 
+(defn- sort-states [fsm]
+  (update fsm :states #(apply sorted-set %)))
+
 ;; Predicates
 (defn is-a? [c] (= c "a"))
 (defn is-b? [c] (= c "b"))
 (defn is-c? [c] (= c "c"))
 
 ;; Base FSMs
-(def a-fsm (fsm/transition-nfa "a" is-a?))
-(def b-fsm (fsm/transition-nfa "b" is-b?))
-(def c-fsm (fsm/transition-nfa "c" is-c?))
+(def a-fsm (sort-states (fsm/transition-nfa "a" is-a?)))
+(def b-fsm (sort-states (fsm/transition-nfa "b" is-b?)))
+(def c-fsm (sort-states (fsm/transition-nfa "c" is-c?)))
 
 (deftest basic-fsm-test
   (testing "FSM that accepts a single input, like \"a\" or \"b\"."
@@ -381,7 +384,8 @@
                           3 {:epsilon #{4}}
                           4 {"c" #{5}}
                           5 {}}}
-           (fsm/concat-nfa [a-fsm (fsm/concat-nfa [b-fsm c-fsm])])))
+           (fsm/concat-nfa [a-fsm
+                            (sort-states (fsm/concat-nfa [b-fsm c-fsm]))])))
     ;; Following NFAs have overlapping states - alphatization needed
     (is (= {:type        :nfa
             :symbols     {"a" is-a?
@@ -398,8 +402,8 @@
                           5 {:epsilon #{6}}
                           6 {"c" #{7}}
                           7 {}}}
-           (fsm/concat-nfa [(fsm/concat-nfa [a-fsm b-fsm])
-                            (fsm/concat-nfa [b-fsm c-fsm])])))))
+           (fsm/concat-nfa [(sort-states (fsm/concat-nfa [a-fsm b-fsm]))
+                            (sort-states (fsm/concat-nfa [b-fsm c-fsm]))])))))
 
 (deftest union-of-union-fsm-test
   (testing "Apply the union operation twice."
@@ -419,7 +423,8 @@
                           7 {:epsilon #{9}}
                           8 {:epsilon #{4 6}}
                           9 {}}}
-           (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm]) b-fsm])))))
+           (fsm/union-nfa [(sort-states (fsm/union-nfa [a-fsm b-fsm]))
+                           b-fsm])))))
 
 (deftest concat-of-kleene-test
   (testing "Apply concatenation to Kleene start FSMs."
@@ -435,7 +440,8 @@
                           3 {:epsilon #{4}}
                           4 {"b" #{5}}
                           5 {}}}
-           (fsm/concat-nfa [(fsm/kleene-nfa a-fsm) b-fsm])))))
+           (fsm/concat-nfa [(sort-states (fsm/kleene-nfa a-fsm))
+                            b-fsm])))))
 
 ;; TODO: Write tests for the other FSM combos
 
@@ -620,11 +626,11 @@
             :symbols     {"a" is-a?
                           "b" is-b?}
             :states      #{0 1}
-            :start       0
-            :accepts     #{1}
-            :transitions {0 {"a" 0
-                             "b" 1}
-                          1 {"a" 1}}}
+            :start       1
+            :accepts     #{0}
+            :transitions {1 {"a" 1
+                             "b" 0}
+                          0 {"a" 0}}}
            (fsm/minimize-dfa
             {:type        :dfa
              :symbols     {"a" is-a?
@@ -650,10 +656,10 @@
                           "b" is-b?}
             :states      #{0 1 2}
             :start       2
-            :accepts     #{1}
-            :transitions {0 {"b" 1}
-                          1 {}
-                          2 {"a" 0}}}
+            :accepts     #{0}
+            :transitions {0 {}
+                          1 {"b" 0}
+                          2 {"a" 1}}}
            (-> [a-fsm b-fsm]
                fsm/concat-nfa
                fsm/nfa->dfa
@@ -664,12 +670,12 @@
                           "b" is-b?
                           "c" is-c?}
             :states      #{0 1}
-            :start       0
-            :accepts     #{1}
-            :transitions {0 {"a" 1
-                             "b" 1
-                             "c" 1}
-                          1 {}}}
+            :start       1
+            :accepts     #{0}
+            :transitions {1 {"a" 0
+                             "b" 0
+                             "c" 0}
+                          0 {}}}
            (-> [a-fsm b-fsm c-fsm]
                fsm/union-nfa
                fsm/nfa->dfa
@@ -748,17 +754,18 @@
 (deftest generative-tests
   (let [results
         (stest/check `#{
-                     ;;    fsm/alphatize-states-fsm
-                     ;;    fsm/alphatize-states
-                     ;;    fsm/transition-nfa
-                     ;;    fsm/concat-nfa
-                     ;;    fsm/union-nfa
-                     ;;    fsm/kleene-nfa
-                     ;;    fsm/optional-nfa
-                     ;;    fsm/plus-nfa
-                     ;;    fsm/nfa->dfa
-                        fsm/minimize-dfa}
-                     {:clojure.spec.test.check/opts {:num-tests 5}})
+                        fsm/alphatize-states-fsm
+                        fsm/alphatize-states
+                        fsm/transition-nfa
+                        fsm/concat-nfa
+                        fsm/union-nfa
+                        fsm/kleene-nfa
+                        fsm/optional-nfa
+                        fsm/plus-nfa
+                        fsm/nfa->dfa
+                        fsm/minimize-dfa
+                        }
+                     {:clojure.spec.test.check/opts {:num-tests 10}})
         {:keys [total check-passed]}
         (stest/summarize-results results)]
     (is (= total check-passed))))

@@ -1,5 +1,7 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
+            [clojure.test.check]
+            [clojure.test.check.properties :include-macros true]
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
@@ -262,25 +264,25 @@
                           7 {}}}
            (fsm/union-nfa [a-fsm b-fsm c-fsm])))
     #_(is (= {:type :nfa
-            :symbols {"a" is-a? "b" is-b?}
-            :states #{0 1 2 3}
-            :start 2
-            :accepts #{3}
-            :transitions {2 {:epsilon #{0 1}}
-                          0 {:epsilon #{3}}
-                          1 {:epsilon #{3}}}}
-           (fsm/union-nfa [{:type :nfa
-                            :symbols {"a" is-a?}
-                            :state #{0}
-                            :start 0
-                            :accepts #{0}
-                            :transitions {0 {}}}
-                           {:type :nfa
-                            :symbols {"b" is-b?}
-                            :state #{1}
-                            :start 1
-                            :accepts #{1}
-                            :transitions {1 {}}}])))))
+              :symbols {"a" is-a? "b" is-b?}
+              :states #{0 1 2 3}
+              :start 2
+              :accepts #{3}
+              :transitions {2 {:epsilon #{0 1}}
+                            0 {:epsilon #{3}}
+                            1 {:epsilon #{3}}}}
+             (fsm/union-nfa [{:type :nfa
+                              :symbols {"a" is-a?}
+                              :state #{0}
+                              :start 0
+                              :accepts #{0}
+                              :transitions {0 {}}}
+                             {:type :nfa
+                              :symbols {"b" is-b?}
+                              :state #{1}
+                              :start 1
+                              :accepts #{1}
+                              :transitions {1 {}}}])))))
 
 (deftest kleene-fsm-test
   (testing "FSM via applying the Kleene star operation on a smaller FSM."
@@ -690,14 +692,25 @@
                           1 {}}}
            (-> a-fsm fsm/optional-nfa fsm/nfa->dfa fsm/minimize-dfa)))
     ;; Plus: structually identical
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{1 0}
-            :start       1
-            :accepts     #{0}
-            :transitions {1 {"a" 0}
-                          0 {"a" 0}}}
-           (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))))
+    ;; TODO: Identify why clj vs cljs discrepancy happens
+    #?(:clj
+       (is (= {:type        :dfa
+               :symbols     {"a" is-a?}
+               :states      #{0 1}
+               :start       1
+               :accepts     #{0}
+               :transitions {0 {"a" 0}
+                             1 {"a" 0}}}
+              (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))
+       :cljs
+       (is (= {:type        :dfa
+               :symbols     {"a" is-a?}
+               :states      #{0 1}
+               :start       0
+               :accepts     #{1}
+               :transitions {0 {"a" 1}
+                             1 {"a" 1}}}
+              (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa))))))
 
 (deftest read-next-test
   (testing "The read-next function."
@@ -743,21 +756,19 @@
 
 ;; Generative tests
 
-#?(:clj
-   (comment
-     (deftest generative-tests
-       (let [results
-             (stest/check `#{fsm/alphatize-states-fsm
-                             fsm/alphatize-states
-                             fsm/transition-nfa
-                             fsm/concat-nfa
-                             fsm/union-nfa
-                             fsm/kleene-nfa
-                             fsm/optional-nfa
-                             fsm/plus-nfa
-                             fsm/nfa->dfa
-                             fsm/minimize-dfa}
-                          {:clojure.spec.test.check/opts {:num-tests 100}})
-             {:keys [total check-passed]}
-             (stest/summarize-results results)]
-         (is (= total check-passed))))))
+(deftest generative-tests
+  (let [results
+        (stest/check `#{fsm/alphatize-states-fsm
+                        fsm/alphatize-states
+                        fsm/transition-nfa
+                        fsm/concat-nfa
+                        fsm/union-nfa
+                        fsm/kleene-nfa
+                        fsm/optional-nfa
+                        fsm/plus-nfa
+                        fsm/nfa->dfa
+                        fsm/minimize-dfa}
+                     {:clojure.spec.test.check/opts {:num-tests 5}})
+        {:keys [total check-passed]}
+        (stest/summarize-results results)]
+    (is (= total check-passed))))

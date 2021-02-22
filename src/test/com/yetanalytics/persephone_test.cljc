@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.persephone.utils.json :as jsn]
-            #?(:clj [com.yetanalytics.datasim.input :as sim-input])))
+            #?@(:clj [[com.yetanalytics.datasim.sim :as sim]
+                      [com.yetanalytics.datasim.input :as sim-input]])))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -526,16 +527,18 @@
 
 #?(:clj
    (def tc3-inputs
-     (sim-input/from-location :input :json "test-resources/tc3_inputs.json"))
+     (sim-input/from-location :input :json "test-resources/tc3_inputs.json")))
 
-   (def tc3-num-statements 10)
+#?(:clj
+   (def tc3-profile (get-in tc3-inputs [:profiles 0])))
 
-   (def tc3-profile (get-in tc3-inputs [:profiles 0]))
+#?(:clj
+   (def tc3-stmt-seq (take 10 (sim/sim-seq tc3-inputs))))
 
-   (def tc3-stmt-seq (take tc3-num-statements (sim/sim-seq tc3-inputs)))
+#?(:clj
+   (def tc3-dfas (per/compile-profile tc3-profile)))
 
-   (def tc3-dfas (per/compile-profile tc3-profile))
-
+#?(:clj
    (deftest match-next-statement-datasim-test
      (testing "the match-next-statement function using DATASIM"
        (is (loop [stmts      tc3-stmt-seq

@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm-specs
   (:require [clojure.spec.alpha :as s]
+            [clojure.test.check.generators]
             [clojure.spec.gen.alpha :as sgen]
             [clojure.set :as cset]))
 
@@ -106,7 +107,7 @@
 
 ;; Common specs and generators
 
-#_{:clj-kondo/ignore [:unresolved-var]} ;; Kondo doesn't recognize sgen macros
+#_{:clj-kondo/ignore [:unresolved-var]}
 (defn- pred-gen []
   (sgen/fmap (fn [s] #(contains? s %))
              (sgen/set (sgen/one-of [(sgen/keyword nil)
@@ -143,7 +144,6 @@
 ;; NFA Specs and Generators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#_{:clj-kondo/ignore [:unresolved-var]}
 (s/def :nfa/type (s/with-gen #(= :nfa %) #(sgen/return :nfa)))
 (s/def :nfa/state nat-int?)
 (s/def :nfa/states (s/coll-of :nfa/state :kind set? :min-count 1 :gen-max 10))
@@ -214,7 +214,6 @@
 ;; DFA Specs and Generators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#_{:clj-kondo/ignore [:unresolved-var]}
 (s/def :dfa/type (s/with-gen #(= :dfa %) #(sgen/return :dfa)))
 (s/def :int-dfa/state nat-int?)
 (s/def :int-dfa/states (s/coll-of :int-dfa/state
@@ -304,4 +303,3 @@
 (s/def ::fsm (s/or :nfa ::nfa :dfa ::dfa))
 
 (s/def ::fsm-coll (s/every ::fsm :min-count 1))
-

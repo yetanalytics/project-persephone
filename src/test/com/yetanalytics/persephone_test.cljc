@@ -2,10 +2,7 @@
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.persephone.utils.json :as jsn]
-            #?@(:clj [[com.yetanalytics.datasim.xapi.profile :as ds-prof]
-                      [com.yetanalytics.datasim.random       :as ds-rand]
-                      [com.yetanalytics.datasim.sim   :as sim]
-                      [com.yetanalytics.datasim.input :as sim-input]])))
+            #?(:clj [com.yetanalytics.datasim.input :as sim-input])))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -555,9 +552,9 @@
                                 (get state-info' registration))]
                  (if is-rejected?
                    (throw (ex-info "not accepted"
-                                   {:type :datasim-test-failed
-                                    :statement next-stmt
-                                    :patterns tc3-dfas
+                                   {:type       :datasim-test-failed
+                                    :statement  next-stmt
+                                    :patterns   tc3-dfas
                                     :state-info state-info'}))
                    (recur (rest stmts) state-info')))
                true))))))

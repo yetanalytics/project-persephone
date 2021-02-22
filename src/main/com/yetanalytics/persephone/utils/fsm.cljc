@@ -610,24 +610,22 @@
    the FSM read that input; this function returns update state info.
    The state info has the following fields:
      :states      The set of next states arrived at in the FSM
-                  after reading the input.
+                  after reading the input. If :states is empty,
+                  then the input sequence has been rejected.
      :accepted?   True if the FSM as arrived at an accept state
                   after reading the input; false otherwise.
-     :rejected?   True if the FSM was not able to read any more
-                  states, false otherwise. If :states is
-                  empty, then :rejected? is true.
    If the state info is nil, the function starts at the start state.
    If :states is empty or if input is nil, return state-info without
-   calling the FSM, and set :rejected? to true."
+   calling the FSM, and set :states to the empty set (as nil is
+   always considered rejected)."
   [{start :start :as dfa} {accepted? :accepted? :as state-info} input]
-  (let [states      (if (nil? state-info) #{start} (:states state-info))]
+  (let [states (if (nil? state-info) #{start} (:states state-info))]
     (if-not (or (empty? states) (nil? input))
-      (reduce (fn [{:keys [states accepted? rejected?] :as acc}
+      (reduce (fn [{:keys [states accepted?] :as acc}
                    {m-states :states m-accepted? :accepted?}]
                 (-> acc
                     (assoc :states (cset/union states m-states))
-                    (assoc :accepted? (or accepted? m-accepted?))
-                    (assoc :rejected? (and rejected? (empty? m-states)))))
-              {:states #{} :accepted? false :rejected? true}
+                    (assoc :accepted? (or accepted? m-accepted?))))
+              {:states #{} :accepted? false}
               (map #(read-next* dfa % input) states))
-      {:states states :accepted? accepted? :rejected? true})))
+      {:states {} :accepted? accepted?})))

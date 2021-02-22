@@ -702,22 +702,18 @@
 (deftest read-next-test
   (testing "The read-next function."
     (is (= {:states    #{#{1}}
-            :accepted? true
-            :rejected? false}
+            :accepted? true}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
     (is (= {:states      #{}
-            :accepted?   false
-            :rejected?   true}
+            :accepted?   false}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
     (is (= {:states    #{}
-            :accepted? false
-            :rejected? true}
+            :accepted? false}
            (-> a-fsm
                fsm/nfa->dfa
                (fsm/read-next {:states #{#{1}} :accepted? true} "a"))))
     (is (= {:states    #{#{3}}
-            :accepted? true
-            :rejected? false}
+            :accepted? true}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]
              (-> nil (read-nxt "a") (read-nxt "b"))))))
@@ -736,16 +732,13 @@
                                  6 {}}}
           read-nxt (partial fsm/read-next num-fsm)]
       (is (= {:states    #{1 2}
-              :accepted? false
-              :rejected? false}
+              :accepted? false}
              (-> nil (read-nxt 2))))
       (is (= {:states    #{3 4 5 6}
-              :accepted? true
-              :rejected? false}
+              :accepted? true}
              (-> nil (read-nxt 2) (read-nxt 4))))
       (is (= {:states    #{}
-              :accepted? false
-              :rejected? true}
+              :accepted? false}
              (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))
 
 ;; Generative tests

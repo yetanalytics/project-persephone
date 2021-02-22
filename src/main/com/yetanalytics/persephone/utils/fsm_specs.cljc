@@ -1,6 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm-specs
   (:require [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as sgen]å
+            [clojure.spec.gen.alpha :as sgen]
             [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

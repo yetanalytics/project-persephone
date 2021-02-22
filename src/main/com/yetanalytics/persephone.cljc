@@ -150,25 +150,22 @@
    validation is successful or the current one if validation fails.
    
    The current state info map has the following fields:
-     :next-state  The next state arrived at in the FSM after reading
-                  the input. If the FSM cannot read the input, then
-                  next-state is nil.
-     :accepted?   True if the FSM as arrived at an accept state
-                  after reading the input; false otherwise.
-     :rejected?   True if the FSM will not be able to read any more
-                  states, false otherwise. True iff :next-state
-                  is nil.
+     :states     The next state arrived at in the FSM after reading
+                 the input. If the FSM cannot read the input, then
+                 next-state is the empty set.
+     :accepted?  True if the FSM as arrived at an accept state
+                 after reading the input; false otherwise.
    If state-info is nil, the function starts at the start state.
-   If the state value is nil, or if input is nil, return state-info
+   If :states is empty, or if input is nil, return state-info
    without calling the FSM."
-  [pat-fsm curr-state-info stmt]
+  [pat-fsm state-info stmt]
   (assert-dfa pat-fsm)
   (let [statement (if (string? stmt) (json/json->edn stmt) stmt)]
-    (fsm/read-next pat-fsm curr-state-info statement)))
+    (fsm/read-next pat-fsm state-info statement)))
 
 (defn match-next-statement
   "Takes a map of Pattern IDs to Patterns FSMs (e.g. the result of
-   `compile-profile`), a `curr-states-info` map, and a Statement,
+   `compile-profile`), a `all-state-info` map, and a Statement,
    validate that Statement. `curr-states-info` is a map of the
    following structure:
 
@@ -184,18 +181,22 @@
    as having a default implicit registration. 
    
    Note: Subregistrations are not supported."
-  [pat-fsm-map curr-states-info stmt]
+  [pat-fsm-map all-state-info stmt]
   #_(assert-dfa pat-fsm)
-  (let [statement    (if (string? stmt) (json/json->edn stmt) stmt)
-        registration (get-in statement
-                             ["context" "registration"]
-                             :no-registration)]
+  (let [statement 
+        (if (string? stmt) (json/json->edn stmt) stmt)
+        registration
+        (get-in statement ["context" "registration"] :no-registration)]
     (update
-     curr-states-info
+     all-state-info
      registration
-     (fn [state-info]
+     (fn [reg-state-info]
        (reduce-kv
-        (fn [s-info pat-id pat-fsm]
-          (update s-info pat-id #(match-next-statement* pat-fsm % statement)))
-        state-info
+        (fn [reg-state-info pat-id pat-fsm]
+          (let [pat-state-info  (get reg-state-info pat-id)
+                pat-state-info' (match-next-statement* pat-fsm
+                                                       pat-state-info
+                                                       statement)]
+            (assoc reg-state-info pat-id pat-state-info')))
+        reg-state-info
         pat-fsm-map)))))

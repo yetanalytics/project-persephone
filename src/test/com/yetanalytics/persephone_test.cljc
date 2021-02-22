@@ -394,19 +394,21 @@
 
 (deftest pattern-validation-tests
   (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
-    (is (:rejected? (rns-cmi nil ex-statement)))
+    (is (empty? (:states (rns-cmi nil ex-statement))))
     ;; Accepted by 'satisfied' Template
     (is (not (:rejected? (rns-cmi nil satisfied-stmt))))
-    ;; Does not satifiy all rules in the 'satisfied' Template
-    (is (:rejected?
-         (rns-cmi nil (assoc-in ex-statement
-                                ["verb" "id"]
-                                "http://adlnet.gov/expapi/verbs/satisfied"))))
-    ;; Forgot initialized-stmt
-    (is (:rejected? (-> nil
-                        (rns-cmi satisfied-stmt)
-                        (rns-cmi launched-stmt)
-                        (rns-cmi failed-stmt))))
+    ;; Does not satifiy all rules in the 'satisfied' Template - rejected
+    (is (empty? (:states
+                 (rns-cmi nil (assoc-in
+                               ex-statement
+                               ["verb" "id"]
+                               "http://adlnet.gov/expapi/verbs/satisfied")))))
+    ;; Forgot initialized-stmt - rejected
+    (is (empty? (-> nil
+                    (rns-cmi satisfied-stmt)
+                    (rns-cmi launched-stmt)
+                    (rns-cmi failed-stmt)
+                    :states)))
     ;; Session not completed yet
     (is (not (:accepted? (-> nil
                              (rns-cmi satisfied-stmt)
@@ -525,52 +527,37 @@
 ;; DATASIM tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#?(:clj
+   (def tc3-inputs
+     (sim-input/from-location :input :json "test-resources/tc3_inputs.json"))
 
+   (def tc3-num-statements 10)
 
-(comment
-  (defn gen-single-walk
-    "Given a Profile, generate a single walk on a DATASIM path"
-    [profile]
-    (let [prof-vec [(jsn/convert-json profile "_")]
-          rng      (ds-rand/seed-rng (rand-int 1000))
-          pat-zip  (ds-prof/rand-pattern-zip prof-vec nil rng)]
-      (keep (fn [loc]
-              (let [loc-obj (ds-prof/loc-object loc)]
-                (when (= "StatementTemplate" (:type loc-obj)) loc-obj)))
-            (ds-prof/walk-once pat-zip))))
+   (def tc3-profile (get-in tc3-inputs [:profiles 0]))
 
-  (defn statement-seq-matches?
-    [profile]
-    (let [dfa (-> profile per/compile-profile first)]
-      (loop [stmts      (take 10 (gen-single-walk profile))
-             state-info {}]
-        (if-let [next-stmt (first stmts)]
-          (let [state-info' (per/match-next-statement dfa state-info next-stmt)
-                si-maps     (vals state-info')]
-            (if (or (some :rejected? si-maps)
-                    (nil? (:next-state si-maps)))
-              false
-              (recur (rest stmts) state-info')))
-          true))))
+   (def tc3-stmt-seq (take tc3-num-statements (sim/sim-seq tc3-inputs)))
 
-  (let [dfa (-> cmi-profile per/compile-profile first)
-        next-stmt (first (take 1 (gen-single-walk cmi-profile)))
-        state-info {}]
-    (per/match-next-statement dfa state-info next-stmt)))
+   (def tc3-dfas (per/compile-profile tc3-profile))
 
-   ;;;;;;;;;;;
-
-(comment
-  (def tc3-inputs
-    (sim-input/from-location :input :json "test-resources/tc3_inputs.json"))
-
-  (def tc3-profile (get-in tc3-inputs [:profiles 0]))
-
-  (def tc3-stmt-seq (take 100 (sim/sim-seq tc3-inputs)))
-
-  (def tc3-dfa (-> tc3-profile per/compile-profile first))
-
-  (let [dfa        (-> tc3-profile per/compile-profile first)
-        next-stmt  (first tc3-stmt-seq)
-        state-info {}]
-    (per/match-next-statement dfa state-info next-stmt)))
+   (deftest match-next-statement-datasim-test
+     (testing "the match-next-statement function using DATASIM"
+       (is (loop [stmts      tc3-stmt-seq
+                  state-info {}]
+             (if-let [next-stmt (first stmts)]
+               (let [registration
+                     (get-in next-stmt ["context" "registration"] :no-registration)
+                     state-info'
+                     (per/match-next-statement tc3-dfas state-info next-stmt)
+                     is-rejected?
+                     (reduce-kv (fn [acc _ pat-si]
+                                  (and acc (empty? (:states pat-si))))
+                                true
+                                (get state-info' registration))]
+                 (if is-rejected?
+                   (throw (ex-info "not accepted"
+                                   {:type :datasim-test-failed
+                                    :statement next-stmt
+                                    :patterns tc3-dfas
+                                    :state-info state-info'}))
+                   (recur (rest stmts) state-info')))
+               true))))))

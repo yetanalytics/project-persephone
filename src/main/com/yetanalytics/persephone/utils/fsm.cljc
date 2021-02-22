@@ -364,6 +364,8 @@
 ;; NFA to DFA Conversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: Optimize this part of the code
+
 (defn- init-queue [init]
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
      :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
@@ -386,6 +388,8 @@
         (recur visited-states (pop state-queue)))
       visited-states)))
 
+;; XXX nfa-move is a optimization hotspot (especially filterv)
+;; need to optimize this function hard! - 40% of CPU time
 (defn nfa-move
   "Given an NFA, a symbolic input (NOT an argument to predicates), and a state,
    return a vector of states arrived after the transition. Returns nil if no
@@ -419,7 +423,7 @@
    Internally, this performs a tree search that guarentees no unreachable
    states."
   [nfa dfa-start]
-  (letfn [(add-state-to-dfa
+  (letfn [(add-state-to-dfa ;; 8% of CPU time
             [dfa next-dfa-state prev-dfa-state symb]
             ; An empty next-dfa-state value means that the symbol cannot be
             ; read at the previous state in the NFA, so we avoid adding it so
@@ -465,16 +469,16 @@
                                        dfa-state
                                        (mapcat (partial nfa-move nfa symb))
                                        (mapcat (partial epsilon-closure nfa))
-                                       set)
-                       new-dfa         (add-state-to-dfa
-                                        dfa
-                                        next-dfa-state
-                                        dfa-state
-                                        symb)
-                       new-queue       (add-state-to-queue
-                                        queue
-                                        dfa
-                                        next-dfa-state)]
+                                       set) ;; set is 12% of CPU time
+                       new-dfa        (add-state-to-dfa
+                                       dfa
+                                       next-dfa-state
+                                       dfa-state
+                                       symb)
+                       new-queue      (add-state-to-queue
+                                       queue
+                                       dfa
+                                       next-dfa-state)]
                    [new-queue new-dfa]))
                [(pop queue) dfa]
                (-> nfa :symbols keys))]

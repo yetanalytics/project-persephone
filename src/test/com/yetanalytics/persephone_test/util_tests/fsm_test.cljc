@@ -765,7 +765,7 @@
                         fsm/nfa->dfa
                         fsm/minimize-dfa
                         }
-                     {:clojure.spec.test.check/opts {:num-tests 10}})
+                     {:clojure.spec.test.check/opts {:num-tests 100}})
         {:keys [total check-passed]}
         (stest/summarize-results results)]
     (is (= total check-passed))))

@@ -95,13 +95,13 @@
 
 (defn- alphatize-states-fsm*
   [{type :type states :states :as fsm}]
-  (let [old-to-new-state-map
+  (let [old-to-new-state
         (reduce (fn [acc state] (assoc acc state (new-state)))
                 {}
                 states)
         old-to-new-state-set
         (fn [states]
-          (->> states (mapv old-to-new-state-map) (into #{})))
+          (->> states (mapv old-to-new-state) (into #{})))
         update-dests
         (fn [transitions]
           (reduce-kv
@@ -110,16 +110,16 @@
                              (fn [acc symb dests]
                                (if (= type :nfa)
                                  (assoc acc symb (old-to-new-state-set dests))
-                                 (assoc acc symb (old-to-new-state-map dests))))
+                                 (assoc acc symb (old-to-new-state dests))))
                              {}
                              trans)))
            {}
            transitions))]
     (-> fsm
         (update :states old-to-new-state-set)
-        (update :start old-to-new-state-map)
+        (update :start old-to-new-state)
         (update :accepts old-to-new-state-set)
-        (update :transitions #(cset/rename-keys % old-to-new-state-map))
+        (update :transitions #(cset/rename-keys % old-to-new-state))
         (update :transitions update-dests))))
 
 (s/fdef alphatize-states-fsm
@@ -554,7 +554,6 @@
   "Minimize the DFA using Brzozowski's Algorithm, which reverses and
    determinizes the DFA twice."
   [dfa]
-  #_(assert (< 0 (count (:accepts dfa))))
   (letfn [(construct-reverse-dfa
             [dfa]
             (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
@@ -567,8 +566,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO: Handle situations when number of states returned is greater than 1.
 
 (defn- read-next*
   "Like read-next, except it takes in the state directly, rather than

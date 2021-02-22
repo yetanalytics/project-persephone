@@ -557,7 +557,7 @@
                                 true
                                 (get state-info' registration))]
                  (if is-rejected?
-                   (throw (ex-info "Statement not accepted by tc3 Profile"
+                   (throw (ex-info "Statement stream rejected by tc3 Profile"
                                    {:type       :datasim-test-failed
                                     :statement  next-stmt
                                     :patterns   tc3-dfas

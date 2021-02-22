@@ -622,15 +622,22 @@
     ;; From the Wikipedia page on DFA minimization.
     ;; Note that this has one less state than the Wikipedia picture because the
     ;; missing state is a guarenteed failure state.
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0}
-            :transitions {1 {"a" 1
-                             "b" 0}
-                          0 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0}
+                    :transitions {1 {"a" 1 "b" 0}
+                                  0 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{1}
+                     :transitions {0 {"a" 0 "b" 1}
+                                   1 {"a" 1}}})
            (fsm/minimize-dfa
             {:type        :dfa
              :symbols     {"a" is-a?
@@ -638,44 +645,58 @@
              :states      #{0 1 2 3 4 5}
              :start       0
              :accepts     #{2 3 4}
-             :transitions {0 {"a" 1
-                              "b" 2}
-                           1 {"a" 0
-                              "b" 3}
-                           2 {"a" 4
-                              "b" 5}
-                           3 {"a" 4
-                              "b" 5}
-                           4 {"a" 4
-                              "b" 5}
-                           5 {"a" 5
-                              "b" 5}}})))
+             :transitions {0 {"a" 1 "b" 2}
+                           1 {"a" 0 "b" 3}
+                           2 {"a" 4 "b" 5}
+                           3 {"a" 4 "b" 5}
+                           4 {"a" 4 "b" 5}
+                           5 {"a" 5 "b" 5}}})))
     ;; Concatenation: structurally identical
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1 2}
-            :start       2
-            :accepts     #{0}
-            :transitions {0 {}
-                          1 {"b" 0}
-                          2 {"a" 1}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1 2}
+                    :start       2
+                    :accepts     #{0}
+                    :transitions {0 {}
+                                  1 {"b" 0}
+                                  2 {"a" 1}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1 2}
+                     :start       0
+                     :accepts     #{2}
+                     :transitions {0 {"a" 1}
+                                   1 {"b" 2}
+                                   2 {}}})
            (-> [a-fsm b-fsm]
                fsm/concat-nfa
                fsm/nfa->dfa
                fsm/minimize-dfa)))
     ;; Union: accept states consolidated into a single state
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?
-                          "c" is-c?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0}
-            :transitions {1 {"a" 0
-                             "b" 0
-                             "c" 0}
-                          0 {}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?
+                                  "c" is-c?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0}
+                    :transitions {1 {"a" 0
+                                     "b" 0
+                                     "c" 0}
+                                  0 {}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?
+                                   "c" is-c?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{1}
+                     :transitions {0 {"a" 1
+                                      "b" 1
+                                      "c" 1}
+                                   1 {}}})
            (-> [a-fsm b-fsm c-fsm]
                fsm/union-nfa
                fsm/nfa->dfa
@@ -698,13 +719,20 @@
                           1 {}}}
            (-> a-fsm fsm/optional-nfa fsm/nfa->dfa fsm/minimize-dfa)))
     ;; Plus: structually identical
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0}
-            :transitions {0 {"a" 0}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0}
+                    :transitions {0 {"a" 0}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{1}
+                     :transitions {0 {"a" 1}
+                                   1 {"a" 1}}})
            (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))))
 
 (deftest read-next-test
@@ -765,7 +793,7 @@
                         fsm/nfa->dfa
                         fsm/minimize-dfa
                         }
-                     {:clojure.spec.test.check/opts {:num-tests 100}})
+                     {:clojure.spec.test.check/opts {:num-tests 10}})
         {:keys [total check-passed]}
         (stest/summarize-results results)]
     (is (= total check-passed))))

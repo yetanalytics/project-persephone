@@ -1,6 +1,6 @@
 (ns com.yetanalytics.persephone.utils.fsm-specs
-  (:require [clojure.spec.alpha :as s]
-            [clojure.test.check.generators]
+  (:require #?(:cljs [clojure.test.check.generators])
+            [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as sgen]
             [clojure.set :as cset]))
 

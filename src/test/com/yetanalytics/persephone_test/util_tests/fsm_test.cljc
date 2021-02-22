@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
-            [clojure.test.check]
-            [clojure.test.check.properties :include-macros true]
+            #?@(:cljs [[clojure.test.check]
+                       [clojure.test.check.properties :include-macros true]])
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.utils.fsm :as fsm]

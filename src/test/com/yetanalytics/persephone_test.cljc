@@ -525,9 +525,12 @@
 ;; DATASIM tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: Use macros to allow use w/ cljs?
+
 #?(:clj
    (def tc3-inputs
-     (sim-input/from-location :input :json "test-resources/tc3_inputs.json")))
+     (-> (sim-input/from-location :input :json "test-resources/tc3_inputs.json")
+         (update-in [:parameters :seed] (fn [_] (rand-int 1000))))))
 
 #?(:clj
    (def tc3-profile (get-in tc3-inputs [:profiles 0])))
@@ -554,7 +557,7 @@
                                 true
                                 (get state-info' registration))]
                  (if is-rejected?
-                   (throw (ex-info "not accepted"
+                   (throw (ex-info "Statement not accepted by tc3 Profile"
                                    {:type       :datasim-test-failed
                                     :statement  next-stmt
                                     :patterns   tc3-dfas

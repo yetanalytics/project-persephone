@@ -4,6 +4,7 @@
                                        :exclusions  [org.clojure/data.json]}
         org.clojure/core.match        {:mvn/version "0.3.0"}
         org.clojure/data.json         {:mvn/version "1.0.0"} ; clj only
+        org.clojure/test.check        {:mvn/version "1.1.0"}
         com.yetanalytics/xapi-schema ; Latest commit: 1/28/21
         {:git/url    "git@github.com:yetanalytics/xapi-schema.git"
          :sha        "0e552227e74913d1b35dfa648407b9a9ac4b6b00"
@@ -33,8 +34,7 @@
                  dorothy/dorothy  {:mvn/version "0.0.7"}}}
   :test
   {:extra-paths ["src/test" "test-resources"]
-   :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}
-                 com.yetanalytics/datasim
+   :extra-deps  {com.yetanalytics/datasim
                  {:git/url    "git@github.com:yetanalytics/datasim.git"
                   :sha        "09748698bbdbb29934e3970dca66b0aa98c9271c"
                   :exclusions [org.clojure/test.check

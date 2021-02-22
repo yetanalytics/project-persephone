@@ -74,7 +74,7 @@
 
 (def counter (atom -1))
 
-(defn reset-counter
+(defn- reset-counter
   "Reset the counter used to name states; an optional starting value may be
    provided (mainly for debugging). The counter must always be reset before
    constructing a new NFA."
@@ -196,6 +196,7 @@
 (defn transition-nfa
   "Create an NFA that accepts a single input."
   [fn-symbol f]
+  (reset-counter)
   (let [start (new-state) accept (new-state)]
     {:type        :nfa
      :symbols     {fn-symbol f}

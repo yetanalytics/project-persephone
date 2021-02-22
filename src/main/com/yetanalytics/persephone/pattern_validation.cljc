@@ -118,7 +118,6 @@
   "Turn a Pattern tree data structure into an FSM using a post-order
    DFS tree traversal."
   [pattern-tree]
-  (fsm/reset-counter)
   (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
 
 (defn profile->fsms

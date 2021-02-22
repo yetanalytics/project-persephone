@@ -649,11 +649,11 @@
             :symbols     {"a" is-a?
                           "b" is-b?}
             :states      #{0 1 2}
-            :start       0
-            :accepts     #{2}
-            :transitions {0 {"a" 1}
-                          1 {"b" 2}
-                          2 {}}}
+            :start       2
+            :accepts     #{1}
+            :transitions {0 {"b" 1}
+                          1 {}
+                          2 {"a" 0}}}
            (-> [a-fsm b-fsm]
                fsm/concat-nfa
                fsm/nfa->dfa
@@ -692,25 +692,14 @@
                           1 {}}}
            (-> a-fsm fsm/optional-nfa fsm/nfa->dfa fsm/minimize-dfa)))
     ;; Plus: structually identical
-    ;; TODO: Identify why clj vs cljs discrepancy happens
-    #?(:clj
-       (is (= {:type        :dfa
-               :symbols     {"a" is-a?}
-               :states      #{0 1}
-               :start       1
-               :accepts     #{0}
-               :transitions {0 {"a" 0}
-                             1 {"a" 0}}}
-              (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))
-       :cljs
-       (is (= {:type        :dfa
-               :symbols     {"a" is-a?}
-               :states      #{0 1}
-               :start       0
-               :accepts     #{1}
-               :transitions {0 {"a" 1}
-                             1 {"a" 1}}}
-              (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa))))))
+    (is (= {:type        :dfa
+            :symbols     {"a" is-a?}
+            :states      #{0 1}
+            :start       1
+            :accepts     #{0}
+            :transitions {0 {"a" 0}
+                          1 {"a" 0}}}
+           (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))))
 
 (deftest read-next-test
   (testing "The read-next function."
@@ -758,15 +747,16 @@
 
 (deftest generative-tests
   (let [results
-        (stest/check `#{fsm/alphatize-states-fsm
-                        fsm/alphatize-states
-                        fsm/transition-nfa
-                        fsm/concat-nfa
-                        fsm/union-nfa
-                        fsm/kleene-nfa
-                        fsm/optional-nfa
-                        fsm/plus-nfa
-                        fsm/nfa->dfa
+        (stest/check `#{
+                     ;;    fsm/alphatize-states-fsm
+                     ;;    fsm/alphatize-states
+                     ;;    fsm/transition-nfa
+                     ;;    fsm/concat-nfa
+                     ;;    fsm/union-nfa
+                     ;;    fsm/kleene-nfa
+                     ;;    fsm/optional-nfa
+                     ;;    fsm/plus-nfa
+                     ;;    fsm/nfa->dfa
                         fsm/minimize-dfa}
                      {:clojure.spec.test.check/opts {:num-tests 5}})
         {:keys [total check-passed]}

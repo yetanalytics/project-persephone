@@ -86,7 +86,7 @@
 ;;   other state.
 ;; - The FSM A has exactly one final state, which is not co-accessible from any
 ;;   other state.
- 
+
 (defn- non-access-start?
   "Is the start state of the NFA not accessible from any other state?"
   [{:keys [start transitions] :as _nfa}]
@@ -291,10 +291,8 @@
 
 #_{:clj-kondo/ignore [:unresolved-var]}
 (s/def ::accepting-dfa (s/with-gen (s/and ::dfa has-accept-states?)
-                                   #(sgen/such-that has-accept-states?
-                                                    (s/gen ::dfa))))
-
-(sgen/generate (s/gen ::accepting-dfa))
+                         #(sgen/such-that has-accept-states?
+                                          (s/gen ::dfa))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Putting it all together

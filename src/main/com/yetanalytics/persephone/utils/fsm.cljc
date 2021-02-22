@@ -97,7 +97,7 @@
   [{type :type states :states :as fsm}]
   (let [states'
         (if (coll? (first states))
-          (->> states (map sort) (sort-by first) (map set))
+          (->> states (map sort) (map vec) sort reverse (map set))
           (->> states sort))
         old-to-new-state
         (reduce (fn [acc state] (assoc acc state (new-state)))
@@ -337,8 +337,6 @@
       (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
       (update new-accept (constantly {})))}))
 
-(update-in {4 {:epsilon #{4}}} [(first #{4}) :epsilon] #(cset/union % #{4}))
-
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 
@@ -517,8 +515,8 @@
    source-symbol pair leads to multiple new destinations."
   [transitions]
   (letfn [(update-dests
-           [src new-dests]
-           (if (nil? new-dests) #{src} (conj new-dests src)))]
+            [src new-dests]
+            (if (nil? new-dests) #{src} (conj new-dests src)))]
     (reduce-kv
      (fn [acc src trans]
        (merge-with (partial merge-with cset/union)
@@ -569,16 +567,6 @@
         construct-reverse-dfa
         construct-reverse-dfa
         alphatize-states-fsm)))
-
-(comment
-  (minimize-dfa
-   {:symbols     {:a odd?}
-    :type        :dfa
-    :states      #{0 1}
-    :start       0
-    :accepts     #{}
-    :transitions {0 {}
-                  1 {}}}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading

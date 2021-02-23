@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-gen-test
+(ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]

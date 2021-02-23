@@ -89,6 +89,19 @@
 ;; Generative tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(comment
+  (defn check [fn-sym num-tests]
+    (let [result
+          (stest/check fn-sym
+                       {:clojure.spec.test.check/opts
+                        {:num-tests num-tests
+                         :seed (rand-int 2000000000)}})
+          {:keys [total check-passed]}
+          (stest/summarize-results result)]
+      (is (= total check-passed)))))
+
+(stest/check `fsm/concat-nfa)
+
 (deftest generative-tests
   (testing "Generative tests for FSM specs"
     (let [results

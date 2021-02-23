@@ -85,29 +85,12 @@
   [dfa]
   (valid-transition-symbols? false dfa))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Thompson's Construction Predicates
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; NFAs built using Thompson's Construction have the following properties:
-;; - The FSM has exactly one initial state, which is not accessible from any
-;;   other state.
-;; - The FSM A has exactly one final state, which is not co-accessible from any
-;;   other state.
-
-(defn- non-access-start?
-  "Is the start state of the NFA not accessible from any other state?"
-  [{:keys [start transitions] :as _nfa}]
-  (every? (fn [[_ trans]]
-            (every? (fn [[_ dest]] (not= start dest)) trans))
-          transitions))
-
-(defn- non-coaccess-accept?
-  "Is there (a) only one accept state and (b) it is not co-accessible
-   from any other state, i.e. it cannot access any other state?"
-  [{:keys [accepts transitions] :as _nfa}]
-  (and (= 1 (count accepts))
-       (= {} (get transitions (first accepts)))))
+;; For NFAs produced via Thompson's Construction
+;; There are several constraints such NFAs have to follow (which are listed on
+;; the Wikipedia page), but this is the main structural spec.
+(defn one-accept-state?
+  [{:keys [accepts] :as _nfa}]
+  (= 1 (count accepts)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Specs and Generators
@@ -176,47 +159,51 @@
                                  :nfa/accepts
                                  :nfa/transitions]))
 
-(defn- nfa-gen []
-  (sgen/fmap (fn [{:keys [symbols states] :as nfa}]
-               (override-fsm-fn (conj symbols [:epsilon nil])
-                                (rand-nth (seq states))
-                                (set (random-sample 0.33 states))
-                                states
-                                states
-                                {}
-                                (fn [s] (set (random-sample 0.25 s)))
-                                nfa))
-             (s/gen :nfa/nfa-basics)))
-
 (defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
 
-(s/def ::nfa (s/with-gen (s/and valid-nfa-keys?
-                                valid-start-state?
-                                valid-accept-states?
-                                valid-transition-src-states?
-                                valid-transition-dest-states-nfa?
-                                valid-transition-symbols-nfa?)
-               nfa-gen))
+(defn- nfa-gen [one-accept?]
+  (sgen/fmap
+   (fn [{:keys [symbols states] :as nfa}]
+     (-> nfa
+         (assoc :start
+                (rand-nth (seq states)))
+         (assoc :accepts
+                (if one-accept?
+                  (->> states seq rand-nth set)
+                  (->> states (random-sample 0.33) set)))
+         (assoc :transitions
+                (reduce
+                 (fn [acc src]
+                   (let [symbs (random-sample 0.33 (keys symbols))
+                         trans (reduce
+                                (fn [acc sym]
+                                  (assoc acc
+                                         sym
+                                         (set (random-sample 0.25 states))))
+                                {}
+                                symbs)]
+                     (assoc acc src trans)))
+                 {}
+                 states))))
+   (s/gen :nfa/nfa-basics)))
 
-(defn- tnfa-gen []
-  (sgen/fmap (fn [{:keys [symbols states] :as nfa}]
-               (let [start  (rand-nth (seq states))
-                     accept (rand-nth (seq states))]
-                 (override-fsm-fn (conj symbols [:epsilon nil])
-                                  start
-                                  #{accept}
-                                  (disj states accept)
-                                  (disj states start)
-                                  {accept {}}
-                                  (fn [s] (set (random-sample 0.25 s)))
-                                  nfa)))
-             (s/gen :nfa/nfa)))
+(def nfa-spec (s/and valid-nfa-keys?
+                     valid-start-state?
+                     valid-accept-states?
+                     valid-transition-src-states?
+                     valid-transition-dest-states-nfa?
+                     valid-transition-symbols-nfa?))
 
-(s/def ::thompsons-nfa (s/with-gen
-                         (s/and ::nfa
-                                non-access-start?
-                                non-coaccess-accept?)
-                         tnfa-gen))
+(s/def ::nfa
+  (s/with-gen
+    nfa-spec
+    (fn [] (nfa-gen false))))
+
+(s/def ::thompsons-nfa
+  (s/with-gen
+    (s/and nfa-spec
+           one-accept-state?)
+    (fn [] (nfa-gen true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Specs and Generators

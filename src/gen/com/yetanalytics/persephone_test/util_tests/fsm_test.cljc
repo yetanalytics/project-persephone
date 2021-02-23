@@ -2,11 +2,14 @@
   (:require #?@(:cljs [[clojure.test.check]
                        [clojure.test.check.generators]
                        [clojure.test.check.properties :include-macros true]])
-            [clojure.spec.alpha :as s]
-            [clojure.spec.test.alpha :as stest]
             [clojure.test :refer [deftest testing is]]
+            [clojure.spec.alpha :as s]
+            #_{:clj-kondo/ignore [:unused-namespace]}
+            [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone-test.util-tests.fsm-spec :as fs]))
+            [com.yetanalytics.persephone-test.util-tests.fsm-spec :as fs])
+  #?(:cljs (:require-macros [com.yetanalytics.persephone-test.util-tests.fsm-test
+                             :refer [check]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Spec tests
@@ -89,25 +92,26 @@
 ;; Generative tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftest generative-tests
-  (testing "Generative tests for FSM specs"
-    (let [results
-          (stest/check
-           `#{
-              fsm/alphatize-states-fsm
-              fsm/alphatize-states
-              fsm/transition-nfa
-              fsm/concat-nfa
-              fsm/union-nfa
-              fsm/kleene-nfa
-              fsm/optional-nfa
-              fsm/plus-nfa
-              fsm/nfa->dfa
-              fsm/minimize-dfa
-              }
-           {:clojure.spec.test.check/opts
-            {:num-tests #?(:clj 100 :cljs 20)
-             :seed (rand-int 2000000000)}})
-          {:keys [total check-passed]}
-          (stest/summarize-results results)]
-      (is (= total check-passed)))))
+#?(:clj
+   (defmacro check [fn-sym num-tests]
+     `(let [results#
+            (stest/check ~fn-sym
+                         {:clojure.spec.test.check/opts
+                          {:num-tests ~num-tests
+                           :seed (rand-int 2000000000)}})
+            check-passed#
+            (:check-passed (stest/summarize-results results#))]
+        (is (= 1 check-passed#)))))
+
+ (deftest generative-tests
+   (testing "Generative tests for FSM specs"
+     (check `fsm/alphatize-states-fsm #?(:clj 50 :cljs 25))
+     (check `fsm/alphatize-states #?(:clj 50 :cljs 10))
+     (check `fsm/transition-nfa #?(:clj 1000 :cljs 500))
+     (check `fsm/concat-nfa #?(:clj 50 :cljs 10))
+     (check `fsm/union-nfa #?(:clj 50 :cljs 10))
+     (check `fsm/kleene-nfa #?(:clj 100 :cljs 10))
+     (check `fsm/optional-nfa #?(:clj 100 :cljs 10))
+     (check `fsm/plus-nfa #?(:clj 100 :cljs 10))
+     (check `fsm/nfa->dfa #?(:clj 200 :cljs 25))
+     (check `fsm/minimize-dfa #?(:clj 500 :cljs 50))))

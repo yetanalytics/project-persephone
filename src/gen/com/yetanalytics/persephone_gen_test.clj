@@ -12,7 +12,7 @@
 
 (def tc3-inputs
   (-> (sim-input/from-location :input :json "test-resources/tc3_inputs.json")
-      (update-in [:parameters :seed] (fn [_] (rand-int 1000)))))
+      (assoc-in [:parameters :seed] (rand-int 1000))))
 
 (def tc3-profile (get-in tc3-inputs [:profiles 0]))
 

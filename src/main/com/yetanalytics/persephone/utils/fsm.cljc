@@ -82,8 +82,6 @@
 (defn- new-state []
   (swap! counter (partial + 1)))
 
-;; State counting
-
 ;; State alphatization
 
 (defn- alphatize-states-fsm*

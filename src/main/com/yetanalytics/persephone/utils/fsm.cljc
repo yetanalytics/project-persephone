@@ -424,16 +424,20 @@
                [(pop queue) dfa]
                (-> nfa :symbols keys))]
           (recur dfa' queue''))
-        ;; Add src states not present in the transition table
-        (let [{:keys [states transitions]} dfa]
-          (assoc dfa
-                 :transitions
-                 (reduce (fn [trans' s]
-                           (if (not (contains? transitions s))
-                             (assoc trans' s {})
-                             trans'))
-                         transitions
-                         states)))))))
+        (let [add-missing-srcs
+              (fn [transitions states]
+                (reduce (fn [trans' s]
+                          (if (not (contains? transitions s))
+                            (assoc trans' s {})
+                            trans'))
+                        transitions
+                        states))
+              {:keys [states]} dfa]
+          (-> dfa
+              ;; Add source states not present in the transition table
+              (update :transitions add-missing-srcs states)
+              ;; Alphatize DFA states
+              alphatize-states-fsm))))))
 
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
@@ -490,12 +494,11 @@
   [dfa]
   (letfn [(construct-reverse-dfa
             [dfa]
-            (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
+            (let [rev-dfa (reverse-dfa dfa)]
               (nfa->dfa* rev-dfa (:start rev-dfa))))]
     (-> dfa
         construct-reverse-dfa
-        construct-reverse-dfa
-        alphatize-states-fsm)))
+        construct-reverse-dfa)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading

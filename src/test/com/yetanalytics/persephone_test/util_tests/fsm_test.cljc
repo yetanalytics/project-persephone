@@ -1,86 +1,8 @@
 (ns com.yetanalytics.persephone-test.util-tests.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
-            #?@(:cljs [[clojure.test.check]
-                       [clojure.test.check.properties :include-macros true]])
-            [clojure.spec.alpha :as s]
-            [clojure.spec.test.alpha :as stest]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone.utils.fsm-specs :as fspec]))
+            [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
-;; Spec + util tests
-
-(deftest fsm-spec-tests
-  (testing "NFA specs"
-    (is (s/valid? ::fspec/nfa {:type        :nfa
-                               :symbols     {"a" odd?}
-                               :states      #{0 1}
-                               :start       0
-                               :accepts     #{1}
-                               :transitions {0 {"a" #{1}}
-                                             1 {}}}))
-    ;; Invalid start state
-    (is (not (s/valid? ::fspec/nfa {:type        :nfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       2
-                                    :accepts     #{1}
-                                    :transitions {0 {"a" #{1}}
-                                                  1 {}}})))
-    ;; Invalid accept states
-    (is (not (s/valid? ::fspec/nfa {:type        :nfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{1 2}
-                                    :transitions {0 {"a" #{1}}
-                                                  1 {}}})))
-    ;; Missing transition src states
-    (is (not (s/valid? ::fspec/nfa {:type        :nfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{1 2}
-                                    :transitions {0 {"a" #{1}}}})))
-    ;; Invalid transition dest states
-    (is (not (s/valid? ::fspec/nfa {:type        :nfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{1}
-                                    :transitions {0 {"a" #{1 2}}
-                                                  1 {}}})))
-    ;; Invalid transition symbol
-    (is (not (s/valid? ::fspec/nfa {:type        :nfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{1}
-                                    :transitions {0 {"b" #{1}}
-                                                  1 {}}}))))
-  (testing "DFA specs"
-    (is (s/valid? ::fspec/dfa {:type        :dfa
-                               :symbols     {"a" odd?}
-                               :states      #{0 1}
-                               :start       0
-                               :accepts     #{0}
-                               :transitions {0 {"a" 0}
-                                             1 {}}}))
-    ;; Destinations cannot be sets
-    (is (not (s/valid? ::fspec/dfa {:type        :dfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{0}
-                                    :transitions {0 {"a" #{0}}
-                                                  1 {}}})))
-    ;; Invalid transition dest states
-    (is (not (s/valid? ::fspec/dfa {:type        :dfa
-                                    :symbols     {"a" odd?}
-                                    :states      #{0 1}
-                                    :start       0
-                                    :accepts     #{0}
-                                    :transitions {0 {"a" 0}
-                                                  1 {"a" 2}}})))))
+;; Util tests
 
 (deftest alphatize-states-test
   (testing "State alphatization"
@@ -776,24 +698,3 @@
       (is (= {:states    #{}
               :accepted? false}
              (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))
-
-;; Generative tests
-
-(deftest generative-tests
-  (let [results
-        (stest/check `#{
-                        fsm/alphatize-states-fsm
-                        fsm/alphatize-states
-                        fsm/transition-nfa
-                        fsm/concat-nfa
-                        fsm/union-nfa
-                        fsm/kleene-nfa
-                        fsm/optional-nfa
-                        fsm/plus-nfa
-                        fsm/nfa->dfa
-                        fsm/minimize-dfa
-                        }
-                     {:clojure.spec.test.check/opts {:num-tests 10}})
-        {:keys [total check-passed]}
-        (stest/summarize-results results)]
-    (is (= total check-passed))))

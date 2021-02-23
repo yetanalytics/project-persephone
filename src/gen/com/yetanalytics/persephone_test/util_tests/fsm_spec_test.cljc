@@ -1,12 +1,22 @@
-(ns com.yetanalytics.persephone.utils.fsm-specs
-  (:require #?(:cljs [clojure.test.check.generators])
+(ns com.yetanalytics.persephone-test.util-tests.fsm-spec-test
+  (:require #?@(:cljs [[clojure.test.check]
+                       [clojure.test.check.generators]
+                       [clojure.test.check.properties :include-macros true]])
+            [clojure.test :refer [deftest testing is]]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as sgen]
-            [clojure.set :as cset]))
+            [clojure.spec.test.alpha :as stest]
+            [clojure.set :as cset]
+            [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Property Predicates
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- count-states [fsm-coll]
+  (reduce (fn [cnt {:keys [states]}] (+ cnt (count states)))
+          0
+          fsm-coll))
 
 (defn has-accept-states?
   "Does the FSM have at least one accept state?"
@@ -301,3 +311,161 @@
 (s/def ::fsm (s/or :nfa ::nfa :dfa ::dfa))
 
 (s/def ::fsm-coll (s/every ::fsm :min-count 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Function specs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/fdef fsm/alphatize-states-fsm
+  :args (s/cat :fsm ::fsm)
+  :ret ::fsm
+  :fn (fn [{:keys [args ret]}]
+        (= (count (:states args))
+           (count (:states ret)))))
+
+(s/fdef fsm/alphatize-states
+  :args (s/cat :fsm-coll ::fsm-coll)
+  :ret ::fsm-coll
+  :fn (fn [{:keys [args ret]}]
+        (= (count-states args)
+           (count (:states ret)))))
+
+(s/fdef fsm/transition-nfa
+  :args (s/cat :fn-symbol ::symbol-id
+               :f ::symbol-pred)
+  :ret (and ::thompsons-nfa
+            (fn [{:keys [states]}] (= 2 (count states)))))
+
+(s/fdef fsm/concat-nfa
+  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (count-states (:nfa-coll args)) (count (:states ret)))))
+
+(s/fdef fsm/union-nfa
+  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (+ 2 (count-states (:nfa-coll args))) (count (:states ret)))))
+
+(s/fdef fsm/kleene-nfa
+  :args (s/cat :nfa ::thompsons-nfa)
+  :ret ::thompsons-nfa)
+
+(s/fdef fsm/optional-nfa
+  :args (s/cat :nfa ::thompsons-nfa)
+  :ret ::thompsons-nfa)
+
+(s/fdef fsm/plus-nfa
+  :args (s/cat :nfa ::thompsons-nfa)
+  :ret ::thompsons-nfa)
+
+(s/fdef fsm/nfa->dfa
+  :args (s/cat :nfa ::nfa)
+  :ret ::dfa)
+
+(s/fdef fsm/minimize-dfa
+  :args (s/cat :dfa ::accepting-dfa)
+  :ret ::dfa
+  :fn (fn [{:keys [args ret]}]
+        (<= (-> ret :states count)
+            (-> args :dfa :states count))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Spec tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(deftest fsm-spec-tests
+  (testing "NFA specs"
+    (is (s/valid? ::nfa {:type        :nfa
+                         :symbols     {"a" odd?}
+                         :states      #{0 1}
+                         :start       0
+                         :accepts     #{1}
+                         :transitions {0 {"a" #{1}}
+                                       1 {}}}))
+    ;; Invalid start state
+    (is (not (s/valid? ::nfa {:type        :nfa
+                              :symbols     {"a" odd?}
+                              :states      #{0 1}
+                              :start       2
+                              :accepts     #{1}
+                              :transitions {0 {"a" #{1}}
+                                            1 {}}})))
+    ;; Invalid accept states
+    (is (not (s/valid? ::nfa {:type        :nfa
+                              :symbols     {"a" odd?}
+                              :states      #{0 1}
+                              :start       0
+                              :accepts     #{1 2}
+                              :transitions {0 {"a" #{1}}
+                                            1 {}}})))
+    ;; Missing transition src states
+    (is (not (s/valid? ::nfa {:type        :nfa
+                              :symbols     {"a" odd?}
+                              :states      #{0 1}
+                              :start       0
+                              :accepts     #{1 2}
+                              :transitions {0 {"a" #{1}}}})))
+    ;; Invalid transition dest states
+    (is (not (s/valid? ::nfa {:type        :nfa
+                              :symbols     {"a" odd?}
+                              :states      #{0 1}
+                              :start       0
+                              :accepts     #{1}
+                              :transitions {0 {"a" #{1 2}}
+                                            1 {}}})))
+    ;; Invalid transition symbol
+    (is (not (s/valid? ::nfa {:type        :nfa
+                              :symbols     {"a" odd?}
+                              :states      #{0 1}
+                              :start       0
+                              :accepts     #{1}
+                              :transitions {0 {"b" #{1}}
+                                            1 {}}}))))
+  (testing "DFA specs"
+    (is (s/valid? ::dfa {:type        :dfa
+                               :symbols     {"a" odd?}
+                               :states      #{0 1}
+                               :start       0
+                               :accepts     #{0}
+                               :transitions {0 {"a" 0}
+                                             1 {}}}))
+    ;; Destinations cannot be sets
+    (is (not (s/valid? ::dfa {:type        :dfa
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{0}
+                                    :transitions {0 {"a" #{0}}
+                                                  1 {}}})))
+    ;; Invalid transition dest states
+    (is (not (s/valid? ::dfa {:type        :dfa
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{0}
+                                    :transitions {0 {"a" 0}
+                                                  1 {"a" 2}}})))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Generative tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(deftest generative-tests
+  (testing "Generative tests for FSM specs"
+    (let [results
+          (stest/check `#{fsm/alphatize-states-fsm
+                          fsm/alphatize-states
+                          fsm/transition-nfa
+                          fsm/concat-nfa
+                          fsm/union-nfa
+                          fsm/kleene-nfa
+                          fsm/optional-nfa
+                          fsm/plus-nfa
+                          fsm/nfa->dfa
+                          fsm/minimize-dfa}
+                       {:clojure.spec.test.check/opts {:num-tests 10}})
+          {:keys [total check-passed]}
+          (stest/summarize-results results)]
+      (is (= total check-passed)))))

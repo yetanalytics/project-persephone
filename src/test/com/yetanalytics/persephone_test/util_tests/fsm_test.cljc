@@ -423,90 +423,160 @@
 
 (deftest powerset-construction-test
   (testing "Constructing a DFA out of an NFA via the powerset construction."
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0}
-            :transitions {0 {}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0}
+                    :transitions {0 {}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{1}
+                     :transitions {1 {}
+                                   0 {"a" 1}}})
            (fsm/nfa->dfa a-fsm)))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1 2}
-            :start       2
-            :accepts     #{0}
-            :transitions {0 {}
-                          1 {"b" 0}
-                          2 {"a" 1}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1 2}
+                    :start       2
+                    :accepts     #{0}
+                    :transitions {0 {}
+                                  1 {"b" 0}
+                                  2 {"a" 1}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1 2}
+                     :start       0
+                     :accepts     #{2}
+                     :transitions {0 {"a" 1}
+                                   1 {"b" 2}
+                                   2 {}}})
            (fsm/nfa->dfa (fsm/concat-nfa [a-fsm b-fsm]))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1 2}
-            :start       2
-            :accepts     #{0 1}
-            :transitions {0 {} 1 {} 2 {"a" 1 "b" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1 2}
+                    :start       2
+                    :accepts     #{0 1}
+                    :transitions {0 {} 1 {} 2 {"a" 1 "b" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1 2}
+                     :start       0
+                     :accepts     #{1 2}
+                     :transitions {0 {"a" 1 "b" 2} 1 {} 2 {}}})
            (fsm/nfa->dfa (fsm/union-nfa [a-fsm b-fsm]))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1 2}
-            :start       1
-            :accepts     #{0 2}
-            :transitions {0 {}
-                          1 {"a" 2 "b" 0}
-                          2 {}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1 2}
+                    :start       1
+                    :accepts     #{0 2}
+                    :transitions {0 {}
+                                  1 {"a" 2 "b" 0}
+                                  2 {}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1 2}
+                     :start       0
+                     :accepts     #{1 2}
+                     :transitions {0 {"a" 1 "b" 2}
+                                   1 {}
+                                   2 {}}})
            (fsm/nfa->dfa
             (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm]) b-fsm]))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0 1}
-            :transitions {0 {"a" 0}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0 1}
+                    :transitions {0 {"a" 0}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{0 1}
+                     :transitions {0 {"a" 1}
+                                   1 {"a" 1}}})
            (fsm/nfa->dfa (fsm/kleene-nfa a-fsm))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0 1}
-            :transitions {0 {}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0 1}
+                    :transitions {0 {}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{0 1}
+                     :transitions {0 {"a" 1}
+                                   1 {}}})
            (fsm/nfa->dfa (fsm/optional-nfa a-fsm))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0}
-            :transitions {0 {"a" 0}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0}
+                    :transitions {0 {"a" 0}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{1}
+                     :transitions {0 {"a" 1}
+                                   1 {"a" 1}}})
            (fsm/nfa->dfa (fsm/plus-nfa a-fsm))))
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?}
-            :states      #{0 1}
-            :start       1
-            :accepts     #{0 1}
-            :transitions {0 {"a" 0}
-                          1 {"a" 0}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?}
+                    :states      #{0 1}
+                    :start       1
+                    :accepts     #{0 1}
+                    :transitions {0 {"a" 0}
+                                  1 {"a" 0}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?}
+                     :states      #{0 1}
+                     :start       0
+                     :accepts     #{0 1}
+                     :transitions {0 {"a" 1}
+                                   1 {"a" 1}}})
            (fsm/nfa->dfa (-> a-fsm
                              fsm/kleene-nfa
                              fsm/kleene-nfa
                              fsm/kleene-nfa))))
     ;; Example taken from Wikipedia:
     ;; https://en.wikipedia.org/wiki/Powerset_construction
-    (is (= {:type        :dfa
-            :symbols     {"a" is-a?
-                          "b" is-b?}
-            :states      #{0 1 2 3}
-            :start       1
-            :accepts     #{0 1 2 3}
-            :transitions {0 {"a" 3}
-                          1 {"a" 2 "b" 2}
-                          2 {"a" 3 "b" 2}
-                          3 {"a" 0 "b" 2}}}
+    (is (= #?(:clj {:type        :dfa
+                    :symbols     {"a" is-a?
+                                  "b" is-b?}
+                    :states      #{0 1 2 3}
+                    :start       1
+                    :accepts     #{0 1 2 3}
+                    :transitions {0 {"a" 3}
+                                  1 {"a" 2 "b" 2}
+                                  2 {"a" 3 "b" 2}
+                                  3 {"a" 0 "b" 2}}}
+              :cljs {:type        :dfa
+                     :symbols     {"a" is-a?
+                                   "b" is-b?}
+                     :states      #{0 1 2 3}
+                     :start       0
+                     :accepts     #{0 1 2 3}
+                     :transitions {0 {"a" 1 "b" 1}
+                                   1 {"a" 2 "b" 1}
+                                   2 {"a" 3 "b" 1}
+                                   3 {"a" 2}}})
            (fsm/nfa->dfa
             {:type        :nfa
              :symbols     {"a" is-a?
@@ -669,7 +739,7 @@
 
 (deftest read-next-test
   (testing "The read-next function."
-    (is (= {:states    #{0}
+    (is (= {:states    #?(:clj #{0} :cljs #{1})
             :accepted? true}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
     (is (= {:states      #{}
@@ -679,8 +749,10 @@
             :accepted? false}
            (-> a-fsm
                fsm/nfa->dfa
-               (fsm/read-next {:states #{0} :accepted? true} "a"))))
-    (is (= {:states    #{0}
+               (fsm/read-next {:states #?(:clj #{0} :cljs #{1})
+                               :accepted? true}
+                              "a"))))
+    (is (= {:states    #?(:clj #{0} :cljs #{2})
             :accepted? true}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]

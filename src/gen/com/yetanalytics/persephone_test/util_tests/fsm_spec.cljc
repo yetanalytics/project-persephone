@@ -93,7 +93,7 @@
   (= 1 (count accepts)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; FSM Specs and Generators
+;; Common specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Common specs and generators
@@ -111,25 +111,38 @@
                              ::symbol-pred
                              :min-count 1))
 
-(defn- override-fsm-fn
-  "Use with fgen to replace the value for :start, :accept, and
-   :transition to be conformant with the FSM specs."
-  [symbols start accepts src-states dest-states trans-start select-dests-fn fsm]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common generators
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- sample-one [coll]
+  (-> coll seq rand-nth))
+
+(defn- sample-one-to-set [coll]
+  #{(sample-one coll)})
+
+(defn- sample-to-set [prob coll]
+  (set (random-sample prob coll)))
+
+(defn- fsm-overrider
+  [accept-fn trans-fn {:keys [symbols states] :as fsm}]
   (-> fsm
-      (assoc :start start)
-      (assoc :accepts accepts)
+      (assoc :start
+             (sample-one states))
+      (assoc :accepts
+             (accept-fn states))
       (assoc :transitions
-             (reduce (fn [acc src]
-                       (let [symbs (random-sample 0.33 (keys symbols))
-                             trans (reduce
-                                    (fn [acc sym]
-                                      (assoc acc sym (select-dests-fn
-                                                      dest-states)))
-                                    {}
-                                    symbs)]
-                         (assoc acc src trans)))
-                     trans-start
-                     src-states))))
+             (reduce
+              (fn [acc src]
+                (let [symbs (random-sample 0.33 (keys symbols))
+                      trans (reduce
+                             (fn [acc sym]
+                               (assoc acc sym (trans-fn states)))
+                             {}
+                             symbs)]
+                  (assoc acc src trans)))
+              {}
+              states))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA Specs and Generators
@@ -161,32 +174,6 @@
 
 (defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
 
-(defn- nfa-gen [one-accept?]
-  (sgen/fmap
-   (fn [{:keys [symbols states] :as nfa}]
-     (-> nfa
-         (assoc :start
-                (rand-nth (seq states)))
-         (assoc :accepts
-                (if one-accept?
-                  (->> states seq rand-nth set)
-                  (->> states (random-sample 0.33) set)))
-         (assoc :transitions
-                (reduce
-                 (fn [acc src]
-                   (let [symbs (random-sample 0.33 (keys symbols))
-                         trans (reduce
-                                (fn [acc sym]
-                                  (assoc acc
-                                         sym
-                                         (set (random-sample 0.25 states))))
-                                {}
-                                symbs)]
-                     (assoc acc src trans)))
-                 {}
-                 states))))
-   (s/gen :nfa/nfa-basics)))
-
 (def nfa-spec (s/and valid-nfa-keys?
                      valid-start-state?
                      valid-accept-states?
@@ -197,19 +184,28 @@
 (s/def ::nfa
   (s/with-gen
     nfa-spec
-    (fn [] (nfa-gen false))))
+    (fn [] (sgen/fmap (partial
+                       fsm-overrider
+                       (partial sample-to-set 0.33)
+                       (partial sample-to-set 0.25))
+                      (s/gen :nfa/nfa-basics)))))
 
 (s/def ::thompsons-nfa
   (s/with-gen
     (s/and nfa-spec
            one-accept-state?)
-    (fn [] (nfa-gen true))))
+    (fn [] (sgen/fmap (partial
+                       fsm-overrider
+                       (partial sample-one-to-set)
+                       (partial sample-to-set 0.25))
+                      (s/gen :nfa/nfa-basics)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Specs and Generators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/def :dfa/type (s/with-gen #(= :dfa %) #(sgen/return :dfa)))
+
 (s/def :int-dfa/state nat-int?)
 (s/def :int-dfa/states (s/coll-of :int-dfa/state
                                   :kind set?
@@ -258,66 +254,64 @@
                    :set-dfa/accepts
                    :set-dfa/transitions]))
 
-#_{:clj-kondo/ignore [:unresolved-var]}
-(defn- dfa-gen []
-  (sgen/fmap (fn [{:keys [symbols states] :as dfa}]
-               (override-fsm-fn symbols
-                                (rand-nth (seq states))
-                                (set (random-sample 0.33 states))
-                                states
-                                states
-                                {}
-                                (fn [s] (rand-nth (seq s)))
-                                dfa))
-             (sgen/one-of [(s/gen :int-dfa/dfa-basics)
-                           (s/gen :set-dfa/dfa-basics)])))
-
 (defn valid-dfa-keys? [dfa]
-  (s/valid? (s/or :int-dfa :int-dfa/dfa :set-dfa :set-dfa/dfa) dfa))
+  (s/valid? :int-dfa/dfa dfa))
 
-;; Mut put s/or at end due to tags added to conformed value
-(s/def ::dfa (s/with-gen (s/and valid-dfa-keys?
-                                valid-start-state?
-                                valid-accept-states?
-                                valid-transition-src-states?
-                                valid-transition-dest-states-dfa?
-                                valid-transition-symbols-dfa?)
-               dfa-gen))
+(defn valid-set-dfa-keys? [dfa]
+  (s/valid? :set-dfa/dfa dfa))
 
-#_{:clj-kondo/ignore [:unresolved-var]}
-(s/def ::accepting-dfa (s/with-gen (s/and ::dfa has-accept-states?)
-                         #(sgen/such-that has-accept-states?
-                                          (s/gen ::dfa))))
+(def dfa-spec (s/and valid-start-state?
+                     valid-accept-states?
+                     valid-transition-src-states?
+                     valid-transition-dest-states-dfa?
+                     valid-transition-symbols-dfa?))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Putting it all together
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def dfa-gen-fmap
+  (partial fsm-overrider
+           (partial sample-to-set 0.33)
+           (partial sample-one)))
 
-(s/def ::fsm (s/or :nfa ::nfa :dfa ::dfa))
+(s/def ::dfa (s/with-gen
+               (s/and valid-dfa-keys?
+                      dfa-spec)
+               (fn [] (sgen/fmap
+                       dfa-gen-fmap
+                       (s/gen :int-dfa/dfa-basics)))))
 
-(s/def ::fsm-coll (s/every ::fsm :min-count 1))
+(s/def ::set-dfa (s/with-gen
+                   (s/and valid-set-dfa-keys?
+                          dfa-spec)
+                   (fn [] (sgen/fmap
+                           dfa-gen-fmap
+                           (s/gen :set-dfa/dfa-basics)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Function specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/fdef fsm/alphatize-states-fsm
-  :args (s/cat :fsm ::fsm)
-  :ret ::fsm
+  :args (s/cat :fsm (s/or :nfa ::nfa
+                          :dfa (s/or :ints ::dfa
+                                     :sets ::set-dfa)))
+  :ret (s/or :nfa ::nfa :dfa ::dfa)
   :fn (fn [{:keys [args ret]}]
         (= (count (:states args))
            (count (:states ret)))))
 
 (s/fdef fsm/alphatize-states
-  :args (s/cat :fsm-coll ::fsm-coll)
-  :ret ::fsm-coll
+  :args (s/cat :fsm-coll (s/every (s/or :nfa ::nfa
+                                        :dfa (s/or :ints ::dfa
+                                                   :sets ::set-dfa))
+                                  :min-count 1
+                                  :gen-max 10))
+  :ret (s/every (s/or :nfa ::nfa :dfa ::dfa)
+                :min-count 1)
   :fn (fn [{:keys [args ret]}]
         (= (count-states args)
            (count (:states ret)))))
 
 (s/fdef fsm/transition-nfa
-  :args (s/cat :fn-symbol ::symbol-id
-               :f ::symbol-pred)
+  :args (s/cat :fn-symbol ::symbol-id :fn ::symbol-pred)
   :ret (and ::thompsons-nfa
             (fn [{:keys [states]}] (= 2 (count states)))))
 
@@ -350,7 +344,7 @@
   :ret ::dfa)
 
 (s/fdef fsm/minimize-dfa
-  :args (s/cat :dfa ::accepting-dfa)
+  :args (s/cat :dfa ::dfa)
   :ret ::dfa
   :fn (fn [{:keys [args ret]}]
         (<= (-> ret :states count)

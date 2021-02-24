@@ -783,6 +783,16 @@
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]
              (-> nil (read-nxt "a") (read-nxt "b"))))))
+  (testing "The read-next function on edge cases"
+    (is (= {:states #{} :accepted? false}
+           (-> a-fsm fsm/nfa->dfa (fsm/read-next
+                                   {:states #{} :accepted? false}
+                                   "a"))))
+    (is (= {:states #{} :accepted? false}
+           (-> a-fsm fsm/nfa->dfa (fsm/read-next
+                                   {:states #?(:clj #{0} :cljs #{1})
+                                    :accepted? true}
+                                   nil)))))
   (testing "The read-next function when multiple transitions can be accepted"
     (let [num-fsm {:type :dfa
                    :symbols {"even" even? "lt10" (fn [x] (< x 10))}

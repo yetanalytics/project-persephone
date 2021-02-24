@@ -536,14 +536,13 @@
    If :states is empty or if input is nil, return state-info without
    calling the FSM, and set :states to the empty set (as nil is
    always considered rejected)."
-  [{start :start :as dfa} {accepted? :accepted? :as state-info} input]
+  [{start :start :as dfa} state-info input]
   (let [states (if (nil? state-info) #{start} (:states state-info))]
-    (if-not (or (empty? states) (nil? input))
-      (reduce (fn [{:keys [states accepted?] :as acc}
-                   {m-states :states m-accepted? :accepted?}]
-                (-> acc
-                    (assoc :states (cset/union states m-states))
-                    (assoc :accepted? (or accepted? m-accepted?))))
-              {:states #{} :accepted? false}
-              (map #(read-next* dfa % input) states))
-      {:states {} :accepted? accepted?})))
+    (reduce (fn [{:keys [states accepted?] :as acc}
+                 {m-states :states m-accepted? :accepted?}]
+              (-> acc
+                  (assoc :states (cset/union states m-states))
+                  (assoc :accepted? (or accepted? m-accepted?))))
+            {:states #{} :accepted? false}
+            (when-not (or (empty? states) (nil? input)) ;; Rejection conditions
+              (map #(read-next* dfa % input) states)))))

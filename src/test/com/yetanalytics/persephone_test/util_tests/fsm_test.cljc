@@ -31,6 +31,31 @@
               :start       0
               :accepts     #{1}
               :transitions {0 {"b" #{1}} 1 {}}}])))
+    (is (= [{:type :nfa
+             :symbols {"a" odd?}
+             :states #{0}
+             :start 0
+             :accepts #{0}
+             :transitions {0 {}}}
+            {:type :nfa
+             :symbols {"b" even?}
+             :states #{1}
+             :start 1
+             :accepts #{1}
+             :transitions {1 {}}}]
+           (fsm/alphatize-states
+            [{:type :nfa
+              :symbols {"a" odd?}
+              :states #{0}
+              :start 0
+              :accepts #{0}
+              :transitions {0 {}}}
+             {:type :nfa
+              :symbols {"b" even?}
+              :states #{1}
+              :start 1
+              :accepts #{1}
+              :transitions {1 {}}}])))
     (is (= [{:type        :dfa
              :symbols     {"a" odd?}
              :states      #{0 1}
@@ -188,26 +213,27 @@
                           5 {:epsilon #{7}}
                           7 {}}}
            (fsm/union-nfa [a-fsm b-fsm c-fsm])))
-    #_(is (= {:type :nfa
-              :symbols {"a" is-a? "b" is-b?}
-              :states #{0 1 2 3}
-              :start 2
-              :accepts #{3}
-              :transitions {2 {:epsilon #{0 1}}
-                            0 {:epsilon #{3}}
-                            1 {:epsilon #{3}}}}
-             (fsm/union-nfa [{:type :nfa
-                              :symbols {"a" is-a?}
-                              :state #{0}
-                              :start 0
-                              :accepts #{0}
-                              :transitions {0 {}}}
-                             {:type :nfa
-                              :symbols {"b" is-b?}
-                              :state #{1}
-                              :start 1
-                              :accepts #{1}
-                              :transitions {1 {}}}])))))
+    (is (= {:type :nfa
+            :symbols {"a" is-a? "b" is-b?}
+            :states #{0 1 2 3}
+            :start 2
+            :accepts #{3}
+            :transitions {2 {:epsilon #{0 1}}
+                          0 {:epsilon #{3}}
+                          1 {:epsilon #{3}}
+                          3 {}}}
+           (fsm/union-nfa [{:type :nfa
+                            :symbols {"a" is-a?}
+                            :states #{0}
+                            :start 0
+                            :accepts #{0}
+                            :transitions {0 {}}}
+                           {:type :nfa
+                            :symbols {"b" is-b?}
+                            :states #{1}
+                            :start 1
+                            :accepts #{1}
+                            :transitions {1 {}}}])))))
 
 (deftest kleene-fsm-test
   (testing "FSM via applying the Kleene star operation on a smaller FSM."

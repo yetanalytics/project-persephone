@@ -101,9 +101,11 @@
 #_{:clj-kondo/ignore [:unresolved-var]}
 (defn- pred-gen []
   (sgen/fmap (fn [x] (fn [y] (= x y)))
-             (sgen/one-of [(sgen/int) (sgen/char-alphanumeric)])))
+             (sgen/one-of [(sgen/int) (sgen/char) (sgen/boolean)])))
 
-(s/def ::symbol-id (s/or :keyword keyword? :string string?))
+;; TODO: Add back keyword symbols?
+;; (Remember that :epsilon was a keyword)
+(s/def ::symbol-id string?)
 (s/def ::symbol-pred (s/with-gen fn? pred-gen))
 (s/def ::symbols (s/every-kv ::symbol-id
                              ::symbol-pred

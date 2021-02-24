@@ -115,3 +115,8 @@
      (check `fsm/plus-nfa #?(:clj 100 :cljs 50))
      (check `fsm/nfa->dfa #?(:clj 200 :cljs 100))
      (check `fsm/minimize-dfa #?(:clj 500 :cljs 250))))
+
+ ;; We do not test fsm/read-next due to the complexity of its spec, namely
+ ;; the fact that the state needs to be in the DFA or else an exception will
+ ;; be thrown.
+ 

@@ -29,37 +29,35 @@
    :extra-deps  {cider/piggieback {:mvn/version "0.5.2"} ; cljs only
                  dorothy/dorothy  {:mvn/version "0.0.7"}}}
   :test
-  {:extra-paths ["src/test" "test-resources"]}
-  :gen
-  {:extra-paths ["src/gen" "test-resources"]
-   :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}
+  {:extra-paths ["src/test" "src/gen" "test-resources"]
+   :extra-deps  {org.clojure/test.check  {:mvn/version "1.1.0"}
+                 olical/cljs-test-runner {:mvn/version "3.8.0"
+                                          :exclusions  [org.clojure/clojurescript
+                                                        org.clojure/data.json]}
+                 com.cognitect/test-runner
+                 {:git/url "https://github.com/cognitect-labs/test-runner"
+                  :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}
                  com.yetanalytics/datasim
                  {:git/url    "git@github.com:yetanalytics/datasim.git"
                   :sha        "09748698bbdbb29934e3970dca66b0aa98c9271c"
                   :exclusions [org.clojure/test.check
                                com.yetanalytics/project-pan
                                com.yetanalytics/xapi-schema]}}}
-  :runner-deps-clj
-  {:extra-deps {com.cognitect/test-runner
-                {:git/url "https://github.com/cognitect-labs/test-runner"
-                 :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}}
-  :runner-deps-cljs
-  {:extra-deps {olical/cljs-test-runner {:mvn/version "3.8.0"}}}
-  :run-clj
+  :runner-clj
   {:main-opts  ["-m" "cognitect.test-runner"
                 "-d" "src/test"]}
-  :run-cljs
+  :runner-cljs
   {:main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/test"
                  "-c" "build.test.edn"]}
-  :run-gen-clj
+  :runner-gen-clj
   {:main-opts  ["-m" "cognitect.test-runner"
                 "-d" "src/gen"]}
-  :run-gen-cljs
+  :runner-gen-cljs
   {:main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/gen"
                  "-c" "build.test.edn"]}
-  :run-coverage
+  :runner-coverage
   {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}
    :main-opts  ["-m" "cloverage.coverage"
                 "-p" "src/main"

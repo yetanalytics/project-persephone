@@ -4,16 +4,16 @@ clean:
 	rm -rf target cljs-test-runner-out
 
 test-clj:
-	clojure -A:test:runner-deps-clj:run-clj
+	clojure -A:test:runner-clj
 
 test-gen-clj:
-	clojure -A:gen:runner-deps-clj:run-gen-clj
+	clojure -A:test:runner-gen-clj
 
 test-cljs:
-	clojure -A:test:runner-deps-cljs:run-cljs
+	clojure -A:test:runner-cljs
 
 test-gen-cljs:
-	clojure -A:gen:runner-deps-cljs:run-gen-cljs
+	clojure -A:test:runner-gen-cljs
 
 coverage:
 	clojure -A:test:runner-cov

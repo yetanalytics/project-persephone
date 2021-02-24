@@ -8,19 +8,39 @@
 ;; DATASIM tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: Use macros to allow use w/ cljs?
-
 (def tc3-inputs
   (-> (sim-input/from-location :input :json "test-resources/tc3_inputs.json")
       (assoc-in [:parameters :seed] (rand-int 1000))))
 
-(def tc3-profile (get-in tc3-inputs [:profiles 0]))
+(def tc3-profiles (get tc3-inputs :profiles))
 
-(def tc3-stmt-seq (take 100 (sim/sim-seq tc3-inputs)))
+(def tc3-profile (first tc3-profiles))
+
+(def tc3-stmt-seq (take 10 (sim/sim-seq tc3-inputs)))
 
 (def tc3-dfas (per/compile-profile tc3-profile))
 
-(deftest match-next-statement-datasim-test
+(deftest validate-stmt-vs-profile-test
+  (testing "the validate-statement-vs-profile function using DATASIM"
+    (is (loop [stmts tc3-stmt-seq]
+          (if-let [next-stmt (first stmts)]
+            (let [errs (filter (fn [prof]
+                                 (per/validate-statement-vs-profile
+                                  prof
+                                  next-stmt
+                                  :fn-type :result ;; Return error on invalid stmt
+                                  ;; TODO: Fix Pan s.t. all profiles pass
+                                  :validate-profile? false))
+                               tc3-profiles)]
+              (if (empty? errs)
+                (recur (rest stmts))
+                (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
+                                {:type      :datasim-template-test-failed
+                                 :statement next-stmt
+                                 :error     (first errs)}))))
+            true)))))
+
+(deftest match-next-statement-test
   (testing "the match-next-statement function using DATASIM"
     (is (loop [stmts      tc3-stmt-seq
                state-info {}]
@@ -35,8 +55,8 @@
                              true
                              (get state-info' registration))]
               (if is-rejected?
-                (throw (ex-info "Statement stream rejected by tc3 Profile"
-                                {:type       :datasim-test-failed
+                (throw (ex-info "Statement stream not matched by tc3 Profile"
+                                {:type       :datasim-pattern-test-failed
                                  :statement  next-stmt
                                  :patterns   tc3-dfas
                                  :state-info state-info'}))

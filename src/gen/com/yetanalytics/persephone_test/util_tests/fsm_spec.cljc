@@ -100,10 +100,8 @@
 
 #_{:clj-kondo/ignore [:unresolved-var]}
 (defn- pred-gen []
-  (sgen/fmap (fn [s] #(contains? s %))
-             (sgen/set (sgen/one-of [(sgen/keyword nil)
-                                     (sgen/string nil)])
-                       {:max-elements 10})))
+  (sgen/fmap (fn [x] (fn [y] (= x y)))
+             (sgen/one-of [(sgen/int) (sgen/char-alphanumeric)])))
 
 (s/def ::symbol-id (s/or :keyword keyword? :string string?))
 (s/def ::symbol-pred (s/with-gen fn? pred-gen))

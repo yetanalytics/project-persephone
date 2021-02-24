@@ -10,19 +10,17 @@
 
 (def tc3-inputs
   (-> (sim-input/from-location :input :json "test-resources/tc3_inputs.json")
-      (assoc-in [:parameters :seed] (rand-int 1000))))
+      (assoc-in [:parameters :seed] (rand-int 1000000000))))
 
 (def tc3-profiles (get tc3-inputs :profiles))
 
 (def tc3-profile (first tc3-profiles))
 
-(def tc3-stmt-seq (take 10 (sim/sim-seq tc3-inputs)))
-
 (def tc3-dfas (per/compile-profile tc3-profile))
 
 (deftest validate-stmt-vs-profile-test
   (testing "the validate-statement-vs-profile function using DATASIM"
-    (is (loop [stmts tc3-stmt-seq]
+    (is (loop [stmts (take 10 (sim/sim-seq tc3-inputs))]
           (if-let [next-stmt (first stmts)]
             (let [errs (filter (fn [prof]
                                  (per/validate-statement-vs-profile
@@ -42,7 +40,7 @@
 
 (deftest match-next-statement-test
   (testing "the match-next-statement function using DATASIM"
-    (is (loop [stmts      tc3-stmt-seq
+    (is (loop [stmts      (take 100 (sim/sim-seq tc3-inputs))
                state-info {}]
           (if-let [next-stmt (first stmts)]
             (let [registration

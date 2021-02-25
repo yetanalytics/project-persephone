@@ -38,11 +38,11 @@
    appropriate predicate name."
   [spec-data]
   (let [pred (-> spec-data ::s/problems first :pred)]
-       (if (coll? pred)
-         ; (partial pred? ...)
-         (-> pred second name)
-         ; pred?
-         (-> pred name))))
+    (if (coll? pred)
+      ; (partial pred? ...)
+      (-> pred second name)
+      ; pred?
+      (-> pred name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Basic predicates 

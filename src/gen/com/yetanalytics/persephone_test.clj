@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
+            [criterium.core :as criterium]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))
@@ -74,3 +75,34 @@
 (deftest match-next-statement-test
   (testing "the match-next-statement function using DATASIM"
     (is (run-match-next-statement 100))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Benchmarking (temporary)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; ===== Criterium quick bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 10.839387 sec
+;;     Execution time std-deviation : 253.562308 ms
+;;    Execution time lower quantile : 10.483715 sec ( 2.5%)
+;;    Execution time upper quantile : 11.103982 sec (97.5%)
+;;                    Overhead used : 1.698049 ns
+
+;; ===== Criterium quick bench output for (run-match-next-statement 10) =========
+;; Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 1.057962 sec
+;;     Execution time std-deviation : 71.280125 ms
+;;    Execution time lower quantile : 1.011374 sec ( 2.5%)
+;;    Execution time upper quantile : 1.178259 sec (97.5%)
+;;                    Overhead used : 1.698049 ns
+;;
+;; Found 1 outliers in 6 samples (16.6667 %)
+;; 	low-severe	 1 (16.6667 %)
+;;  Variance from outliers : 15.0731 % Variance is moderately inflated by outliers
+
+(comment
+  (criterium/with-progress-reporting
+    (criterium/quick-bench (run-validate-stmt-vs-profile 10)))
+
+  (criterium/with-progress-reporting
+    (criterium/quick-bench (run-match-next-statement 10))))

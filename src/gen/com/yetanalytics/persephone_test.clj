@@ -14,7 +14,8 @@
   (-> (sim-input/from-location :input :json "test-resources/tc3_inputs.json")
       (assoc-in [:parameters :seed] (rand-int 1000000000))))
 
-(def tc3-profiles (get tc3-inputs :profiles))
+;; NOTE: from-location fills in nil "template" and "pattern" fields with nil,
+;; which will cause profile validation to fail.
 
 ;; First profile contains all the Statement Templates and Patterns
 (def tc3-profile (get-in tc3-inputs [:profiles 0]))

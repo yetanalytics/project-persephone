@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.pan.utils.json :as json]))
+            [com.yetanalytics.persephone.utils.json :as jsn]))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -148,7 +148,7 @@
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
-(def cmi-templates (:templates (json/convert-json cmi-profile "_")))
+(def cmi-templates (:templates (jsn/json->edn cmi-profile :keywordize? true)))
 
 ; Note: we need to add ['*'] to the original JSONPath specs in the "all" rules.
 (def launched-stmt
@@ -382,24 +382,29 @@
                                                    :validate-profile? false)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
 
-(def cmi-fsm (first (per/compile-profile cmi-profile)))
+(def cmi-fsm-map (per/compile-profile cmi-profile))
+
+(def cmi-fsm (get cmi-fsm-map "https://w3id.org/xapi/cmi5#toplevel"))
+
 (def rns-cmi (partial per/match-next-statement* cmi-fsm))
 
 (deftest pattern-validation-tests
   (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
-    (is (:rejected? (rns-cmi nil ex-statement)))
+    (is (empty? (:states (rns-cmi nil ex-statement))))
     ;; Accepted by 'satisfied' Template
     (is (not (:rejected? (rns-cmi nil satisfied-stmt))))
-    ;; Does not satifiy all rules in the 'satisfied' Template
-    (is (:rejected?
-         (rns-cmi nil (assoc-in ex-statement
-                                ["verb" "id"]
-                                "http://adlnet.gov/expapi/verbs/satisfied"))))
-    ;; Forgot initialized-stmt
-    (is (:rejected? (-> nil
-                  (rns-cmi satisfied-stmt)
-                  (rns-cmi launched-stmt)
-                  (rns-cmi failed-stmt))))
+    ;; Does not satifiy all rules in the 'satisfied' Template - rejected
+    (is (empty? (:states
+                 (rns-cmi nil (assoc-in
+                               ex-statement
+                               ["verb" "id"]
+                               "http://adlnet.gov/expapi/verbs/satisfied")))))
+    ;; Forgot initialized-stmt - rejected
+    (is (empty? (-> nil
+                    (rns-cmi satisfied-stmt)
+                    (rns-cmi launched-stmt)
+                    (rns-cmi failed-stmt)
+                    :states)))
     ;; Session not completed yet
     (is (not (:accepted? (-> nil
                              (rns-cmi satisfied-stmt)
@@ -457,13 +462,32 @@
                         (rns-cmi passed-stmt)
                         (rns-cmi terminated-stmt))))))
 
-(def rns-cmi-2 (partial per/match-next-statement cmi-fsm))
+(def rns-cmi-2 (partial per/match-next-statement cmi-fsm-map))
 
 (def satisfied-stmt-2
   (assoc-in satisfied-stmt ["context" "registration"] "registration-2"))
 
 (deftest match-next-statement-test
   (testing "the match-next-statement function"
+    (is (= 2 (-> {}
+                 (rns-cmi-2 satisfied-stmt)
+                 (rns-cmi-2 satisfied-stmt-2)
+                 count)))
+    (is (= 1 (-> {}
+                 (rns-cmi-2 satisfied-stmt)
+                 (rns-cmi-2 satisfied-stmt-2)
+                 :no-registration
+                 count)))
+    (is (= 1 (-> {}
+                 (rns-cmi-2 satisfied-stmt)
+                 (rns-cmi-2 satisfied-stmt-2)
+                 (get "registration-2")
+                 count)))
+    (is (:accepted? (-> {}
+                        (rns-cmi-2 satisfied-stmt)
+                        (rns-cmi-2 satisfied-stmt-2)
+                        (get "registration-2")
+                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (rns-cmi-2 satisfied-stmt)
                         (rns-cmi-2 launched-stmt)
@@ -479,11 +503,8 @@
                         (rns-cmi-2 satisfied-stmt)
                         (rns-cmi-2 passed-stmt)
                         (rns-cmi-2 terminated-stmt)
-                        :no-registration)))
-    (is (:accepted? (-> {}
-                        (rns-cmi-2 satisfied-stmt)
-                        (rns-cmi-2 satisfied-stmt-2)
-                        (get "registration-2"))))
+                        :no-registration
+                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (rns-cmi-2 satisfied-stmt)
                         (rns-cmi-2 satisfied-stmt-2)
@@ -495,6 +516,5 @@
                         (rns-cmi-2 satisfied-stmt-2)
                         (rns-cmi-2 abandoned-stmt)
                         (rns-cmi-2 satisfied-stmt-2)
-                        (get "registration-2"))))))
-
-;; TODO: Add DATASIM tests
+                        (get "registration-2")
+                        (get "https://w3id.org/xapi/cmi5#toplevel"))))))

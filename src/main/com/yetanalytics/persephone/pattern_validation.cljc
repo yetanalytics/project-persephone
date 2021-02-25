@@ -1,7 +1,6 @@
 (ns com.yetanalytics.persephone.pattern-validation
-  (:require #?(:clj [clojure.core.match :as m] :cljs [cljs.core.match :as m])
-            [clojure.walk :as w]
-            [clojure.zip :as zip]
+  (:require [clojure.walk :as w]
+            [clojure.zip  :as zip]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
             [com.yetanalytics.persephone.template-validation :as tv]))
 
@@ -98,40 +97,46 @@
   "Given a Pattern (e.g. as a node in a Pattern tree), return the corresponding
    FSM. The FSM built at this node is a composition of FSMs built from the child
    nodes."
-  [node]
-  (m/match [node]
-    [{:type "Pattern" :sequence sqn}]
-    (fsm/concat-nfa sqn)
-    [{:type "Pattern" :alternates alt}]
-    (fsm/union-nfa alt)
-    [{:type "Pattern" :optional opt}]
-    (fsm/optional-nfa opt)
-    [{:type "Pattern" :zeroOrMore zom}]
-    (fsm/kleene-nfa zom)
-    [{:type "Pattern" :oneOrMore oom}]
-    (fsm/plus-nfa oom)
-    [{:type "StatementTemplate" :id node-id}]
-    (fsm/transition-nfa node-id (partial tv/valid-statement? node))
-    :else node))
+  [{:keys [type id] :as node}]
+  (cond
+    (= "Pattern" type)
+    (let [{:keys [sequence alternates optional zeroOrMore oneOrMore]} node]
+      (cond (some? sequence)
+            (fsm/concat-nfa sequence)
+            (some? alternates)
+            (fsm/union-nfa alternates)
+            (some? optional)
+            (fsm/optional-nfa optional)
+            (some? zeroOrMore)
+            (fsm/kleene-nfa zeroOrMore)
+            (some? oneOrMore)
+            (fsm/plus-nfa oneOrMore)
+            :else
+            (throw (ex-info "Pattern is missing required fields."
+                            {:type    :invalid-pattern
+                             :pattern node}))))
+    (= "StatementTemplate" type)
+    (fsm/transition-nfa id (partial tv/valid-statement? node))
+    :else
+    node))
 
 (defn pattern-tree->fsm
-  "Turn a Pattern tree data structure into an FSM using a post-order DFS tree
-   traversal."
+  "Turn a Pattern tree data structure into an FSM using a post-order
+   DFS tree traversal."
   [pattern-tree]
-  (fsm/reset-counter)
-  (->> pattern-tree
-       (w/postwalk pattern->fsm)
-       fsm/nfa->dfa
-       fsm/minimize-dfa
-       fsm/alphatize-states-fsm))
+  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
 
 (defn profile->fsms
-  "Pipeline function that turns a Profile into a vectors of FSMs that can
-   perform Statement validation. Each entry corresponds to a primary Pattern.
+  "Given a Profile, returns a map between primary Pattern IDs and
+   their respective FSMs that can perform Statement validation.
    Assumes a valid Profile."
   [profile]
   (let [temp-pat-map (mapify-all profile)
         pattern-seq (primary-patterns profile)]
-    (mapv (fn [pattern]
-            (-> pattern (grow-pattern-tree temp-pat-map) pattern-tree->fsm))
-          pattern-seq)))
+    (reduce (fn [acc {pat-id :id :as pattern}]
+              (let [pat-fsm (-> pattern
+                                (grow-pattern-tree temp-pat-map)
+                                pattern-tree->fsm)]
+                (assoc acc pat-id pat-fsm)))
+            {}
+            pattern-seq)))

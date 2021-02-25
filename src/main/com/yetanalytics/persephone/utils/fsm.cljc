@@ -38,8 +38,8 @@
 ;;  :accepts     #{state ...}
 ;;  :transitions {state {symbol #{state ...} ...} ...}
 ;; }
-;; where "symbol" is a string or keyword, "predicate" is a predicate function,
-;; and "state" is a number.
+;; where "symbol" is some key, "predicate" is a predicate function, and "state"
+;; is a number.
 ;; 
 ;; We encode a DFA as the following:
 ;; {:symbols     {symbol predicate ...}
@@ -72,7 +72,7 @@
 
 (def counter (atom -1))
 
-(defn reset-counter
+(defn- reset-counter
   "Reset the counter used to name states; an optional starting value may be
    provided (mainly for debugging). The counter must always be reset before
    constructing a new NFA."
@@ -86,14 +86,10 @@
 
 (defn- alphatize-states-fsm*
   [{type :type states :states :as fsm}]
-  (let [states'
-        (if (coll? (first states))
-          (->> states (map sort) (sort-by first) (map set))
-          (->> states sort))
-        old-to-new-state
+  (let [old-to-new-state
         (reduce (fn [acc state] (assoc acc state (new-state)))
                 {}
-                states')
+                states)
         old-to-new-state-set
         (fn [states]
           (->> states (mapv old-to-new-state) (into #{})))
@@ -124,12 +120,12 @@
   (alphatize-states-fsm* fsm))
 
 (defn alphatize-states
-  "Rename all states in a collection of NFAs such that no two states share the
+  "Rename all states in a collection of FSMs such that no two states share the
    same name."
-  [nfa-coll]
+  [fsm-coll]
   (reset-counter)
   (loop [new-fsm-queue []
-         fsm-queue nfa-coll]
+         fsm-queue fsm-coll]
     (if-let [fsm (first fsm-queue)]
       (recur (->> fsm alphatize-states-fsm* (conj new-fsm-queue))
              (rest fsm-queue))
@@ -148,6 +144,15 @@
           transitions
           sources))
 
+;; Misc asserts and predicates
+
+(defn- assert-nonempty-fsm-coll
+  [fsm-coll fn-name]
+  (when (empty? fsm-coll)
+    (throw (ex-info (str fn-name " is undefined for empty FSM collection.")
+                    {:type :empty-fsm-coll
+                     :fn   (keyword fn-name)}))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA Construction Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -157,6 +162,7 @@
 (defn transition-nfa
   "Create an NFA that accepts a single input."
   [fn-symbol f]
+  (reset-counter)
   (let [start (new-state) accept (new-state)]
     {:type        :nfa
      :symbols     {fn-symbol f}
@@ -170,39 +176,36 @@
   "Concat a collection of NFAs in sequential order. The function throws an
    exception on empty collections."
   [nfa-coll]
-  (if-not (empty? nfa-coll)
-    (let [nfa-coll (alphatize-states nfa-coll)]
-      (loop [fsm      (first nfa-coll)
-             fsm-list (rest nfa-coll)]
-        (if-let [next-fsm (first fsm-list)]
-          (let [{symbols     :symbols
-                 states      :states
-                 start       :start
-                 accepts     :accepts
-                 transitions :transitions}
-                fsm
-                {next-symbols     :symbols
-                 next-states      :states
-                 next-start       :start
-                 next-accepts     :accepts
-                 next-transitions :transitions}
-                next-fsm
-                new-fsm
-                {:type     :nfa
-                 :symbols  (merge symbols next-symbols)
-                 :states   (cset/union states next-states)
-                 :start    start
-                 :accepts  next-accepts
-                 :transitions
-                 (-> (merge transitions next-transitions)
-                     (update-in
-                      [(first accepts) :epsilon]
-                      (fn [nexts] (set (conj nexts next-start)))))}]
-            (recur new-fsm (rest fsm-list)))
-          fsm)))
-    (let [err-msg "concat-nfa is undefined for empty FSM collection."]
-      (throw #?(:clj (Exception. err-msg)
-                :cljs (js/Error. err-msg))))))
+  (assert-nonempty-fsm-coll nfa-coll "concat-nfa")
+  (let [nfa-coll (alphatize-states nfa-coll)]
+    (loop [fsm      (first nfa-coll)
+           fsm-list (rest nfa-coll)]
+      (if-let [next-fsm (first fsm-list)]
+        (let [{symbols     :symbols
+               states      :states
+               start       :start
+               accepts     :accepts
+               transitions :transitions}
+              fsm
+              {next-symbols     :symbols
+               next-states      :states
+               next-start       :start
+               next-accepts     :accepts
+               next-transitions :transitions}
+              next-fsm
+              new-fsm
+              {:type     :nfa
+               :symbols  (merge symbols next-symbols)
+               :states   (cset/union states next-states)
+               :start    start
+               :accepts  next-accepts
+               :transitions
+               (-> (merge transitions next-transitions)
+                   (update-in
+                    [(first accepts) :epsilon]
+                    (fn [nexts] (set (conj nexts next-start)))))}]
+          (recur new-fsm (rest fsm-list)))
+        fsm))))
 
 ;;    + --> s ==> s --v
 ;; -> q               f
@@ -210,29 +213,26 @@
 (defn union-nfa
   "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
   [nfa-coll]
-  (if-not (empty? nfa-coll)
-    (let [nfa-coll    (alphatize-states nfa-coll)
-          new-start   (new-state)
-          new-accept  (new-state)
-          old-starts  (set (mapv :start nfa-coll))
-          old-accepts (mapv #(-> % :accepts first) nfa-coll)]
-      {:type     :nfa
-       :symbols  (into {} (mapcat :symbols nfa-coll))
-       :start    new-start
-       :accepts  #{new-accept}
-       :states
-       (cset/union
-        (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
-        #{new-start new-accept})
-       :transitions
-       (->
-        (reduce (fn [acc fsm] (->> fsm :transitions (merge acc))) {} nfa-coll)
-        (add-epsilon-transitions old-accepts new-accept)
-        (update-in [new-start :epsilon] (constantly old-starts))
-        (update new-accept (constantly {})))})
-    (let [err-msg "union-nfa is undefined for empty FSM collection."]
-      (throw #?(:clj (Exception. err-msg)
-                :cljs (js/Error. err-msg))))))
+  (assert-nonempty-fsm-coll nfa-coll "union-nfa")
+  (let [nfa-coll    (alphatize-states nfa-coll)
+        new-start   (new-state)
+        new-accept  (new-state)
+        old-starts  (set (mapv :start nfa-coll))
+        old-accepts (mapv #(-> % :accepts first) nfa-coll)]
+    {:type     :nfa
+     :symbols  (into {} (mapcat :symbols nfa-coll))
+     :start    new-start
+     :accepts  #{new-accept}
+     :states
+     (cset/union
+      (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
+      #{new-start new-accept})
+     :transitions
+     (->
+      (reduce (fn [acc fsm] (->> fsm :transitions (merge acc))) {} nfa-coll)
+      (add-epsilon-transitions old-accepts new-accept)
+      (update-in [new-start :epsilon] (constantly old-starts))
+      (update new-accept (constantly {})))}))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -240,13 +240,11 @@
 (defn kleene-nfa
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
    means the NFA can be taken zero or more times."
-  [{symbols     :symbols
-    states      :states
-    start       :start
-    accepts     :accepts
-    transitions :transitions}]
+  [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -256,7 +254,7 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;    +-----------------v
@@ -264,13 +262,11 @@
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
    means the NFA may or may not be taken."
-  [{symbols     :symbols
-    states      :states
-    start       :start
-    accepts     :accepts
-    transitions :transitions}]
+  [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -280,7 +276,7 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;          v-----+
@@ -288,13 +284,11 @@
 (defn plus-nfa
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
    means the NFA can be taken one or more times."
-  [{symbols     :symbols
-    states      :states
-    start       :start
-    accepts     :accepts
-    transitions :transitions}]
+  [{:keys [symbols states start accepts transitions] :as _nfa}]
+  (reset-counter (+ 1 (apply max states))) ;; For gentests
   (let [new-start  (new-state)
-        new-accept (new-state)]
+        new-accept (new-state)
+        old-accept (first accepts)]
     {:type     :nfa
      :symbols  symbols
      :states   (cset/union states #{new-start new-accept})
@@ -304,12 +298,14 @@
      (->
       transitions
       (update-in [new-start :epsilon] #(cset/union % #{start}))
-      (update-in [(first accepts) :epsilon] #(cset/union % #{start new-accept}))
+      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
       (update new-accept (constantly {})))}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA to DFA Conversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: Optimize this part of the code
 
 (defn- init-queue [init]
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
@@ -333,6 +329,8 @@
         (recur visited-states (pop state-queue)))
       visited-states)))
 
+;; XXX nfa-move is a optimization hotspot (especially filterv)
+;; need to optimize this function hard! - 40% of CPU time
 (defn nfa-move
   "Given an NFA, a symbolic input (NOT an argument to predicates), and a state,
    return a vector of states arrived after the transition. Returns nil if no
@@ -366,7 +364,7 @@
    Internally, this performs a tree search that guarentees no unreachable
    states."
   [nfa dfa-start]
-  (letfn [(add-state-to-dfa
+  (letfn [(add-state-to-dfa ;; 8% of CPU time
             [dfa next-dfa-state prev-dfa-state symb]
             ; An empty next-dfa-state value means that the symbol cannot be
             ; read at the previous state in the NFA, so we avoid adding it so
@@ -412,27 +410,40 @@
                                        dfa-state
                                        (mapcat (partial nfa-move nfa symb))
                                        (mapcat (partial epsilon-closure nfa))
-                                       set)
-                       new-dfa         (add-state-to-dfa
-                                        dfa
-                                        next-dfa-state
-                                        dfa-state
-                                        symb)
-                       new-queue       (add-state-to-queue
-                                        queue
-                                        dfa
-                                        next-dfa-state)]
+                                       set) ;; set is 12% of CPU time
+                       new-dfa        (add-state-to-dfa
+                                       dfa
+                                       next-dfa-state
+                                       dfa-state
+                                       symb)
+                       new-queue      (add-state-to-queue
+                                       queue
+                                       dfa
+                                       next-dfa-state)]
                    [new-queue new-dfa]))
                [(pop queue) dfa]
                (-> nfa :symbols keys))]
           (recur dfa' queue''))
-        dfa))))
+        (let [add-missing-srcs
+              (fn [transitions states]
+                (reduce (fn [trans' s]
+                          (if (not (contains? transitions s))
+                            (assoc trans' s {})
+                            trans'))
+                        transitions
+                        states))
+              {:keys [states]} dfa]
+          (-> dfa
+              ;; Add source states not present in the transition table
+              (update :transitions add-missing-srcs states)
+              ;; Alphatize DFA states
+              alphatize-states-fsm))))))
 
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
    order to (semi)-determinize it and remove epsilon transitions."
-  [{start :start :as dfa}]
-  (nfa->dfa* dfa (epsilon-closure dfa start)))
+  [{start :start :as nfa}]
+  (nfa->dfa* nfa (epsilon-closure nfa start)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Minimization
@@ -444,7 +455,8 @@
    destination state in the original DFA, this produces a NFA, where the new
    source-symbol pair leads to multiple new destinations."
   [transitions]
-  (letfn [(update-dests [src new-dests]
+  (letfn [(update-dests
+            [src new-dests]
             (if (nil? new-dests) #{src} (conj new-dests src)))]
     (reduce-kv
      (fn [acc src trans]
@@ -464,11 +476,7 @@
    2. The original accept states form a start state (so we represent the start
       state with the set of accept states, rather than a single state)
    3. The transitions are reversed."
-  [{symbols     :symbols
-    states      :states
-    start       :start
-    accepts     :accepts
-    transitions :transitions}]
+  [{:keys [symbols states start accepts transitions] :as _dfa}]
   {:type        :nfa
    :symbols     symbols
    :states      states
@@ -486,30 +494,31 @@
   [dfa]
   (letfn [(construct-reverse-dfa
             [dfa]
-            (let [rev-dfa (-> dfa alphatize-states-fsm reverse-dfa)]
+            (let [rev-dfa (reverse-dfa dfa)]
               (nfa->dfa* rev-dfa (:start rev-dfa))))]
-    (-> dfa construct-reverse-dfa construct-reverse-dfa)))
+    (-> dfa
+        construct-reverse-dfa
+        construct-reverse-dfa)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Input Reading
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: Handle situations when number of states returned is greater than 1.
-
 (defn- read-next*
-  "Like read-next, except it takes in the state directly, rather than state
-   info. The read-next function is more useful for threading."
-  [{symbols :symbols accepts :accepts transitions :transitions} state input]
+  "Like read-next, except it takes in the state directly, rather than
+   state info. Returns a set of destination states.
+   The read-next function is more useful for threading."
+  [{:keys [symbols accepts transitions] :as _dfa} state input]
   (if-let [trans (-> transitions (get state))]
     (let [dests
           (->> trans
-               (filterv (fn [[symb _]]
-                          (let [pred? (get symbols symb)] (pred? input))))
+               (filterv (fn [[symb _]] (let [pred? (get symbols symb)]
+                                         (pred? input))))
                (mapv (fn [[_ dest]] dest)))]
-      {:state     (first dests)
-       :accepted? (boolean
-                   (seq (filterv (partial contains? accepts) dests)))
-       :rejected? (nil? (first dests))})
+      {:states    (set dests)
+       :accepted? (-> (filterv (partial contains? accepts) dests)
+                      not-empty
+                      boolean)})
     (let [err-msg "State not found in the finite state machine"]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
@@ -517,21 +526,22 @@
 (defn read-next
   "Given a compiled FSM, the current state info, and an input, let
    the FSM read that input; this function returns update state info.
-   The state info map has the following fields:
-     :next-state  The next state arrived at in the FSM after reading
-                  the input. If the FSM cannot read the input, then
-                  next-state is nil.
+   The state info has the following fields:
+     :states      The set of next states arrived at in the FSM
+                  after reading the input. If :states is empty,
+                  then the input sequence has been rejected.
      :accepted?   True if the FSM as arrived at an accept state
                   after reading the input; false otherwise.
-     :rejected?   True if the FSM will not be able to read any more
-                  states, false otherwise. True iff :next-state
-                  is nil.
-   If state-info is nil, the function starts at the start state.
-   If the state value is nil, or if input is nil, return state-info
-   without calling the FSM."
-  [{start :start accepts :accepts :as dfa} state-info input]
-  (let [state       (if (nil? state-info) start (:state state-info))
-        is-accepted (contains? accepts state)]
-    (if-not (or (nil? state) (nil? input))
-      (read-next* dfa state input)
-      {:state state :accepted? is-accepted :rejected? true})))
+   If the state info is nil, the function starts at the start state.
+   If :states is empty, read-next will return state-info without
+   calling the FSM, and sets :states to the empty set (as nil is
+   always considered rejected)."
+  [{start :start :as dfa} state-info input]
+  (let [states (if (nil? state-info) #{start} (:states state-info))]
+    (reduce (fn [{:keys [states accepted?] :as acc}
+                 {m-states :states m-accepted? :accepted?}]
+              (-> acc
+                  (assoc :states (cset/union states m-states))
+                  (assoc :accepted? (or accepted? m-accepted?))))
+            {:states #{} :accepted? false}
+            (map #(read-next* dfa % input) states))))

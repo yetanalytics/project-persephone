@@ -533,8 +533,8 @@
      :accepted?   True if the FSM as arrived at an accept state
                   after reading the input; false otherwise.
    If the state info is nil, the function starts at the start state.
-   If :states is empty or if input is nil, return state-info without
-   calling the FSM, and set :states to the empty set (as nil is
+   If :states is empty, read-next will return state-info without
+   calling the FSM, and sets :states to the empty set (as nil is
    always considered rejected)."
   [{start :start :as dfa} state-info input]
   (let [states (if (nil? state-info) #{start} (:states state-info))]
@@ -544,5 +544,4 @@
                   (assoc :states (cset/union states m-states))
                   (assoc :accepted? (or accepted? m-accepted?))))
             {:states #{} :accepted? false}
-            (when-not (or (empty? states) (nil? input)) ;; Rejection conditions
-              (map #(read-next* dfa % input) states)))))
+            (map #(read-next* dfa % input) states))))

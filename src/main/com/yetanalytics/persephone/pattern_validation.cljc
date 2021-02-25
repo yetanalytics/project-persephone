@@ -110,7 +110,11 @@
             (some? zeroOrMore)
             (fsm/kleene-nfa zeroOrMore)
             (some? oneOrMore)
-            (fsm/plus-nfa oneOrMore)))
+            (fsm/plus-nfa oneOrMore)
+            :else
+            (throw (ex-info "Pattern is missing required fields."
+                            {:type    :invalid-pattern
+                             :pattern node}))))
     (= "StatementTemplate" type)
     (fsm/transition-nfa id (partial tv/valid-statement? node))
     :else

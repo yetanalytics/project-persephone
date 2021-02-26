@@ -82,6 +82,8 @@
 ;; Benchmarking (temporary)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; No optimization
+;; 
 ;; ===== Criterium quick bench output for (run-validate-stmt-vs-profile 10) =====
 ;; Evaluation count : 6 in 6 samples of 1 calls.
 ;;              Execution time mean : 10.839387 sec
@@ -101,10 +103,21 @@
 ;; Found 1 outliers in 6 samples (16.6667 %)
 ;; 	low-severe	 1 (16.6667 %)
 ;;  Variance from outliers : 15.0731 % Variance is moderately inflated by outliers
+;;
+;; After commit e127223859984e8510492279cdd9bf6951c417cd
+;; 
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 300 in 60 samples of 5 calls.
+;;              Execution time mean : 224.369674 ms
+;;     Execution time std-deviation : 23.271289 ms
+;;    Execution time lower quantile : 198.941093 ms ( 2.5%)
+;;    Execution time upper quantile : 272.140514 ms (97.5%)
+;;                    Overhead used : 1.641107 ns
+;; Approx. 50-fold speedup compared to previous benchmark
 
 (comment
   (criterium/with-progress-reporting
-    (criterium/quick-bench (run-validate-stmt-vs-profile 10)))
+    (criterium/bench (run-validate-stmt-vs-profile 10)))
 
   (criterium/with-progress-reporting
     (criterium/quick-bench (run-match-next-statement 10))))

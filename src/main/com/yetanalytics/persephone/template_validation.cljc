@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.template-validation
   (:require [clojure.set :as cset]
-            #_[clojure.spec.alpha :as s]
             [clojure.string :as string]
             [com.yetanalytics.pathetic :as json-path])
   #?(:cljs (:require-macros
@@ -10,15 +9,11 @@
 ;; TODO StatementRefTemplate predicates
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Util functions
+;; Predicate macros
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Used only in tests
-(defn value-map
-  "Given an array of keys (each corresponding to a level of map
-   nesting), return corresponding values from a vector of maps."
-  [map-vec & ks]
-  (mapv #(get-in % ks) map-vec))
+;; We use these macros in order to identify the name of the predicate that
+;; returns false for a some series of nested predicates.
 
 #?(:clj
    (defmacro wrap-pred
@@ -32,6 +27,10 @@
 
 #?(:clj
    (defmacro and-wrapped
+     "Given two functions wrapped using wrap-pred, return nil
+      if both functions return true and the corresponding
+      keywordized fn name for the function that returns false.
+      Short circuiting."
      [f1 f2]
      `(fn [x#]
         (if-let [res1# (~f1 x#)]
@@ -41,6 +40,9 @@
 
 #?(:clj
    (defmacro or-wrapped
+     "Given two functions wrapped using wrap-pred, return nil
+      if either function returns true and the keywordized fn
+      name for the first function if both return false."
      [f1 f2]
      `(fn [x#]
         (when-let [res1# (~f1 x#)]
@@ -49,17 +51,15 @@
 
 #?(:clj
    (defmacro add-wrapped
-     "Add a 2-ary predicate function f to wrapped predicates
-      if values is not nil; do not add if values is nil."
+     "Given a function wrapped using wrap-pred or add-wrapped,
+      add a 2-ary predicate f only if the values are not nil."
      [wrapped-fns f values]
      `(if (some? ~values)
         ~(let [pred-name# (keyword f)]
            `(fn [x#]
               (if-let [res# (~wrapped-fns x#)]
                 res#
-                (if (~f ~values x#)
-                  nil
-                  ~pred-name#))))
+                (if (~f ~values x#) nil ~pred-name#))))
         ~wrapped-fns)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -147,8 +147,8 @@
 ;;
 ;; If presence is 'included', location and selector MUST include at least one
 ;; matchable value and MUST NOT include any unmatchable values. 
-(defn create-included-spec
-  "Returns a clojure spec for when presence is 'included.'"
+(defn create-included-pred
+  "Returns a wrapped pred for when presence is 'included.'"
   [{:keys [any all none]}]
   (-> (and-wrapped (wrap-pred any-matchable?) (wrap-pred all-matchable?))
       (add-wrapped some-any-values? any)
@@ -157,8 +157,8 @@
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
-(defn create-excluded-spec
-  "Returns a clojure spec for when presence is 'excluded.'"
+(defn create-excluded-pred
+  "Returns a wrapped pred for when presence is 'excluded.'"
   [_]
   ;; the creation of a spec directly from a function is done using `s/spec`
   (wrap-pred none-matchable?))
@@ -167,8 +167,8 @@
 ;; conform to the 'any', 'all' and 'none' specs (but there are no additional
 ;; restrictions, i.e. it is possible not to have any matchable values).
 ;; 'recommended' allows profile authors to not have any/all/none in a rule.
-(defn create-default-spec
-  "Returns a predicate for when presence is 'recommended' or is missing."
+(defn create-default-pred
+  "Returns a wrapped pred for when presence is 'recommended' or is missing."
   [{:keys [any all none]}]
   (or-wrapped (-> (wrap-pred any-matchable?)
                   (add-wrapped some-any-values? any)
@@ -176,7 +176,6 @@
                   (add-wrapped no-unmatch-vals? all)
                   (add-wrapped no-none-values? none))
               (wrap-pred none-matchable?)))
-
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
@@ -192,15 +191,17 @@
                     {:type ::invalid-rule-syntax
                      :rule rule}))))
 
-(defn create-rule-spec
-  "Given a rule, create a spec that will validate a Statement against it."
+(defn create-rule-pred
+  "Given a rule, create a predicate that will validate a Statement
+   against it. Returns the name of the atomic predicate that returns
+   false, or nil if all return true."
   [{:keys [presence] :as rule}]
   (assert-valid-rule rule)
   (case presence
-    "included"    (create-included-spec rule)
-    "excluded"    (create-excluded-spec rule)
-    "recommended" (create-default-spec rule)
-    nil           (create-default-spec rule)))
+    "included"    (create-included-pred rule)
+    "excluded"    (create-excluded-pred rule)
+    "recommended" (create-default-pred rule)
+    nil           (create-default-pred rule)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -291,7 +292,7 @@
   "Given a rule, create a function that will validate new Statements against
   the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec     (create-rule-spec rule)
+  (let [rule-spec     (create-rule-pred rule)
         location-path (json-path/parse-path location)
         ;; Locations values will be a JSON array, so we can query it using the
         ;; selector by adding a wildcard at the beginning.

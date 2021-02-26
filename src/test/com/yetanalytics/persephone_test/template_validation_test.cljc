@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
   (:require [clojure.test :refer [deftest testing is are]]
-            [clojure.spec.alpha :as s]
             [com.yetanalytics.pathetic :as path]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as print-errs]
@@ -187,6 +186,12 @@
 ;; Rules predicate tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn- value-map
+  "Given an array of keys (each corresponding to a level of map
+   nesting), return corresponding values from a vector of maps."
+  [map-vec & ks]
+  (mapv #(get-in % ks) map-vec))
+
 ;; $.actor.member[*].name = ["Andrew Downes" "Toby Nichols" "Ena Hills"]
 (def name-values
   (tv/value-map (get-in ex-statement-3 ["actor" "member"]) "name"))
@@ -233,39 +238,39 @@
     (is (not (tv/no-unmatch-vals? [] [nil nil])))))
 
 ;; Predicates for our next tests
-(def included-spec
-  (tv/create-included-spec {:presence "included" :any ["Andrew Downes"]}))
+(def included-pred
+  (tv/create-included-pred {:presence "included" :any ["Andrew Downes"]}))
 
-(def excluded-spec
-  (tv/create-excluded-spec {:presence "excluded"}))
+(def excluded-pred
+  (tv/create-excluded-pred {:presence "excluded"}))
 
-(def recommended-spec
-  (tv/create-default-spec {:presence "recommended" :any ["Andrew Downes"]}))
+(def recommended-pred
+  (tv/create-default-pred {:presence "recommended" :any ["Andrew Downes"]}))
 
-(deftest create-included-spec-test
-  (testing "create-included-spec function: create a predicate when presence is
+(deftest create-included-pred-test
+  (testing "create-included-pred function: create a predicate when presence is
            'included'. Values MUST have at least one matchable value (and no
            unmatchable values) and MUST follow any/all/none reqs."
-    (is (nil? (included-spec name-values)))
-    (is (some? (included-spec ["Will Hoyt"])))
-    (is (some? (included-spec [])))
-    (is (some? (included-spec ["Andrew Downes" nil])))))
+    (is (nil? (included-pred name-values)))
+    (is (some? (included-pred ["Will Hoyt"])))
+    (is (some? (included-pred [])))
+    (is (some? (included-pred ["Andrew Downes" nil])))))
 
-(deftest create-excluded-spec-test
-  (testing "create-excluded-spec function: create a predicate when presence is
+(deftest create-excluded-pred-test
+  (testing "create-excluded-pred function: create a predicate when presence is
            'excluded.' There MUST NOT be any matchable values."
-    (is (nil? (excluded-spec [])))
-    (is (nil? (excluded-spec [nil nil])))
-    (is (some? (excluded-spec name-values)))
-    (is (some? (excluded-spec (conj name-values nil))))))
+    (is (nil? (excluded-pred [])))
+    (is (nil? (excluded-pred [nil nil])))
+    (is (some? (excluded-pred name-values)))
+    (is (some? (excluded-pred (conj name-values nil))))))
 
 ;; The test for when presence is missing is pretty much the same. 
-(deftest create-recommended-spec-test
-  (testing "create-recommended-spec function: create a predicate when presence
+(deftest create-recommended-pred-test
+  (testing "create-recommended-pred function: create a predicate when presence
            is 'recommended'. MUST follow any/all/none reqs."
-    (is (nil? (recommended-spec [])))
-    (is (nil? (recommended-spec name-values)))
-    (is (some? (recommended-spec ["Will Hoyt"])))))
+    (is (nil? (recommended-pred [])))
+    (is (nil? (recommended-pred name-values)))
+    (is (some? (recommended-pred ["Will Hoyt"])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests
@@ -327,13 +332,12 @@
                                 | $.context.contextActivities.grouping
                                 | $.context.contextActivities.category
                                 | $.context.contextActivities.other")))))
-    (is (s/valid? (s/coll-of vector? :kind vector?)
-                  (tv/find-values
-                   ex-statement-0
-                   (path/parse-path "$.context.contextActivities.parent 
+    (is (vector? (first (tv/find-values
+                         ex-statement-0
+                         (path/parse-path "$.context.contextActivities.parent 
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
-                                 | $.context.contextActivities.other"))))
+                                 | $.context.contextActivities.other")))))
     (is (= [nil nil nil nil]
            (tv/find-values
             ex-statement-0
@@ -406,7 +410,7 @@
              :all      ["Activity"]}]
            (tv/add-det-properties ex-template)))))
 
-;; This set of tests is a spec for the Statement Template rule logic.
+;; This set of tests is a pred on the Statement Template rule logic.
 ;; NOTE: validator-fn returns nil on success, error data on failure.
 ;;       The :pred field is the name of the predicate that failed.
 (deftest create-rule-validator-test

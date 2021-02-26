@@ -288,7 +288,7 @@
                 cmi-tmpl-1
                 ex-statement
                 :fn-type :result)))
-    (is (= {:pred   "only-all-values?"
+    (is (= {:pred   :only-all-values?
             :values ["https://example.com/scores"]
             :rule
             {:location "$.verb.id"
@@ -373,7 +373,7 @@
                 (p/profile->statement-validator cmi-profile)
                 {}
                 :fn-type :result))))
-    (is (= {:pred   "any-matchable?"
+    (is (= {:pred   :any-matchable?
             :values [nil]
             :rule   {:location "$.id" :presence "included"}}
            (-> (p/validate-statement-vs-profile

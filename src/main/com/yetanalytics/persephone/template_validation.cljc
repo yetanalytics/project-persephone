@@ -168,7 +168,8 @@
 ;; restrictions, i.e. it is possible not to have any matchable values).
 ;; 'recommended' allows profile authors to not have any/all/none in a rule.
 (defn create-default-pred
-  "Returns a wrapped pred for when presence is 'recommended' or is missing."
+  "Returns a wrapped pred for when presence is 'recommended' or is
+   missing."
   [{:keys [any all none]}]
   (or-wrapped (-> (wrap-pred any-matchable?)
                   (add-wrapped some-any-values? any)
@@ -289,8 +290,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-rule-validator
-  "Given a rule, create a function that will validate new Statements against
-  the rule."
+  "Given a rule, create a function that will validate new Statements
+   against the rule."
   [{:keys [location selector] :as rule}]
   (let [rule-spec     (create-rule-pred rule)
         location-path (json-path/parse-path location)
@@ -301,15 +302,14 @@
                             (string/replace #"(\$)" "$1[*]")
                             json-path/parse-path))]
     (fn [statement]
-      (let [values (find-values statement location-path selector-path)
-            failed-pred (rule-spec values)]
+      (let [values    (find-values statement location-path selector-path)
+            fail-pred (rule-spec values)]
         ;; nil indicates success
-        ;; spec error data the opposite
-        (if-not (nil? failed-pred)
+        (if-not (nil? fail-pred)
           ;; :pred - the predicate that failed, causing this error
           ;; :values - the values that the predicate failed on
           ;; :rule - the Statement Template rule associated with the error
-          {:pred   failed-pred
+          {:pred   fail-pred
            :values values
            :rule   rule}
           nil)))))

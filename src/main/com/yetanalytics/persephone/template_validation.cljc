@@ -2,8 +2,7 @@
   (:require [clojure.set :as cset]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [com.yetanalytics.pathetic :as json-path]
-            [com.yetanalytics.persephone.utils.errors :as emsg])
+            [com.yetanalytics.pathetic :as json-path])
   #?(:cljs (:require-macros [com.yetanalytics.persephone.template-validation
                              :refer [add-spec]])))
 
@@ -297,14 +296,6 @@
            :rule   rule}
           nil)))))
 
-(comment
-  (defn create-rule-validators
-    "Given a Statement Template, return a vector of validators representing its
-  rules, including its Determining Properties."
-    [template]
-    (let [new-rules (add-det-properties template)]
-      (mapv create-rule-validator new-rules))))
-
 (defn create-template-validator
   "Given a Statement Template, return a validator function that takes
    a Statement as an argument and returns an nilable seq of error data."
@@ -313,7 +304,7 @@
         preds  (mapv create-rule-validator rules')]
     (fn [statement]
       (let [errors (->> preds
-                        (map (fn [p?] (p? statement)))
+                        (map (fn [f] (f statement)))
                         (filter some?))]
         (when (not-empty errors) errors)))))
 
@@ -325,33 +316,5 @@
         preds  (mapv create-rule-validator rules')]
     (fn [statement]
       (->> preds
-           (map (fn [p?] (p? statement)))
+           (map (fn [f] (f statement)))
            (every? nil?)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Validate statement 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(comment
-  (defn validate-statement
-    "Given a Statement and a Statement Template, validate the Statement.
-   Returns nil if the Statement is valid, the spec error map otherwise"
-    [template statement]
-    (let [new-rules (add-det-properties template)
-          validators (mapv create-rule-validator new-rules)
-          error-vec (map #(% statement) validators)]
-      (when-not (none-matchable? error-vec) error-vec)))
-
-  (defn valid-statement?
-    "Given a Statement and a Statement Template, validate the Statement.
-   Returns true if the Statement is valid, false otherwise"
-    [template statement]
-    (nil? (validate-statement template statement))))
-
-(defn print-error
-  "Given a Statement Template, a Statement, and error data, print an appropriate
-   error message. Always returns nil."
-  [template statement error-vec]
-  (let [template-id  (:id template)
-        statement-id (get statement "id")]
-    (emsg/print-error (filter some? error-vec) template-id statement-id)))

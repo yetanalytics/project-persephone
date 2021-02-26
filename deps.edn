@@ -16,9 +16,9 @@
                       org.clojure/clojurescript
                       org.clojure/data.json
                       com.yetanalytics/xapi-schema]}
-        com.yetanalytics/pathetic ; Latest commit: 2/17/21
+        com.yetanalytics/pathetic ; Latest commit: 2/26/21
         {:git/url "git@github.com:yetanalytics/pathetic.git"
-         :sha     "b398a04e8c2d998aeeff7025f697ef8027daae1e"
+         :sha     "71c0c1e0d3ee1e351550ec2293ea5ddce29e2321"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json

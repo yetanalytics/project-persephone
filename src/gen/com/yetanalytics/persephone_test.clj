@@ -1,6 +1,6 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
-            [criterium.core :as criterium]
+            #_[criterium.core :as criterium]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))
@@ -21,6 +21,8 @@
 ;; First profile contains all the Statement Templates and Patterns
 (def tc3-profile (get-in tc3-inputs [:profiles 0]))
 
+(def tc3-validator (per/profile->statement-validator tc3-profile))
+
 (def tc3-dfas (per/compile-profile tc3-profile))
 
 (defn run-validate-stmt-vs-profile
@@ -30,7 +32,7 @@
   (loop [stmts (take n (sim/sim-seq tc3-inputs))]
     (if-let [next-stmt (first stmts)]
       (let [err (per/validate-statement-vs-profile
-                 tc3-profile
+                 tc3-validator
                  next-stmt
                  :fn-type :result ;; Return error on invalid stmt
                  ;; TODO: Fix Pan s.t. all profiles pass

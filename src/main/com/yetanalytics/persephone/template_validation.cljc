@@ -195,14 +195,11 @@
    JSONPath string, return a vector of the selected values. Unmatchable
    values are returned as nils."
   [stmt loc-path & [select-path]]
-  (let [locations (json-path/get-values stmt loc-path :return-missing? true)]
+  (let [locations (json-path/get-values* stmt loc-path :return-missing? true)]
     (if-not select-path
       ;; No selector - return locations
-      locations
-      ;; Locations is a JSON array, so we can query it using the selector
-      ;; by adding a wildcard at the beginning
-      (let [select-path' (string/replace select-path #"(\$)" "$1[*]")]
-        (json-path/get-values locations select-path' :return-missing? true)))))
+      locations      
+      (json-path/get-values* locations select-path :return-missing? true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
@@ -278,9 +275,16 @@
   "Given a rule, create a function that will validate new Statements against
   the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec (create-rule-spec rule)]
+  (let [rule-spec     (create-rule-spec rule)
+        location-path (json-path/parse-path location)
+        ;; Locations values will be a JSON array, so we can query it using the
+        ;; selector by adding a wildcard at the beginning.
+        selector-path (when selector
+                        (-> selector
+                            (string/replace #"(\$)" "$1[*]")
+                            json-path/parse-path))]
     (fn [statement]
-      (let [values (find-values statement location selector)
+      (let [values (find-values statement location-path selector-path)
             error-data (s/explain-data rule-spec values)]
         ;; nil indicates success
         ;; spec error data the opposite
@@ -293,31 +297,56 @@
            :rule   rule}
           nil)))))
 
-(defn create-rule-validators
-  "Given a Statement Template, return a vector of validators representing its
+(comment
+  (defn create-rule-validators
+    "Given a Statement Template, return a vector of validators representing its
   rules, including its Determining Properties."
+    [template]
+    (let [new-rules (add-det-properties template)]
+      (mapv create-rule-validator new-rules))))
+
+(defn create-template-validator
+  "Given a Statement Template, return a validator function that takes
+   a Statement as an argument and returns an nilable seq of error data."
   [template]
-  (let [new-rules (add-det-properties template)]
-    (mapv create-rule-validator new-rules)))
+  (let [rules' (add-det-properties template)
+        preds  (mapv create-rule-validator rules')]
+    (fn [statement]
+      (let [errors (->> preds
+                        (map (fn [p?] (p? statement)))
+                        (filter some?))]
+        (when (not-empty errors) errors)))))
+
+(defn create-template-predicate
+  "Like `create-template-validator`, but returns a predicate that takes
+   a Statement as an argument and returns a boolean."
+  [template]
+  (let [rules' (add-det-properties template)
+        preds  (mapv create-rule-validator rules')]
+    (fn [statement]
+      (->> preds
+           (map (fn [p?] (p? statement)))
+           (every? nil?)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validate statement 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn validate-statement
-  "Given a Statement and a Statement Template, validate the Statement.
+(comment
+  (defn validate-statement
+    "Given a Statement and a Statement Template, validate the Statement.
    Returns nil if the Statement is valid, the spec error map otherwise"
-  [template statement]
-  (let [new-rules (add-det-properties template)
-        validators (mapv create-rule-validator new-rules)
-        error-vec (map #(% statement) validators)]
-    (when-not (none-matchable? error-vec) error-vec)))
+    [template statement]
+    (let [new-rules (add-det-properties template)
+          validators (mapv create-rule-validator new-rules)
+          error-vec (map #(% statement) validators)]
+      (when-not (none-matchable? error-vec) error-vec)))
 
-(defn valid-statement?
-  "Given a Statement and a Statement Template, validate the Statement.
+  (defn valid-statement?
+    "Given a Statement and a Statement Template, validate the Statement.
    Returns true if the Statement is valid, false otherwise"
-  [template statement]
-  (nil? (validate-statement template statement)))
+    [template statement]
+    (nil? (validate-statement template statement))))
 
 (defn print-error
   "Given a Statement Template, a Statement, and error data, print an appropriate

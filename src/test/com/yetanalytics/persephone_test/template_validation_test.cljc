@@ -1,7 +1,9 @@
 (ns com.yetanalytics.persephone-test.template-validation-test
   (:require [clojure.test :refer [deftest testing is]]
             [clojure.spec.alpha :as s]
+            [com.yetanalytics.pathetic :as path]
             [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.persephone.utils.errors :as print-errs]
             [com.yetanalytics.persephone.template-validation :as tv
              #?@(:clj [:refer [add-spec]]
                  :cljs [:refer-macros [add-spec]])]))
@@ -182,10 +184,10 @@
   (testing "only-all-values? fn: values MUST all be from the values given by
            'all'."
     (is (tv/only-all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
-                        name-values))
+                             name-values))
     ;; Superset is okay
     (is (tv/only-all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
-                        name-values))
+                             name-values))
     (is (not (tv/only-all-values? ["Andrew Downes" "Toby Nichols"] name-values)))
     (is (not (tv/only-all-values? [] name-values)))))
 
@@ -195,7 +197,7 @@
     (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] name-values))
     (is (not (tv/no-none-values? ["Andrew Downes"] name-values)))
     (is (not (tv/no-none-values? ["Will Hoyt" "Milt Reder" "Ena Hills"]
-                              name-values)))
+                                 name-values)))
     (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] []))
     (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] [nil]))
     ;; If there is nothing to exclude, we should be okay
@@ -268,64 +270,85 @@
   (testing "find-values: given a statement, location and selector, find the
           values evaluated by the JSONPath strings."
     (is (= ["http://foo.org/verb"]
-           (tv/find-values ex-statement-0 "$.verb.id")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.verb.id"))))
     (is (= ["Agent"]
-           (tv/find-values ex-statement-0 "$.actor.objectType")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor.objectType"))))
     (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
-           (tv/find-values ex-statement-0 "$.actor.member[*].name")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor.member[*].name"))))
     (is (= ["mailto:email@yetanalytics.io"]
-           (tv/find-values ex-statement-0 "$.actor.mbox")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor.mbox"))))
     (is (= ["mailto:email@yetanalytics.io"]
-           (tv/find-values ex-statement-0 "$.actor.mbox" nil)))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor.mbox")
+                           nil)))
     (is (= ["mailto:email@yetanalytics.io"]
-           (tv/find-values ex-statement-0 "$.actor" "$.mbox")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor")
+                           (path/parse-path "$[*].mbox"))))
     (is (= [nil]
-           (tv/find-values ex-statement-0 "$.actor" "$.mbox_sha1sum")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor")
+                           (path/parse-path "$[*].mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
-           (tv/find-values ex-statement-0 "$.actor.mbox | $.actor.mbox_sha1sum")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor.mbox | $.actor.mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
-           (tv/find-values ex-statement-0 "$.actor" "$.mbox | $.mbox_sha1sum")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.actor")
+                           (path/parse-path "$[*].mbox | $[*].mbox_sha1sum"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           "$.object.objectType 
-                           | $.context.contextActivities.parent[*].objectType 
-                           | $.context.contextActivities.grouping[*].objectType
-                           | $.context.contextActivities.category[*].objectType
-                           | $.context.contextActivities.other[*].objectType")))
+                           (path/parse-path
+                            "$.object.objectType 
+                            | $.context.contextActivities.parent[*].objectType 
+                            | $.context.contextActivities.grouping[*].objectType
+                            | $.context.contextActivities.category[*].objectType
+                            | $.context.contextActivities.other[*].objectType"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           "$.context.contextActivities"
-                           "$.parent[*].objectType 
-                          | $.grouping[*].objectType
-                          | $.category[*].objectType
-                          | $.other[*].objectType")))
-    (is (= 4 (count (tv/find-values ex-statement-0
-                                    "$.context.contextActivities.parent 
-                                   | $.context.contextActivities.grouping
-                                   | $.context.contextActivities.category
-                                   | $.context.contextActivities.other"))))
+                           (path/parse-path "$.context.contextActivities")
+                           (path/parse-path
+                            "$[*].parent[*].objectType 
+                           | $[*].grouping[*].objectType
+                           | $[*].category[*].objectType
+                           | $[*].other[*].objectType"))))
+    (is (= 4 (count (tv/find-values
+                     ex-statement-0
+                     (path/parse-path "$.context.contextActivities.parent 
+                                | $.context.contextActivities.grouping
+                                | $.context.contextActivities.category
+                                | $.context.contextActivities.other")))))
     (is (s/valid? (s/coll-of vector? :kind vector?)
-                  (tv/find-values ex-statement-0
-                                  "$.context.contextActivities.parent 
+                  (tv/find-values
+                   ex-statement-0
+                   (path/parse-path "$.context.contextActivities.parent 
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
-                                 | $.context.contextActivities.other")))
+                                 | $.context.contextActivities.other"))))
     (is (= [nil nil nil nil]
-           (tv/find-values ex-statement-0
-                           "$.context.contextActivities.parent.fi
+           (tv/find-values
+            ex-statement-0
+            (path/parse-path "$.context.contextActivities.parent.fi
                           | $.context.contextActivities.grouping.fy
-                                     | $.context.contextActivities.category.fo
-                                     | $.context.contextActivities.other.fum")))
+                          | $.context.contextActivities.category.fo
+                          | $.context.contextActivities.other.fum"))))
     (is (= #{"http://foo.org/oat"
              "http://foo.org/cpat1" "http://foo.org/cpat2"
              "http://foo.org/cgat1" "http://foo.org/cgat2"
              "http://foo.org/ccat1" "http://foo.org/ccat2"
              "http://foo.org/coat1" "http://foo.org/coat2"}
-           (set (tv/find-values ex-statement-0 "$..type"))))
+           (set (tv/find-values ex-statement-0
+                                (path/parse-path "$..type")))))
     (is (= [9001]
-           (tv/find-values ex-statement-0 "$.result.score.raw")))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$.result.score.raw"))))
     (is (= [9001]
-           (tv/find-values ex-statement-0 "$..raw")))))
+           (tv/find-values ex-statement-0
+                           (path/parse-path "$..raw"))))))
 
 ;; Determining Properties test
 (deftest add-det-properties
@@ -441,7 +464,7 @@
       (is (nil? (:pred (validator-fn []))))
       (is (nil? (:pred (validator-fn [nil nil]))))
       ;; MUST NOT, if all is provided, include any unmatchable values
-      (is (= "no-unmatch-vals?" (:pred (validator-fn [nil "foo" nil]))))       
+      (is (= "no-unmatch-vals?" (:pred (validator-fn [nil "foo" nil]))))
       ;; MUST, if all is provided, only include values in all as matchable values
       (is (nil? (validator-fn ["foo"])))
       (is (nil? (validator-fn ["foo" "baz"])))
@@ -487,58 +510,47 @@
       (is (= "no-none-values?" (:pred (validator-fn ["foo" "bar"]))))
       (is (= "no-none-values?" (:pred (validator-fn [nil "foo" nil])))))))
 
-(deftest create-rule-validators-test
-  (testing "create-rule-validators function: Create a vector of validation
-           functions based off of a Template."
-    (is (s/valid? (s/coll-of fn? :kind vector?)
-                  (tv/create-rule-validators ex-template)))
-    (is (= 12 (count (tv/create-rule-validators ex-template))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Statement tests
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftest validate-statement-test
-  (testing "validate-statement function: Validate an entire Statement!"
-    (is (nil? (tv/validate-statement ex-template ex-statement-0)))
-    (is (nil? (tv/validate-statement
-               {"verb" "http://example.com/xapi/verbs#sent-a-statement"}
+(deftest create-template-validator-test
+  (testing "create-template-validator function: Given a template, create a
+            validator function that accepts Statements."
+    (is (nil? ((tv/create-template-validator ex-template) ex-statement-0)))
+    (is (nil? ((tv/create-template-validator
+                {"verb" "http://example.com/xapi/verbs#sent-a-statement"})
                ex-statement-1)))
-    (is (nil? (tv/validate-statement
-               {"verb" "http://adlnet.gov/expapi/verbs/attempted"}
+    (is (nil? ((tv/create-template-validator
+                {"verb" "http://adlnet.gov/expapi/verbs/attempted"})
                ex-statement-2)))
-    (is (nil? (tv/validate-statement
-               {"verb" "http://adlnet.gov/expapi/verbs/attended"
-                "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
-                "contextCategoryActivityType"
-                ["http://example.com/expapi/activities/meetingcategory"]}
+    (is (nil? ((tv/create-template-validator
+                {"verb" "http://adlnet.gov/expapi/verbs/attended"
+                 "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
+                 "contextCategoryActivityType"
+                 ["http://example.com/expapi/activities/meetingcategory"]})
                ex-statement-3)))
-    (is (nil? (tv/validate-statement
-               {"verb" "http://adlnet.gov/expapi/verbs/experienced"}
+    (is (nil? ((tv/create-template-validator
+                {"verb" "http://adlnet.gov/expapi/verbs/experienced"})
                ex-statement-4)))))
 
-(deftest valid-statement?-test
-  (testing "valid-statement? function: Predicate on an entire Statement!"
-    (is (tv/valid-statement? ex-template ex-statement-0))
-    (is (tv/valid-statement?
-          {"verb" "http://example.com/xapi/verbs#sent-a-statement"}
-          ex-statement-1))
-    (is (tv/valid-statement?
-          {"verb" "http://adlnet.gov/expapi/verbs/attempted"}
-          ex-statement-2))
-    (is (tv/valid-statement?
+(deftest create-template-predicate-test
+  (testing "create-template-predicate function: Given a template, create a
+            predicate that accepts Statements."
+    (is ((tv/create-template-predicate ex-template) ex-statement-0))
+    (is ((tv/create-template-predicate
+          {"verb" "http://example.com/xapi/verbs#sent-a-statement"})
+         ex-statement-1))
+    (is ((tv/create-template-predicate
+          {"verb" "http://adlnet.gov/expapi/verbs/attempted"})
+         ex-statement-2))
+    (is ((tv/create-template-predicate
           {"verb" "http://adlnet.gov/expapi/verbs/attended"
            "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
            "contextCategoryActivityType"
-           ["http://example.com/expapi/activities/meetingcategory"]}
-          ex-statement-3))
-    (is (tv/valid-statement?
-          {"verb" "http://adlnet.gov/expapi/verbs/experienced"}
-          ex-statement-4))))
+           ["http://example.com/expapi/activities/meetingcategory"]})
+         ex-statement-3))
+    (is ((tv/create-template-predicate
+          {"verb" "http://adlnet.gov/expapi/verbs/experienced"})
+         ex-statement-4))))
 
-(def err-vec (tv/validate-statement ex-template ex-statement-1))
-
-(deftest validate-statement-test-2
+(deftest create-template-validator-test-2
   (testing "validate-statement function"
     (is (= [{:pred "only-all-values?"
              :values ["http://example.com/xapi/verbs#sent-a-statement"]
@@ -602,11 +614,11 @@
               "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
               :presence "included"
               :all ["Activity"]}}]
-           (filterv some? err-vec)))))
+           ((tv/create-template-validator ex-template) ex-statement-1)))))
 
-(deftest valid-statement?-test-2
+(deftest create-template-predicate-test-2
   (testing "valid-statement? function"
-    (is (not (tv/valid-statement? ex-template ex-statement-1)))))
+    (is (not ((tv/create-template-predicate ex-template) ex-statement-1)))))
 
 (deftest print-error-test
   (testing "printing an error message using the print-error fn"
@@ -679,4 +691,8 @@
                 "\n"
                 "-----------------------------\n"
                 "Total errors found: 9\n\n")
-           (with-out-str (tv/print-error ex-template ex-statement-1 err-vec))))))
+           (with-out-str
+             (print-errs/print-error
+              ((tv/create-template-validator ex-template) ex-statement-1)
+              (:id ex-template)
+              (get ex-statement-1 "id")))))))

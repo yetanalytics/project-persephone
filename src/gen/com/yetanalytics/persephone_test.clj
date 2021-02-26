@@ -82,7 +82,7 @@
 ;; Benchmarking (temporary)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; No optimization
+;; **** No optimization ****
 ;; 
 ;; ===== Criterium quick bench output for (run-validate-stmt-vs-profile 10) =====
 ;; Evaluation count : 6 in 6 samples of 1 calls.
@@ -91,7 +91,7 @@
 ;;    Execution time lower quantile : 10.483715 sec ( 2.5%)
 ;;    Execution time upper quantile : 11.103982 sec (97.5%)
 ;;                    Overhead used : 1.698049 ns
-
+;;
 ;; ===== Criterium quick bench output for (run-match-next-statement 10) =========
 ;; Evaluation count : 6 in 6 samples of 1 calls.
 ;;              Execution time mean : 1.057962 sec
@@ -100,11 +100,7 @@
 ;;    Execution time upper quantile : 1.178259 sec (97.5%)
 ;;                    Overhead used : 1.698049 ns
 ;;
-;; Found 1 outliers in 6 samples (16.6667 %)
-;; 	low-severe	 1 (16.6667 %)
-;;  Variance from outliers : 15.0731 % Variance is moderately inflated by outliers
-;;
-;; After commit e127223859984e8510492279cdd9bf6951c417cd
+;; **** After commit e127223859984e8510492279cdd9bf6951c417cd ****
 ;; 
 ;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
 ;; Evaluation count : 300 in 60 samples of 5 calls.
@@ -113,11 +109,37 @@
 ;;    Execution time lower quantile : 198.941093 ms ( 2.5%)
 ;;    Execution time upper quantile : 272.140514 ms (97.5%)
 ;;                    Overhead used : 1.641107 ns
-;; Approx. 50-fold speedup compared to previous benchmark
+;; 
+;; Approx. 48-fold speedup compared to previous/first benchmark
+;; 
+;; **** After commit 0b066377bc0e4748e56d9afa7b54786e63b46d8b ****
+;;
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 420 in 60 samples of 7 calls.
+;;              Execution time mean : 169.893496 ms
+;;     Execution time std-deviation : 11.165940 ms
+;;    Execution time lower quantile : 159.130748 ms ( 2.5%)
+;;    Execution time upper quantile : 194.406254 ms (97.5%)
+;;                    Overhead used : 1.641107 ns
+;; Approx. 25% speedup compared to previous benchmark
+;; Approx. 64-fold speedup comapred to first benchmark
+;; 
+;; ===== Criterium full bench output for (run-match-next-statement 10) =========
+;; Evaluation count : 2280 in 60 samples of 38 calls.
+;;              Execution time mean : 26.781508 ms
+;;     Execution time std-deviation : 305.005347 µs
+;;    Execution time lower quantile : 26.472251 ms ( 2.5%)
+;;    Execution time upper quantile : 27.622609 ms (97.5%)
+;;                    Overhead used : 1.641107 ns
+;;
+;; Approx. 40-fold speedup compared to first benchmark
 
 (comment
+  (criterium/with-progress-reporting
+    (criterium/quick-bench (per/profile->statement-validator tc3-profile)))
+
   (criterium/with-progress-reporting
     (criterium/bench (run-validate-stmt-vs-profile 10)))
 
   (criterium/with-progress-reporting
-    (criterium/quick-bench (run-match-next-statement 10))))
+    (criterium/bench (run-match-next-statement 10))))

@@ -194,7 +194,7 @@
 
 ;; $.actor.member[*].name = ["Andrew Downes" "Toby Nichols" "Ena Hills"]
 (def name-values
-  (tv/value-map (get-in ex-statement-3 ["actor" "member"]) "name"))
+  (value-map (get-in ex-statement-3 ["actor" "member"]) "name"))
 
 (deftest some-any-values?-test
   (testing "some-any-values? fn: values MUST include at least one value that is

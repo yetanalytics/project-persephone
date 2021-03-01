@@ -63,6 +63,25 @@
         ~wrapped-fns)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSONPath cache
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Parsing is an expensive operation, and many JSONPath strings are repeated in
+;; a given Profile, so we cache already-parsed ones in a map from unparsed to
+;; parsed paths.
+
+(def path-cache (atom {}))
+
+(defn- parse-path-str
+  "Return the parsed path of a JSONPath string."
+  [path]
+  (if-let [parsed-path (get @path-cache path)]
+    parsed-path
+    (let [parsed-path (json-path/parse-path path)]
+      (swap! path-cache (fn [m] (assoc m path parsed-path)))
+      parsed-path)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Basic predicates 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -294,13 +313,13 @@
    against the rule."
   [{:keys [location selector] :as rule}]
   (let [rule-spec     (create-rule-pred rule)
-        location-path (json-path/parse-path location)
+        location-path (parse-path-str location)
         ;; Locations values will be a JSON array, so we can query it using the
         ;; selector by adding a wildcard at the beginning.
         selector-path (when selector
                         (-> selector
                             (string/replace #"(\$)" "$1[*]")
-                            json-path/parse-path))]
+                            parse-path-str))]
     (fn [statement]
       (let [values    (find-values statement location-path selector-path)
             fail-pred (rule-spec values)]

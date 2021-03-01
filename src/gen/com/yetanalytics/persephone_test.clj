@@ -175,13 +175,36 @@
 ;;    Execution time upper quantile : 1.212416 sec (97.5%)
 ;;                    Overhead used : 1.730549 ns
 ;;
-;; == Criterium full bench output for (compile-profile tc3-profile) ==
+;; ======= Criterium full bench output for (compile-profile tc3-profile) =======
 ;; Evaluation count : 60 in 60 samples of 1 calls.
 ;;              Execution time mean : 19.975453 sec
 ;;     Execution time std-deviation : 888.041085 ms
 ;;    Execution time lower quantile : 19.118869 sec ( 2.5%)
 ;;    Execution time upper quantile : 21.831310 sec (97.5%)
 ;;                    Overhead used : 1.730549 ns
+;;                    
+;; **** After commit 0175b0e2c1c31a3d32a373dcf768f4e177d1afa6 ****
+;;
+;; == Criterium full bench output for (profile->statement-validator tc3-profile) ==
+;; Evaluation count : 3000 in 60 samples of 50 calls.
+;;              Execution time mean : 20.318170 ms
+;;     Execution time std-deviation : 283.137264 µs
+;;    Execution time lower quantile : 20.051612 ms ( 2.5%)
+;;    Execution time upper quantile : 20.770245 ms (97.5%)
+;;                    Overhead used : 1.730549 ns
+;;                    
+;; Approx. 53-fold speedup compared to original
+;; 
+;; ======= Criterium full bench output for (compile-profile tc3-profile) =======
+;;
+;; Evaluation count : 60 in 60 samples of 1 calls.
+;;              Execution time mean : 4.093291 sec
+;;     Execution time std-deviation : 26.803267 ms
+;;    Execution time lower quantile : 4.064227 sec ( 2.5%)
+;;    Execution time upper quantile : 4.150354 sec (97.5%)
+;;                    Overhead used : 1.730549 ns
+;;
+;; Approx. 5-fold speedup compared to original
 
 
 (comment

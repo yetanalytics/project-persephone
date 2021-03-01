@@ -198,14 +198,15 @@
 ;; **** After commit 0175b0e2c1c31a3d32a373dcf768f4e177d1afa6 ****
 ;;
 ;; == Criterium full bench output for (profile->statement-validator tc3-profile) ==
-;; Evaluation count : 3000 in 60 samples of 50 calls.
-;;              Execution time mean : 20.318170 ms
-;;     Execution time std-deviation : 283.137264 µs
-;;    Execution time lower quantile : 20.051612 ms ( 2.5%)
-;;    Execution time upper quantile : 20.770245 ms (97.5%)
-;;                    Overhead used : 1.730549 ns
+;; Evaluation count : 2700 in 60 samples of 45 calls.
+;;              Execution time mean : 22.428714 ms
+;;     Execution time std-deviation : 1.534218 ms
+;;    Execution time lower quantile : 21.009265 ms ( 2.5%)
+;;    Execution time upper quantile : 27.627957 ms (97.5%)
+;;                    Overhead used : 1.659292 ns
 ;;
-;; Approx. 53-fold speedup compared to original
+;; Approx. 48-fold speedup compared to original
+;; NOTE: Tested with REPL completely reset (not the case for FSM benchmarks)
 ;; 
 ;; ======= Criterium full bench output for (compile-profile tc3-profile) =======
 ;;

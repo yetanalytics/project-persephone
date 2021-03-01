@@ -217,32 +217,27 @@
 ;;                    Overhead used : 1.730549 ns
 ;;
 ;; Approx. 5-fold speedup compared to original
+;; 
+;; **** After commit ea74850f588f3d5b8995b7f541a58aecb3e701be ****
+;; 
+;; ======= Criterium full bench output for (compile-profile tc3-profile) =======
+;;
+;; Evaluation count : 60 in 60 samples of 1 calls.
+;;              Execution time mean : 2.109351 sec
+;;     Execution time std-deviation : 15.668083 ms
+;;    Execution time lower quantile : 2.087955 sec ( 2.5%)
+;;    Execution time upper quantile : 2.139637 sec (97.5%)
+;;                    Overhead used : 1.662933 ns
+;; 
+;; Approx. 2-fold speedup compared to previous commit
+;; Approx. 10-fold speedup compared to original commit
 
 (comment
   (criterium/with-progress-reporting
     (criterium/bench (per/profile->statement-validator tc3-profile)))
-  
+
   (criterium/with-progress-reporting
-   (criterium/quick-bench (per/compile-profile tc3-profile)))
-  
+    (criterium/bench (per/compile-profile tc3-profile)))
+
   (tufte/add-basic-println-handler! {})
-  (profile {} (let [_ (per/compile-profile tc3-profile)]))
-
-  ;; 187.41 ns
-  (criterium/bench (= #{0 1 2 3 4} #{4 3 2 1 0}))
-
-  ;; 16.55 ns
-  (criterium/bench (= [0 1 2 3 4] [0 1 2 3 4]))
-
-  ;; 561.34 ns
-  (criterium/bench (set [4 3 2 1 0 0 1 2 3 4]))
-
-  ;; 3330.32 ns
-  (criterium/bench (-> [4 3 2 1 0 0 1 2 3 4] distinct sort))
-
-  ;; 12.42 ns
-  (criterium/bench (get {0 :foo 1 :bar} 0))
-
-  ;; 3.58 ns
-  (criterium/bench (get [:foo :bar] 0))
-  )
+  (profile {} (let [_ (per/compile-profile tc3-profile)])))

@@ -1,7 +1,5 @@
 (ns com.yetanalytics.persephone.utils.fsm
-  (:require [clojure.set :as cset]
-            #?(:clj [taoensso.tufte :refer [p]]
-               :cljs [taoensso.tufte :refer-macros [p]])))
+  (:require [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -315,40 +313,20 @@
 
 (defn epsilon-closure
   "Given an NFA and a state, returns the epsilon closure for that state."
-  [nfa init-state]
-  (p :epsilon-closure
+  [{nfa-transitions :transitions :as _nfa} init-state]
   ;; Perform a BFS and keep track of visited states
-     (loop [visited-states #{}
-            state-queue    (init-queue init-state)]
-       (if-let [state (peek state-queue)]
-         (if-not (contains? visited-states state)
-           (let [visited-states' (conj visited-states state)
-                 next-states     (-> nfa :transitions (get state) :epsilon seq)
-                 state-queue'    (reduce
-                                  (fn [queue s] (conj queue s))
-                                  (pop state-queue)
-                                  next-states)]
-             (recur visited-states' state-queue'))
-           (recur visited-states (pop state-queue)))
-         visited-states))))
-
-;; XXX nfa-move is a optimization hotspot (especially filterv)
-;; need to optimize this function hard! - 40% of CPU time
-(defn nfa-move
-  "Given an NFA, a symbolic input (NOT an argument to predicates), and a state,
-   return a vector of states arrived after the transition. Returns nil if no
-   transitions are available."
-  [nfa symb-input state]
-  (p :nfa-move
-     (-> nfa :transitions (get state) (get symb-input) vec)
-     #_(if-let [trans (-> nfa :transitions (get state))]
-       (->> trans
-            (filterv (fn [[symb _]] (= symb-input symb)))
-            (mapcat (fn [[_ dests]] dests)))
-       nil)))
-
-(defn- nfa-accept-states? [nfa nfa-states]
-  (not-empty (cset/intersection nfa-states (:accepts nfa))))
+  (loop [visited-states (transient #{})
+         state-queue    (init-queue init-state)]
+    (if-let [state (peek state-queue)]
+      (if-not (contains? visited-states state)
+        (let [visited-states' (conj! visited-states state)
+              next-states     (-> nfa-transitions (get state) :epsilon)
+              state-queue'    (reduce (fn [queue s] (conj queue s))
+                                      (pop state-queue)
+                                      next-states)]
+          (recur visited-states' state-queue'))
+        (recur visited-states (pop state-queue)))
+      (persistent! visited-states))))
 
 (defn- nfa->dfa*
   "Performs the following powerset construction algorithm from:
@@ -368,73 +346,76 @@
       states of the NFA.
    Internally, this performs a tree search that guarentees no unreachable
    states."
-  [nfa dfa-start]
-  (letfn [(add-state-to-dfa ;; 8% of CPU time
-            [dfa next-dfa-state prev-dfa-state symb]
+  [{symbols         :symbols
+    nfa-accepts     :accepts
+    nfa-transitions :transitions
+    :as             nfa}
+   dfa-start]
+  (letfn [(epsilon-close
+           [state]
+           (epsilon-closure nfa state))
+          (move-nfa-state
+           [symb state]
+           ;; NOTE: get is slightly faster than get-in (in clj at least).
+           ;; This function is THE hotspot for nfa->dfa*, so it's important
+           ;; to squeeze as much juice out of this one function.
+           (-> nfa-transitions (get state) (get symb)))
+          (nfa-accept-states?
+           [states]
+           (not-empty (cset/intersection states nfa-accepts)))
+          (add-state-to-dfa
+           [{dfa-states :states :as dfa} next-dfa-state prev-dfa-state symb]
             ; An empty next-dfa-state value means that the symbol cannot be
             ; read at the previous state in the NFA, so we avoid adding it so
             ; it will also fail in the DFA.
-            (if (not-empty next-dfa-state)
-              (-> dfa
-                  (update :states conj next-dfa-state)
-                  (update :accepts
-                          (fn [accepts]
-                            (if (nfa-accept-states? nfa next-dfa-state)
-                              (conj accepts next-dfa-state)
-                              accepts)))
-                  (update :transitions
-                          (fn [transitions]
-                            (if-not (contains? (:states dfa) next-dfa-state)
-                              (assoc transitions next-dfa-state {})
-                              transitions)))
-                  (update-in
-                   [:transitions prev-dfa-state] merge {symb next-dfa-state}))
-              dfa))
+           (if (not-empty next-dfa-state)
+             (-> dfa
+                 (update :states conj next-dfa-state)
+                 (update :accepts
+                         (fn [accepts]
+                           (if (nfa-accept-states? next-dfa-state)
+                             (conj accepts next-dfa-state)
+                             accepts)))
+                 (update :transitions
+                         (fn [transitions]
+                           (if-not (contains? dfa-states next-dfa-state)
+                             (assoc transitions next-dfa-state {})
+                             transitions)))
+                 (update-in
+                  [:transitions prev-dfa-state] merge {symb next-dfa-state}))
+             dfa))
           (add-state-to-queue
-            [queue dfa next-dfa-state]
+           [queue dfa next-dfa-state]
             ; Don't add to queue if next-dfa-state is empty (signifying failure)
             ; or if it's already in the DFA (i.e. it's already visited).
-            (if (and (not-empty next-dfa-state)
-                     (not (contains? (:states dfa) next-dfa-state)))
-              (conj queue next-dfa-state)
-              queue))]
-    (loop [dfa {:type        :dfa
-                :symbols     (:symbols nfa)
-                :states      #{dfa-start}
-                :start       dfa-start
-                :accepts     (if (nfa-accept-states? nfa dfa-start)
-                               #{dfa-start}
-                               #{})
-                :transitions {}}
-           queue (init-queue dfa-start)]
+           (if (and (not-empty next-dfa-state)
+                    (not (contains? (:states dfa) next-dfa-state)))
+             (conj queue next-dfa-state)
+             queue))]
+    (loop [dfa
+           {:type        :dfa
+            :symbols     symbols
+            :states      #{dfa-start}
+            :start       dfa-start
+            :accepts     (if (nfa-accept-states? dfa-start) #{dfa-start} #{})
+            :transitions {}}
+           queue
+           (init-queue dfa-start)]
       (if-let [dfa-state (peek queue)]
         (let [[queue'' dfa']
               (reduce
                (fn [[queue dfa] symb]
                  (let [next-dfa-state
-                       (let [dfa-state'   (mapcat (partial nfa-move nfa symb) dfa-state)
-                             dfa-state''  (mapcat (partial epsilon-closure nfa) dfa-state')
-                             dfa-state''' (p :set (set dfa-state''))]
-                         dfa-state''')
-                       #_(->>
-                          dfa-state
-                          (mapcat (partial nfa-move nfa symb))
-                          (mapcat (partial epsilon-closure nfa))
-                          set) ;; set is 12% of CPU time
-                       new-dfa        (p :add-state-to-dfa
-                                         (add-state-to-dfa
-                                          dfa
-                                          next-dfa-state
-                                          dfa-state
-                                          symb))
-                       new-queue      (p :add-state-to-queue
-                                         (add-state-to-queue
-                                          queue
-                                          dfa
-                                          next-dfa-state))]
+                       (-> dfa-state
+                           (->> (mapcat (partial move-nfa-state symb)) distinct)
+                           (->> (mapcat epsilon-close) set))
+                       new-dfa
+                       (add-state-to-dfa dfa next-dfa-state dfa-state symb)
+                       new-queue
+                       (add-state-to-queue queue dfa next-dfa-state)]
                    [new-queue new-dfa]))
                [(pop queue) dfa]
-               (-> nfa :symbols keys))]
+               (keys symbols))]
           (recur dfa' queue''))
         (let [add-missing-srcs
               (fn [transitions states]

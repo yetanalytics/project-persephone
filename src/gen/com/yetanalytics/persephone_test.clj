@@ -82,7 +82,7 @@
 ;; Benchmarking (temporary)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; **** No optimization ****
+;; **** No optimization (commit 6593ce37b91dc1a2b187d24a79a4a1a857af7f1a) ****
 ;; 
 ;; ===== Criterium quick bench output for (run-validate-stmt-vs-profile 10) =====
 ;; Evaluation count : 6 in 6 samples of 1 calls.
@@ -111,6 +111,17 @@
 ;;                    Overhead used : 1.641107 ns
 ;; 
 ;; Approx. 48-fold speedup compared to previous/first benchmark
+;; 
+;; ===== Criterium full bench output for (run-match-next-statement 10) =========
+;;
+;; Evaluation count : 2220 in 60 samples of 37 calls.
+;;              Execution time mean : 27.411854 ms
+;;     Execution time std-deviation : 234.350360 µs
+;;    Execution time lower quantile : 27.123511 ms ( 2.5%)
+;;    Execution time upper quantile : 28.002287 ms (97.5%)
+;;                    Overhead used : 1.730549 ns
+;; 
+;; Approx. 39-fold speedup compared to previous/first benchmark
 ;; 
 ;; **** After commit 0b066377bc0e4748e56d9afa7b54786e63b46d8b ****
 ;;
@@ -165,7 +176,7 @@
   (criterium/quick-bench (distinct fives))
   )
 
-;; **** No optimization ****
+;; **** No optimization (commit 9743089f527940e4359e1d26b7e4a3f20e6cc816) ****
 ;;
 ;; == Criterium full bench output for (profile->statement-validator tc3-profile) ==
 ;; Evaluation count : 60 in 60 samples of 1 calls.

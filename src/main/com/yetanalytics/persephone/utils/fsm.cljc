@@ -1,5 +1,7 @@
 (ns com.yetanalytics.persephone.utils.fsm
-  (:require [clojure.set :as cset]))
+  (:require [clojure.set :as cset]
+            #?(:clj [taoensso.tufte :refer [p]]
+               :cljs [taoensso.tufte :refer-macros [p]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -314,20 +316,21 @@
 (defn epsilon-closure
   "Given an NFA and a state, returns the epsilon closure for that state."
   [nfa init-state]
+  (p :epsilon-closure
   ;; Perform a BFS and keep track of visited states
-  (loop [visited-states #{}
-         state-queue    (init-queue init-state)]
-    (if-let [state (peek state-queue)]
-      (if-not (contains? visited-states state)
-        (let [visited-states' (conj visited-states state)
-              next-states     (-> nfa :transitions (get state) :epsilon seq)
-              state-queue'    (reduce
-                               (fn [queue s] (conj queue s))
-                               (pop state-queue)
-                               next-states)]
-          (recur visited-states' state-queue'))
-        (recur visited-states (pop state-queue)))
-      visited-states)))
+     (loop [visited-states #{}
+            state-queue    (init-queue init-state)]
+       (if-let [state (peek state-queue)]
+         (if-not (contains? visited-states state)
+           (let [visited-states' (conj visited-states state)
+                 next-states     (-> nfa :transitions (get state) :epsilon seq)
+                 state-queue'    (reduce
+                                  (fn [queue s] (conj queue s))
+                                  (pop state-queue)
+                                  next-states)]
+             (recur visited-states' state-queue'))
+           (recur visited-states (pop state-queue)))
+         visited-states))))
 
 ;; XXX nfa-move is a optimization hotspot (especially filterv)
 ;; need to optimize this function hard! - 40% of CPU time
@@ -336,11 +339,13 @@
    return a vector of states arrived after the transition. Returns nil if no
    transitions are available."
   [nfa symb-input state]
-  (if-let [trans (-> nfa :transitions (get state))]
-    (->> trans
-         (filterv (fn [[symb _]] (= symb-input symb)))
-         (mapcat (fn [[_ dests]] dests)))
-    nil))
+  (p :nfa-move
+     (-> nfa :transitions (get state) (get symb-input) vec)
+     #_(if-let [trans (-> nfa :transitions (get state))]
+       (->> trans
+            (filterv (fn [[symb _]] (= symb-input symb)))
+            (mapcat (fn [[_ dests]] dests)))
+       nil)))
 
 (defn- nfa-accept-states? [nfa nfa-states]
   (not-empty (cset/intersection nfa-states (:accepts nfa))))
@@ -406,20 +411,27 @@
         (let [[queue'' dfa']
               (reduce
                (fn [[queue dfa] symb]
-                 (let [next-dfa-state (->>
-                                       dfa-state
-                                       (mapcat (partial nfa-move nfa symb))
-                                       (mapcat (partial epsilon-closure nfa))
-                                       set) ;; set is 12% of CPU time
-                       new-dfa        (add-state-to-dfa
-                                       dfa
-                                       next-dfa-state
-                                       dfa-state
-                                       symb)
-                       new-queue      (add-state-to-queue
-                                       queue
-                                       dfa
-                                       next-dfa-state)]
+                 (let [next-dfa-state
+                       (let [dfa-state'   (mapcat (partial nfa-move nfa symb) dfa-state)
+                             dfa-state''  (mapcat (partial epsilon-closure nfa) dfa-state')
+                             dfa-state''' (p :set (set dfa-state''))]
+                         dfa-state''')
+                       #_(->>
+                          dfa-state
+                          (mapcat (partial nfa-move nfa symb))
+                          (mapcat (partial epsilon-closure nfa))
+                          set) ;; set is 12% of CPU time
+                       new-dfa        (p :add-state-to-dfa
+                                         (add-state-to-dfa
+                                          dfa
+                                          next-dfa-state
+                                          dfa-state
+                                          symb))
+                       new-queue      (p :add-state-to-queue
+                                         (add-state-to-queue
+                                          queue
+                                          dfa
+                                          next-dfa-state))]
                    [new-queue new-dfa]))
                [(pop queue) dfa]
                (-> nfa :symbols keys))]

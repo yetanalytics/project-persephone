@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [criterium.core :as criterium]
+            [taoensso.tufte :as tufte :refer [profile]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))
@@ -203,7 +204,7 @@
 ;;    Execution time lower quantile : 20.051612 ms ( 2.5%)
 ;;    Execution time upper quantile : 20.770245 ms (97.5%)
 ;;                    Overhead used : 1.730549 ns
-;;                    
+;;
 ;; Approx. 53-fold speedup compared to original
 ;; 
 ;; ======= Criterium full bench output for (compile-profile tc3-profile) =======
@@ -217,10 +218,31 @@
 ;;
 ;; Approx. 5-fold speedup compared to original
 
-
 (comment
   (criterium/with-progress-reporting
     (criterium/bench (per/profile->statement-validator tc3-profile)))
   
   (criterium/with-progress-reporting
-   (criterium/bench (per/compile-profile tc3-profile))))
+   (criterium/quick-bench (per/compile-profile tc3-profile)))
+  
+  (tufte/add-basic-println-handler! {})
+  (profile {} (let [_ (per/compile-profile tc3-profile)]))
+
+  ;; 187.41 ns
+  (criterium/bench (= #{0 1 2 3 4} #{4 3 2 1 0}))
+
+  ;; 16.55 ns
+  (criterium/bench (= [0 1 2 3 4] [0 1 2 3 4]))
+
+  ;; 561.34 ns
+  (criterium/bench (set [4 3 2 1 0 0 1 2 3 4]))
+
+  ;; 3330.32 ns
+  (criterium/bench (-> [4 3 2 1 0 0 1 2 3 4] distinct sort))
+
+  ;; 12.42 ns
+  (criterium/bench (get {0 :foo 1 :bar} 0))
+
+  ;; 3.58 ns
+  (criterium/bench (get [:foo :bar] 0))
+  )

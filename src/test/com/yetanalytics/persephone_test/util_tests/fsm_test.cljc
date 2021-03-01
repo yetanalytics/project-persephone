@@ -420,7 +420,7 @@
            (fsm/nfa-move a-fsm "b" 0)))
     (is (= []
            (fsm/nfa-move a-fsm "a" 1)))
-    (is (= nil
+    (is (= [] #_nil
            (fsm/nfa-move a-fsm "a" 2)))
     (is (= [1]
            (fsm/nfa-move (fsm/concat-nfa [a-fsm b-fsm]) "a" 0)))

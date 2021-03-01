@@ -1,6 +1,6 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
-            #_[criterium.core :as criterium]
+            [criterium.core :as criterium]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))
@@ -139,7 +139,54 @@
     (criterium/quick-bench (per/profile->statement-validator tc3-profile)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (run-validate-stmt-vs-profile 10)))
+    (criterium/bench (run-validate-stmt-vs-profile 100)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (run-match-next-statement 10))))
+    (criterium/bench (run-match-next-statement 10)))
+  
+  (defn regular-loop [limit]
+    (loop [n limit ds []]
+      (if (zero? n)
+        ds
+        (recur (dec n) (conj ds n)))))
+
+  (defn transient-loop [limit]
+    (loop [n limit ds (transient [])]
+      (if (zero? n)
+        (persistent! ds)
+        (recur (dec n) (conj! ds n)))))
+  
+  (def fives (repeatedly 1000000 (constantly 5)))
+
+  ;; 109.34 ms
+  (criterium/quick-bench (set fives))
+
+  ;; 7.85 ns
+  (criterium/quick-bench (distinct fives))
+  )
+
+;; **** No optimization ****
+;;
+;; == Criterium full bench output for (profile->statement-validator tc3-profile) ==
+;; Evaluation count : 60 in 60 samples of 1 calls.
+;;              Execution time mean : 1.069253 sec
+;;     Execution time std-deviation : 72.672616 ms
+;;    Execution time lower quantile : 980.281379 ms ( 2.5%)
+;;    Execution time upper quantile : 1.212416 sec (97.5%)
+;;                    Overhead used : 1.730549 ns
+;;
+;; == Criterium full bench output for (compile-profile tc3-profile) ==
+;; Evaluation count : 60 in 60 samples of 1 calls.
+;;              Execution time mean : 19.975453 sec
+;;     Execution time std-deviation : 888.041085 ms
+;;    Execution time lower quantile : 19.118869 sec ( 2.5%)
+;;    Execution time upper quantile : 21.831310 sec (97.5%)
+;;                    Overhead used : 1.730549 ns
+
+
+(comment
+  (criterium/with-progress-reporting
+    (criterium/bench (per/profile->statement-validator tc3-profile)))
+  
+  (criterium/with-progress-reporting
+   (criterium/bench (per/compile-profile tc3-profile))))

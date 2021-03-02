@@ -145,37 +145,37 @@
 ;;                    Overhead used : 1.641107 ns
 ;;
 ;; Approx. 40-fold speedup compared to first benchmark
+;; 
+;; **** After commit aed921db1ded7a5cf97d052d0bba9b15edfe592c ****
+;; 
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 420 in 60 samples of 7 calls.
+;;              Execution time mean : 146.948045 ms
+;;     Execution time std-deviation : 1.603593 ms
+;;    Execution time lower quantile : 145.184251 ms ( 2.5%)
+;;    Execution time upper quantile : 149.791996 ms (97.5%)
+;;                    Overhead used : 1.652530 ns
+;;                    
+;; Approx. 14% speedup compared to previous benchmark
+;; Approx. 74-fold speedup compared to first benchmark
+;;
+;; ===== Criterium full bench output for (run-match-next-statement 10) =========
+;;
+;; Evaluation count : 2280 in 60 samples of 38 calls.
+;;              Execution time mean : 28.560289 ms
+;;     Execution time std-deviation : 1.789700 ms
+;;    Execution time lower quantile : 26.493428 ms ( 2.5%)
+;;    Execution time upper quantile : 32.885898 ms (97.5%)
+;;                    Overhead used : 1.652530 ns
+;;                    
+;; No improvement compared to previous benchmark
 
 (comment
   (criterium/with-progress-reporting
-    (criterium/quick-bench (per/profile->statement-validator tc3-profile)))
+    (criterium/bench (run-validate-stmt-vs-profile 10)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (run-validate-stmt-vs-profile 100)))
-
-  (criterium/with-progress-reporting
-    (criterium/bench (run-match-next-statement 10)))
-  
-  (defn regular-loop [limit]
-    (loop [n limit ds []]
-      (if (zero? n)
-        ds
-        (recur (dec n) (conj ds n)))))
-
-  (defn transient-loop [limit]
-    (loop [n limit ds (transient [])]
-      (if (zero? n)
-        (persistent! ds)
-        (recur (dec n) (conj! ds n)))))
-  
-  (def fives (repeatedly 1000000 (constantly 5)))
-
-  ;; 109.34 ms
-  (criterium/quick-bench (set fives))
-
-  ;; 7.85 ns
-  (criterium/quick-bench (distinct fives))
-  )
+    (criterium/bench (run-match-next-statement 10))))
 
 ;; **** No optimization (commit 9743089f527940e4359e1d26b7e4a3f20e6cc816) ****
 ;;
@@ -238,7 +238,4 @@
     (criterium/bench (per/profile->statement-validator tc3-profile)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (per/compile-profile tc3-profile)))
-
-  (tufte/add-basic-println-handler! {})
-  (profile {} (let [_ (per/compile-profile tc3-profile)])))
+    (criterium/bench (per/compile-profile tc3-profile))))

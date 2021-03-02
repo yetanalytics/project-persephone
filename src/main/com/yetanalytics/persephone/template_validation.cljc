@@ -227,16 +227,20 @@
 ;; JSONPath 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def opts-map {:return-missing? true})
+
 (defn find-values
   "Given a Statement, a location JSONPath string, and an optional selector
    JSONPath string, return a vector of the selected values. Unmatchable
    values are returned as nils."
-  [stmt loc-path & [select-path]]
-  (let [locations (json-path/get-values* stmt loc-path :return-missing? true)]
-    (if-not select-path
+  ([stmt loc-path]
+   (find-values stmt loc-path nil))
+  ([stmt loc-path select-path]
+   (let [locations (json-path/get-values* stmt loc-path opts-map)]
+     (if-not select-path
       ;; No selector - return locations
-      locations
-      (json-path/get-values* locations select-path :return-missing? true))))
+       locations
+       (json-path/get-values* locations select-path opts-map)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties

@@ -155,27 +155,60 @@
 ;;    Execution time lower quantile : 145.184251 ms ( 2.5%)
 ;;    Execution time upper quantile : 149.791996 ms (97.5%)
 ;;                    Overhead used : 1.652530 ns
-;;                    
 ;; Approx. 14% speedup compared to previous benchmark
 ;; Approx. 74-fold speedup compared to first benchmark
 ;;
 ;; ===== Criterium full bench output for (run-match-next-statement 10) =========
-;;
 ;; Evaluation count : 2280 in 60 samples of 38 calls.
 ;;              Execution time mean : 28.560289 ms
 ;;     Execution time std-deviation : 1.789700 ms
 ;;    Execution time lower quantile : 26.493428 ms ( 2.5%)
 ;;    Execution time upper quantile : 32.885898 ms (97.5%)
 ;;                    Overhead used : 1.652530 ns
-;;                    
 ;; No improvement compared to previous benchmark
+;;
+;; **** After commit 949270343a6730909d2e8133e3010a5e9b5cd8dd ****
+;; 
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 480 in 60 samples of 8 calls.
+;;              Execution time mean : 127.616119 ms
+;;     Execution time std-deviation : 1.321394 ms
+;;    Execution time lower quantile : 126.452544 ms ( 2.5%)
+;;    Execution time upper quantile : 130.317877 ms (97.5%)
+;;                    Overhead used : 1.761076 ns
+;; Approx. 13% speedup compared to previous benchmark
+;; Approx. 85-fold speedup compared to original benchmark
+;; 
+;; ===== Criterium full bench output for (run-match-next-statement 10) =========
+;; Evaluation count : 2400 in 60 samples of 40 calls.
+;;              Execution time mean : 25.163064 ms
+;;     Execution time std-deviation : 1.469391 ms
+;;    Execution time lower quantile : 22.984650 ms ( 2.5%)
+;;    Execution time upper quantile : 28.459845 ms (97.5%)
+;;                    Overhead used : 1.761076 ns
+;; Approx. 42-fold speedup compared to original benchmark
+;;
+;; **** After commit eecad6562edd68c2f593f0285d8addcd6f96f2e2 ****
+;; 
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 540 in 60 samples of 9 calls.
+;;              Execution time mean : 112.928374 ms
+;;     Execution time std-deviation : 2.032832 ms
+;;    Execution time lower quantile : 111.440055 ms ( 2.5%)
+;;    Execution time upper quantile : 118.086482 ms (97.5%)
+;;                    Overhead used : 1.662059 ns
+;; Approx. 12% speedup compared to previous benchmark
+;; Approx. 96-fold speedup compared to original benchmark
 
 (comment
   (criterium/with-progress-reporting
     (criterium/bench (run-validate-stmt-vs-profile 10)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (run-match-next-statement 10))))
+    (criterium/bench (run-match-next-statement 10)))
+  
+  (tufte/add-basic-println-handler! {})
+  (profile {} (run-validate-stmt-vs-profile 1000)))
 
 ;; **** No optimization (commit 9743089f527940e4359e1d26b7e4a3f20e6cc816) ****
 ;;

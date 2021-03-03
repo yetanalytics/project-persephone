@@ -252,17 +252,17 @@
            'included'. Values MUST have at least one matchable value (and no
            unmatchable values) and MUST follow any/all/none reqs."
     (is (nil? (included-pred name-values)))
-    (is (some? (included-pred ["Will Hoyt"])))
-    (is (some? (included-pred [])))
-    (is (some? (included-pred ["Andrew Downes" nil])))))
+    (is (= :some-any-values? (included-pred ["Will Hoyt"])))
+    (is (= :any-matchable? (included-pred [])))
+    (is (= :all-matchable? (included-pred ["Andrew Downes" nil])))))
 
 (deftest create-excluded-pred-test
   (testing "create-excluded-pred function: create a predicate when presence is
            'excluded.' There MUST NOT be any matchable values."
     (is (nil? (excluded-pred [])))
     (is (nil? (excluded-pred [nil nil])))
-    (is (some? (excluded-pred name-values)))
-    (is (some? (excluded-pred (conj name-values nil))))))
+    (is (= :none-matchable? (excluded-pred name-values)))
+    (is (= :none-matchable? (excluded-pred (conj name-values nil))))))
 
 ;; The test for when presence is missing is pretty much the same. 
 (deftest create-recommended-pred-test
@@ -270,7 +270,7 @@
            is 'recommended'. MUST follow any/all/none reqs."
     (is (nil? (recommended-pred [])))
     (is (nil? (recommended-pred name-values)))
-    (is (some? (recommended-pred ["Will Hoyt"])))))
+    (is (= :some-any-values? (recommended-pred ["Will Hoyt"])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests

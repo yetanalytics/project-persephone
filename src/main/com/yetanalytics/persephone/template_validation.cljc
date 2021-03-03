@@ -109,7 +109,7 @@
 ;; Rules predicates.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn presence-pred-fn
+(defn- presence-pred-fn
   "pulls out the functionality common to the -values? functions
 
   `pred-fn` should be a fn of 2 arity
@@ -124,18 +124,20 @@
 (defn some-any-values?
   "Return true if there's at least one value in 'any'; false otherwise."
   [any-coll values-coll]
-  (presence-pred-fn any-coll
-                    (filter some? values-coll)
-                    (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
+  (presence-pred-fn
+   any-coll
+   (filter some? values-coll)
+   (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'.
 ;; In other words, the set of 'all' MUST be a superset of the evaluated values.
 (defn only-all-values?
   "Return true is every value is in 'all'; false otherwise."
   [all-coll values-coll]
-  (presence-pred-fn all-coll
-                    (filter some? values-coll)
-                    (fn [p v] (cset/subset? v p))))
+  (presence-pred-fn
+   all-coll
+   (filter some? values-coll)
+   (fn [p v] (cset/subset? v p))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
@@ -143,18 +145,20 @@
 (defn no-none-values?
   "Return true if there are no values in 'none'; false otherwise."
   [none-coll values-coll]
-  (presence-pred-fn none-coll
-                    (filter some? values-coll)
-                    (fn [p v] (-> (cset/intersection v p) empty?))))
+  (presence-pred-fn
+   none-coll
+   (filter some? values-coll)
+   (fn [p v] (-> (cset/intersection v p) empty?))))
 
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
   "Return true if no unmatchable values exist; false otherwise."
   [presence-coll values-coll]
-  (presence-pred-fn presence-coll
-                    values-coll ;; don't ignore unmatchable values
-                    (fn [_ v] (all-matchable? v))))
+  (presence-pred-fn
+   presence-coll
+   values-coll ;; don't ignore unmatchable values
+   (fn [_ v] (all-matchable? v))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rule spec creation.

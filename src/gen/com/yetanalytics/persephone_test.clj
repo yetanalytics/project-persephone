@@ -199,6 +199,16 @@
 ;;                    Overhead used : 1.662059 ns
 ;; Approx. 12% speedup compared to previous benchmark
 ;; Approx. 96-fold speedup compared to original benchmark
+;; 
+;; **** After commit 1fe46ea0e4b33e69ff5ea732743b9da4a0843a30 ****
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 540 in 60 samples of 9 calls.
+;;              Execution time mean : 118.011175 ms
+;;     Execution time std-deviation : 8.587749 ms
+;;    Execution time lower quantile : 107.272283 ms ( 2.5%)
+;;    Execution time upper quantile : 137.483773 ms (97.5%)
+;;                    Overhead used : 1.646923 ns
+;; No speedup compared to previous benchmark
 
 (comment
   (criterium/with-progress-reporting

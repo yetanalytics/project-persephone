@@ -199,43 +199,43 @@
 (deftest some-any-values?-test
   (testing "some-any-values? fn: values MUST include at least one value that is
            given by 'any', ie. the collections need to intersect."
-    (is (tv/some-any-values? ["Andrew Downes" "Toby Nichols"] name-values))
-    (is (tv/some-any-values? ["Andrew Downes" "Will Hoyt"] name-values))
-    (is (not (tv/some-any-values? ["Will Hoyt" "Milt Reder"] name-values)))
-    (is (not (tv/some-any-values? [] name-values)))
+    (is (tv/some-any-values? #{"Andrew Downes" "Toby Nichols"} name-values))
+    (is (tv/some-any-values? #{"Andrew Downes" "Will Hoyt"} name-values))
+    (is (not (tv/some-any-values? #{"Will Hoyt" "Milt Reder"} name-values)))
+    (is (not (tv/some-any-values? #{} name-values)))
     ;; any-values is undefined if there are no matchable values
-    (is (not (tv/some-any-values? [] [])))
-    (is (not (tv/some-any-values? ["Andrew Downes"] [nil])))))
+    (is (not (tv/some-any-values? #{} [])))
+    (is (not (tv/some-any-values? #{"Andrew Downes"} [nil])))))
 
 (deftest only-all-values?-test
   (testing "only-all-values? fn: values MUST all be from the values given by
            'all'."
-    (is (tv/only-all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills"]
+    (is (tv/only-all-values? #{"Andrew Downes" "Toby Nichols" "Ena Hills"}
                              name-values))
     ;; Superset is okay
-    (is (tv/only-all-values? ["Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"]
+    (is (tv/only-all-values? #{"Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"}
                              name-values))
-    (is (not (tv/only-all-values? ["Andrew Downes" "Toby Nichols"] name-values)))
-    (is (not (tv/only-all-values? [] name-values)))))
+    (is (not (tv/only-all-values? #{"Andrew Downes" "Toby Nichols"} name-values)))
+    (is (not (tv/only-all-values? #{} name-values)))))
 
 (deftest no-none-values?-test
   (testing "no-none-values fn: values MUST NOT be included in the set given
            by 'none'."
-    (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] name-values))
-    (is (not (tv/no-none-values? ["Andrew Downes"] name-values)))
-    (is (not (tv/no-none-values? ["Will Hoyt" "Milt Reder" "Ena Hills"]
+    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} name-values))
+    (is (not (tv/no-none-values? #{"Andrew Downes"} name-values)))
+    (is (not (tv/no-none-values? #{"Will Hoyt" "Milt Reder" "Ena Hills"}
                                  name-values)))
-    (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] []))
-    (is (tv/no-none-values? ["Will Hoyt" "Milt Reder"] [nil]))
+    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} []))
+    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} [nil]))
     ;; If there is nothing to exclude, we should be okay
-    (is (tv/no-none-values? [] name-values))
-    (is (tv/no-none-values? [] []))))
+    (is (tv/no-none-values? #{} name-values))
+    (is (tv/no-none-values? #{} []))))
 
 (deftest no-unmatch-vals?-test
   (testing "no-unmatch-vals? fn: no unmatchable values allowed."
-    (is (tv/no-unmatch-vals? ["Andrew Downes" "Toby Nichols" "Ena Hills"] []))
-    (is (not (tv/no-unmatch-vals? ["Andrew Downes"] [nil nil])))
-    (is (not (tv/no-unmatch-vals? [] [nil nil])))))
+    (is (tv/no-unmatch-vals? #{"Andrew Downes" "Toby Nichols" "Ena Hills"} []))
+    (is (not (tv/no-unmatch-vals? #{"Andrew Downes"} [nil nil])))
+    (is (not (tv/no-unmatch-vals? #{} [nil nil])))))
 
 ;; Predicates for our next tests
 (def included-pred

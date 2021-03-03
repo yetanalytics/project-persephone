@@ -98,12 +98,12 @@
 (defn none-matchable?
   "Returns true iff no value in `coll` is matchable."
   [coll]
-  (->> coll (filterv some?) empty?))
+  (->> coll (filter some?) empty?))
 
 (defn any-matchable?
   "Returns true iff at least one matchable value in `coll` exists."
   [coll]
-  (->> coll (filterv some?) not-empty boolean))
+  (->> coll (filter some?) not-empty boolean))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicates.
@@ -113,30 +113,30 @@
   "pulls out the functionality common to the -values? functions
 
   `pred-fn` should be a fn of 2 arity
-  - first arg = `presence` ie. any | all | none
-  - second arg = `values`"
-  [presence-coll values-coll pred-fn]
-  (pred-fn (set presence-coll) (set values-coll)))
+  - first arg = `presence` set ie. any | all | none
+  - second arg = `values` set"
+  [presence-set values-coll pred-fn]
+  (pred-fn presence-set (-> values-coll set (disj nil))))
 
 ;; If 'any' is provided, evaluated values MUST include at least one value
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
 (defn some-any-values?
   "Return true if there's at least one value in 'any'; false otherwise."
-  [any-coll values-coll]
+  [any-set values-coll]
   (presence-pred-fn
-   any-coll
-   (filter some? values-coll)
+   any-set
+   values-coll
    (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'.
 ;; In other words, the set of 'all' MUST be a superset of the evaluated values.
 (defn only-all-values?
   "Return true is every value is in 'all'; false otherwise."
-  [all-coll values-coll]
+  [all-set values-coll]
   (presence-pred-fn
-   all-coll
-   (filter some? values-coll)
+   all-set
+   values-coll
    (fn [p v] (cset/subset? v p))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
@@ -144,25 +144,27 @@
 ;; intersect.
 (defn no-none-values?
   "Return true if there are no values in 'none'; false otherwise."
-  [none-coll values-coll]
+  [none-set values-coll]
   (presence-pred-fn
-   none-coll
-   (filter some? values-coll)
-   (fn [p v] (-> (cset/intersection v p) empty?))))
+   none-set
+   values-coll
+   (fn [p v] (empty? (cset/intersection v p)))))
 
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
   "Return true if no unmatchable values exist; false otherwise."
-  [presence-coll values-coll]
-  (presence-pred-fn
-   presence-coll
-   values-coll ;; don't ignore unmatchable values
-   (fn [_ v] (all-matchable? v))))
+  [_all-set values-coll]
+  (all-matchable? values-coll))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rule spec creation.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- nset
+  "'nilable set'; like `clojure.core/set` but preserves nil args."
+  [coll]
+  (when (some? coll) (set coll)))
 
 ;; MUST apply the 'any', 'all' and 'none' requirements if presence is missing,
 ;; 'included' or 'recommended' (ie. not 'excluded') and any matchable values
@@ -173,10 +175,13 @@
 (defn create-included-pred
   "Returns a wrapped pred for when presence is 'included.'"
   [{:keys [any all none]}]
-  (-> (and-wrapped (wrap-pred any-matchable?) (wrap-pred all-matchable?))
-      (add-wrapped some-any-values? any)
-      (add-wrapped only-all-values? all) ;; no-unmatch-vals? is redundant
-      (add-wrapped no-none-values? none)))
+  (let [any-set  (nset any)
+        all-set  (nset all)
+        none-set (nset none)]
+    (-> (and-wrapped (wrap-pred any-matchable?) (wrap-pred all-matchable?))
+        (add-wrapped some-any-values? any-set)
+        (add-wrapped only-all-values? all-set) ;; no-unmatch-vals? is redundant
+        (add-wrapped no-none-values? none-set))))
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
@@ -194,12 +199,15 @@
   "Returns a wrapped pred for when presence is 'recommended' or is
    missing."
   [{:keys [any all none]}]
-  (or-wrapped (-> (wrap-pred any-matchable?)
-                  (add-wrapped some-any-values? any)
-                  (add-wrapped only-all-values? all)
-                  (add-wrapped no-unmatch-vals? all)
-                  (add-wrapped no-none-values? none))
-              (wrap-pred none-matchable?)))
+  (let [any-set  (nset any)
+        all-set  (nset all)
+        none-set (nset none)]
+    (or-wrapped (-> (wrap-pred any-matchable?)
+                    (add-wrapped some-any-values? any-set)
+                    (add-wrapped only-all-values? all-set)
+                    (add-wrapped no-unmatch-vals? all-set)
+                    (add-wrapped no-none-values? none-set))
+                (wrap-pred none-matchable?))))
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
@@ -242,7 +250,7 @@
   ([stmt loc-path select-path]
    (let [locations (json-path/get-values* stmt loc-path opts-map)]
      (if-not select-path
-      ;; No selector - return locations
+       ;; No selector - return locations
        locations
        (json-path/get-values* locations select-path opts-map)))))
 
@@ -332,14 +340,13 @@
       (let [values    (find-values statement location-path selector-path)
             fail-pred (rule-spec values)]
         ;; nil indicates success
-        (if-not (nil? fail-pred)
+        (when-not (nil? fail-pred)
           ;; :pred - the predicate that failed, causing this error
           ;; :values - the values that the predicate failed on
           ;; :rule - the Statement Template rule associated with the error
           {:pred   fail-pred
            :values values
-           :rule   rule}
-          nil)))))
+           :rule   rule})))))
 
 (defn create-template-validator
   "Given a Statement Template, return a validator function that takes

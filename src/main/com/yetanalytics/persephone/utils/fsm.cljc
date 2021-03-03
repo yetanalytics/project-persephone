@@ -157,6 +157,10 @@
 ;; NFA Construction Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; NOTE: We could optimize construction by tracking state as an int instead
+;; of an int set, and making transitions a vector instead of an int-keyed
+;; map, but this would compromise generality across fns in this namespace.
+
 ;;    i    
 ;; x ---> a
 (defn transition-nfa
@@ -241,7 +245,7 @@
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
    means the NFA can be taken zero or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states))) ;; For gentests
+  (reset-counter (+ 1 (apply max states)))
   (let [new-start  (new-state)
         new-accept (new-state)
         old-accept (first accepts)]
@@ -263,7 +267,7 @@
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
    means the NFA may or may not be taken."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states))) ;; For gentests
+  (reset-counter (+ 1 (apply max states)))
   (let [new-start  (new-state)
         new-accept (new-state)
         old-accept (first accepts)]
@@ -285,7 +289,7 @@
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
    means the NFA can be taken one or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states))) ;; For gentests
+  (reset-counter (+ 1 (apply max states)))
   (let [new-start  (new-state)
         new-accept (new-state)
         old-accept (first accepts)]
@@ -304,8 +308,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA to DFA Conversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO: Optimize this part of the code
 
 (defn- init-queue [init]
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
@@ -365,9 +367,9 @@
            (not-empty (cset/intersection states nfa-accepts)))
           (add-state-to-dfa
            [{dfa-states :states :as dfa} next-dfa-state prev-dfa-state symb]
-            ; An empty next-dfa-state value means that the symbol cannot be
-            ; read at the previous state in the NFA, so we avoid adding it so
-            ; it will also fail in the DFA.
+           ;; An empty next-dfa-state value means that the symbol cannot be
+           ;; read at the previous state in the NFA, so we avoid adding it so
+           ;; it will also fail in the DFA.
            (if (not-empty next-dfa-state)
              (-> dfa
                  (update :states conj next-dfa-state)
@@ -386,12 +388,20 @@
              dfa))
           (add-state-to-queue
            [queue dfa next-dfa-state]
-            ; Don't add to queue if next-dfa-state is empty (signifying failure)
-            ; or if it's already in the DFA (i.e. it's already visited).
+           ;; Don't add to queue if next-dfa-state is empty (signifying failure)
+           ;; or if it's already in the DFA (i.e. it's already visited).
            (if (and (not-empty next-dfa-state)
                     (not (contains? (:states dfa) next-dfa-state)))
              (conj queue next-dfa-state)
-             queue))]
+             queue))
+          (add-missing-srcs
+           [transitions states]
+           (reduce (fn [trans' s]
+                     (if (not (contains? transitions s))
+                       (assoc trans' s {})
+                       trans'))
+                   transitions
+                   states))]
     (loop [dfa
            {:type        :dfa
             :symbols     symbols
@@ -417,20 +427,11 @@
                [(pop queue) dfa]
                (keys symbols))]
           (recur dfa' queue''))
-        (let [add-missing-srcs
-              (fn [transitions states]
-                (reduce (fn [trans' s]
-                          (if (not (contains? transitions s))
-                            (assoc trans' s {})
-                            trans'))
-                        transitions
-                        states))
-              {:keys [states]} dfa]
-          (-> dfa
-              ;; Add source states not present in the transition table
-              (update :transitions add-missing-srcs states)
-              ;; Alphatize DFA states
-              alphatize-states-fsm))))))
+        (-> dfa
+            ;; Add source states not present in the transition table
+            (update :transitions add-missing-srcs (:states dfa))
+            ;; Alphatize DFA states
+            alphatize-states-fsm)))))
 
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in

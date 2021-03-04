@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone-gen-test
   (:require [clojure.test :refer [deftest testing is]]
-            #_[criterium.core :as criterium]
-            #_[taoensso.tufte :as tufte :refer [profile]]
+            [criterium.core :as criterium]
+            [taoensso.tufte :as tufte :refer [profile]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))
@@ -209,6 +209,16 @@
 ;;    Execution time upper quantile : 137.483773 ms (97.5%)
 ;;                    Overhead used : 1.646923 ns
 ;; No speedup compared to previous benchmark
+;; 
+;; **** After commit 70a724e4ec91189430b8767aaf5e7e6a00d3834e ****
+;; ===== Criterium full bench output for (run-validate-stmt-vs-profile 10) =====
+;; Evaluation count : 600 in 60 samples of 10 calls.
+;;              Execution time mean : 105.109710 ms
+;;     Execution time std-deviation : 7.264287 ms
+;;    Execution time lower quantile : 100.500590 ms ( 2.5%)
+;;    Execution time upper quantile : 128.020965 ms (97.5%)
+;;                    Overhead used : 1.637963 ns
+;; Approx. 103-fold speedup compared to original benchmark
 
 (comment
   (criterium/with-progress-reporting

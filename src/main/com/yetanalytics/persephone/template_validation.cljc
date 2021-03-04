@@ -77,7 +77,7 @@
   [path]
   (if-let [parsed-path (get @path-cache path)]
     parsed-path
-    (let [parsed-path (json-path/parse-path path)]
+    (let [parsed-path (json-path/parse-paths path)]
       (swap! path-cache (fn [m] (assoc m path parsed-path)))
       parsed-path)))
 

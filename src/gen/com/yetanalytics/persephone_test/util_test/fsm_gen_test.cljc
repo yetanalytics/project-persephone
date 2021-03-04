@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-test.util-tests.fsm-test
+(ns com.yetanalytics.persephone-test.util-test.fsm-gen-test
   (:require #?@(:cljs [[clojure.test.check]
                        [clojure.test.check.generators]
                        [clojure.test.check.properties :include-macros true]])
@@ -7,9 +7,10 @@
             #_{:clj-kondo/ignore [:unused-namespace]}
             [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone-test.util-tests.fsm-spec :as fs])
-  #?(:cljs (:require-macros [com.yetanalytics.persephone-test.util-tests.fsm-test
-                             :refer [check]])))
+            [com.yetanalytics.persephone-test.util-test.fsm-spec :as fs])
+  #?(:cljs
+     (:require-macros
+      [com.yetanalytics.persephone-test.util-test.fsm-gen-test :refer [check]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Spec tests
@@ -116,7 +117,7 @@
     (check `fsm/nfa->dfa #?(:clj 200 :cljs 100))
     (check `fsm/minimize-dfa #?(:clj 500 :cljs 250))))
 
- ;; We do not test fsm/read-next due to the complexity of its spec, namely
- ;; the fact that the state needs to be in the DFA or else an exception will
- ;; be thrown.
+;; We do not test fsm/read-next due to the complexity of its spec, namely
+;; the fact that the state needs to be in the DFA or else an exception will
+;; be thrown.
  

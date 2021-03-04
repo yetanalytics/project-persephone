@@ -1,7 +1,7 @@
-(ns com.yetanalytics.persephone-test
+(ns com.yetanalytics.persephone-gen-test
   (:require [clojure.test :refer [deftest testing is]]
-            [criterium.core :as criterium]
-            [taoensso.tufte :as tufte :refer [profile]]
+            #_[criterium.core :as criterium]
+            #_[taoensso.tufte :as tufte :refer [profile]]
             [com.yetanalytics.persephone :as per]
             [com.yetanalytics.datasim.sim :as sim]
             [com.yetanalytics.datasim.input :as sim-input]))

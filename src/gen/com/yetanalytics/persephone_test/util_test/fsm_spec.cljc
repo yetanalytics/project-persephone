@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-test.util-tests.fsm-spec
+(ns com.yetanalytics.persephone-test.util-test.fsm-spec
   (:require #?@(:cljs [[clojure.test.check]
                        [clojure.test.check.generators]
                        [clojure.test.check.properties :include-macros true]])

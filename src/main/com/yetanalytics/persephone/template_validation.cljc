@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone.template-validation
   (:require [clojure.set :as cset]
             [clojure.string :as string]
-            [com.yetanalytics.pathetic :as json-path])
+            [com.yetanalytics.persephone.utils.json :as json])
   #?(:cljs (:require-macros
             [com.yetanalytics.persephone.template-validation
              :refer [wrap-pred and-wrapped or-wrapped add-wrapped]])))
@@ -63,25 +63,6 @@
         ~wrapped-fns)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; JSONPath cache
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Parsing is an expensive operation, and many JSONPath strings are repeated in
-;; a given Profile, so we cache already-parsed ones in a map from unparsed to
-;; parsed paths.
-
-(def path-cache (atom {}))
-
-(defn- parse-path-str
-  "Return the parsed path of a JSONPath string."
-  [path]
-  (if-let [parsed-path (get @path-cache path)]
-    parsed-path
-    (let [parsed-path (json-path/parse-paths path)]
-      (swap! path-cache (fn [m] (assoc m path parsed-path)))
-      parsed-path)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Basic predicates 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -113,8 +94,8 @@
   "pulls out the functionality common to the -values? functions
 
   `pred-fn` should be a fn of 2 arity
-  - first arg = `presence` set ie. any | all | none
-  - second arg = `values` set"
+  - first arg = `presence` set i.e. any | all | none
+  - second arg = `values` collection"
   [presence-set values-coll pred-fn]
   (pred-fn presence-set (-> values-coll set (disj nil))))
 
@@ -122,40 +103,44 @@
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
 (defn some-any-values?
-  "Return true if there's at least one value in 'any'; false otherwise."
-  [any-set values-coll]
+  "Return true if there's at least one value from `vals-coll` in
+   `any-set`; false otherwise."
+  [any-set vals-coll]
   (presence-pred-fn
    any-set
-   values-coll
+   vals-coll
    (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'.
 ;; In other words, the set of 'all' MUST be a superset of the evaluated values.
 (defn only-all-values?
-  "Return true is every value is in 'all'; false otherwise."
-  [all-set values-coll]
+  "Return true is every value from `vals-coll` is in `all-set`;
+   false otherwise."
+  [all-set vals-coll]
   (presence-pred-fn
    all-set
-   values-coll
+   vals-coll
    (fn [p v] (cset/subset? v p))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
 ;; intersect.
 (defn no-none-values?
-  "Return true if there are no values in 'none'; false otherwise."
-  [none-set values-coll]
+  "Return true if there are no values from `vals-coll` in `none-set`;
+   false otherwise."
+  [none-set vals-coll]
   (presence-pred-fn
    none-set
-   values-coll
+   vals-coll
    (fn [p v] (empty? (cset/intersection v p)))))
 
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
-  "Return true if no unmatchable values exist; false otherwise."
-  [_all-set values-coll]
-  (all-matchable? values-coll))
+  "Return true if no unmatchable values from `vals-coll` exist;
+   false otherwise."
+  [_all-set vals-coll]
+  (all-matchable? vals-coll))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rule spec creation.
@@ -239,20 +224,17 @@
 ;; JSONPath 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def opts-map {:return-missing? true})
-
 (defn find-values
-  "Given a Statement, a location JSONPath string, and an optional selector
-   JSONPath string, return a vector of the selected values. Unmatchable
-   values are returned as nils."
+  "Given a Statement `stmt`, a parsed location JSONPath `loc-path`,
+   and an optional selector JSONPath `select-path`, return a vector
+   of the selected values. Unmatchable values are returned as nils."
   ([stmt loc-path]
    (find-values stmt loc-path nil))
   ([stmt loc-path select-path]
-   (let [locations (json-path/get-values* stmt loc-path opts-map)]
+   (let [locations (json/get-jsonpath-values stmt loc-path)]
      (if-not select-path
-       ;; No selector - return locations
-       locations
-       (json-path/get-values* locations select-path opts-map)))))
+       locations ;; No selector - return locations
+       (json/get-jsonpath-values locations select-path)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
@@ -325,17 +307,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-rule-validator
-  "Given a rule, create a function that will validate new Statements
+  "Given `rule`, create a function that will validate new Statements
    against the rule."
   [{:keys [location selector] :as rule}]
   (let [rule-spec     (create-rule-pred rule)
-        location-path (parse-path-str location)
+        location-path (json/parse-jsonpath location)
         ;; Locations values will be a JSON array, so we can query it using the
         ;; selector by adding a wildcard at the beginning.
         selector-path (when selector
                         (-> selector
                             (string/replace #"(\$)" "$1[*]")
-                            parse-path-str))]
+                            json/parse-jsonpath))]
     (fn [statement]
       (let [values    (find-values statement location-path selector-path)
             fail-pred (rule-spec values)]
@@ -349,8 +331,8 @@
            :rule   rule})))))
 
 (defn create-template-validator
-  "Given a Statement Template, return a validator function that takes
-   a Statement as an argument and returns an nilable seq of error data."
+  "Given `template`, return a validator function that takes a
+   Statement as an argument and returns an nilable seq of error data."
   [template]
   (let [rules' (add-det-properties template)
         preds  (mapv create-rule-validator rules')]

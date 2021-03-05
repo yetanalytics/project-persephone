@@ -281,38 +281,38 @@
           values evaluated by the JSONPath strings."
     (is (= ["http://foo.org/verb"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.verb.id"))))
+                           (path/parse-paths "$.verb.id"))))
     (is (= ["Agent"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor.objectType"))))
+                           (path/parse-paths "$.actor.objectType"))))
     (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor.member[*].name"))))
+                           (path/parse-paths "$.actor.member[*].name"))))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor.mbox"))))
+                           (path/parse-paths "$.actor.mbox"))))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor.mbox")
+                           (path/parse-paths "$.actor.mbox")
                            nil)))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor")
-                           (path/parse-path "$[*].mbox"))))
+                           (path/parse-paths "$.actor")
+                           (path/parse-paths "$[*].mbox"))))
     (is (= [nil]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor")
-                           (path/parse-path "$[*].mbox_sha1sum"))))
+                           (path/parse-paths "$.actor")
+                           (path/parse-paths "$[*].mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor.mbox | $.actor.mbox_sha1sum"))))
+                           (path/parse-paths "$.actor.mbox | $.actor.mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.actor")
-                           (path/parse-path "$[*].mbox | $[*].mbox_sha1sum"))))
+                           (path/parse-paths "$.actor")
+                           (path/parse-paths "$[*].mbox | $[*].mbox_sha1sum"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           (path/parse-path
+                           (path/parse-paths
                             "$.object.objectType 
                             | $.context.contextActivities.parent[*].objectType 
                             | $.context.contextActivities.grouping[*].objectType
@@ -320,28 +320,28 @@
                             | $.context.contextActivities.other[*].objectType"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.context.contextActivities")
-                           (path/parse-path
+                           (path/parse-paths "$.context.contextActivities")
+                           (path/parse-paths
                             "$[*].parent[*].objectType 
                            | $[*].grouping[*].objectType
                            | $[*].category[*].objectType
                            | $[*].other[*].objectType"))))
     (is (= 4 (count (tv/find-values
                      ex-statement-0
-                     (path/parse-path "$.context.contextActivities.parent 
+                     (path/parse-paths "$.context.contextActivities.parent 
                                 | $.context.contextActivities.grouping
                                 | $.context.contextActivities.category
                                 | $.context.contextActivities.other")))))
     (is (vector? (first (tv/find-values
                          ex-statement-0
-                         (path/parse-path "$.context.contextActivities.parent 
+                         (path/parse-paths "$.context.contextActivities.parent 
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
                                  | $.context.contextActivities.other")))))
     (is (= [nil nil nil nil]
            (tv/find-values
             ex-statement-0
-            (path/parse-path "$.context.contextActivities.parent.fi
+            (path/parse-paths "$.context.contextActivities.parent.fi
                           | $.context.contextActivities.grouping.fy
                           | $.context.contextActivities.category.fo
                           | $.context.contextActivities.other.fum"))))
@@ -351,13 +351,13 @@
              "http://foo.org/ccat1" "http://foo.org/ccat2"
              "http://foo.org/coat1" "http://foo.org/coat2"}
            (set (tv/find-values ex-statement-0
-                                (path/parse-path "$..type")))))
+                                (path/parse-paths "$..type")))))
     (is (= [9001]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$.result.score.raw"))))
+                           (path/parse-paths "$.result.score.raw"))))
     (is (= [9001]
            (tv/find-values ex-statement-0
-                           (path/parse-path "$..raw"))))))
+                           (path/parse-paths "$..raw"))))))
 
 ;; Determining Properties test
 (deftest add-det-properties

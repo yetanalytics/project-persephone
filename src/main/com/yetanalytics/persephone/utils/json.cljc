@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.utils.json
-  (:require [com.yetanalytics.pan.utils.json :refer [convert-json]]
-   #?(:clj [clojure.data.json :as json])))
+  (:require [com.yetanalytics.pathetic :refer [parse-paths get-values*]]
+            [com.yetanalytics.pan.utils.json :refer [convert-json]]
+            #?(:clj [clojure.data.json :as json])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON-EDN conversion
@@ -22,3 +23,32 @@
   [edn-data]
   #?(:clj (json/write-str edn-data)
      :cljs (->> edn-data clj->js (.stringify js/JSON))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSONPath operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Parsing is an expensive operation, and many JSONPath strings are repeated in
+;; a given Profile, so we cache already-parsed ones in a map from unparsed to
+;; parsed paths.
+
+(def path-cache (atom {}))
+
+(defn parse-jsonpath
+  "Parse `path-str` and return a vector of parsed JSONPaths."
+  [path-str]
+  (if-let [parsed-path (get (deref path-cache) path-str)]
+    parsed-path
+    (let [parsed-path (parse-paths path-str)]
+      (swap! path-cache (fn [m] (assoc m path-str parsed-path)))
+      parsed-path)))
+
+;; Wrapper for pathetic/get-values*
+
+(def opts-map {:return-missing? true})
+
+(defn get-jsonpath-values
+  "Given `json` and parsed JSONPaths `paths`, return a vector of JSON
+   valuess."
+  [json paths]
+  (get-values* json paths opts-map))

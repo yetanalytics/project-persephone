@@ -22,9 +22,9 @@
 ;; First profile contains all the Statement Templates and Patterns
 (def tc3-profile (get-in tc3-inputs [:profiles 0]))
 
-(def tc3-validator (per/profile->statement-validator tc3-profile))
+(def tc3-validator (per/profile->validator tc3-profile))
 
-(def tc3-dfas (per/compile-profile tc3-profile))
+(def tc3-dfas (per/profile->fsms tc3-profile))
 
 (defn run-validate-stmt-vs-profile
   "Generate a sequence of n Statements and validate them all
@@ -46,9 +46,9 @@
           (recur (rest stmts))))
       true)))
 
-(defn run-match-next-statement
+(defn run-match-stmt-vs-profile
   "Generate a sequence of n Statemnets and pattern match them
-   using match-next-statement."
+   using match-statement-vs-profile"
   [n]
   (loop [stmts      (take n (sim/sim-seq tc3-inputs))
          state-info {}]
@@ -56,7 +56,7 @@
       (let [registration
             (get-in next-stmt ["context" "registration"] :no-registration)
             state-info'
-            (per/match-next-statement tc3-dfas state-info next-stmt)
+            (per/match-statement-vs-profile tc3-dfas state-info next-stmt)
             is-rejected?
             (reduce-kv (fn [acc _ pat-si]
                          (and acc (empty? (:states pat-si))))
@@ -75,9 +75,9 @@
   (testing "the validate-statement-vs-profile function using DATASIM"
     (is (run-validate-stmt-vs-profile 10))))
 
-(deftest match-next-statement-test
-  (testing "the match-next-statement function using DATASIM"
-    (is (run-match-next-statement 100))))
+(deftest match-stmt-vs-profile-test
+  (testing "the match-statement-vs-profile function using DATASIM"
+    (is (run-match-stmt-vs-profile 100))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Benchmarking (temporary)
@@ -225,7 +225,7 @@
     (criterium/bench (run-validate-stmt-vs-profile 10)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (run-match-next-statement 10)))
+    (criterium/bench (run-match-stmt-vs-profile 10)))
   
   (tufte/add-basic-println-handler! {})
   (profile {} (run-validate-stmt-vs-profile 1000)))
@@ -288,7 +288,7 @@
 
 (comment
   (criterium/with-progress-reporting
-    (criterium/bench (per/profile->statement-validator tc3-profile)))
+    (criterium/bench (per/profile->validator tc3-profile)))
 
   (criterium/with-progress-reporting
-    (criterium/bench (per/compile-profile tc3-profile))))
+    (criterium/bench (per/profile->fsms tc3-profile))))

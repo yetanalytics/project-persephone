@@ -34,7 +34,6 @@
                  tc3-validator
                  next-stmt
                  :fn-type :result ;; Return error on invalid stmt
-                 ;; TODO: Fix Pan s.t. all profiles pass
                  :validate-profile? false)]
         (if (some? err)
           (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
@@ -71,8 +70,8 @@
 
 (deftest validate-stmt-vs-profile-test
   (testing "the validate-statement-vs-profile function using DATASIM"
-    (is (run-validate-stmt-vs-profile 10))))
+    (is (run-validate-stmt-vs-profile 100))))
 
 (deftest match-stmt-vs-profile-test
   (testing "the match-statement-vs-profile function using DATASIM"
-    (is (run-match-stmt-vs-profile 100))))
+    (is (run-match-stmt-vs-profile 1000))))

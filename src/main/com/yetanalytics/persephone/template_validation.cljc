@@ -1,48 +1,66 @@
 (ns com.yetanalytics.persephone.template-validation
   (:require [clojure.set :as cset]
-            [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [com.yetanalytics.pathetic :as json-path]
-            [com.yetanalytics.persephone.utils.errors :as emsg])
-  #?(:cljs (:require-macros [com.yetanalytics.persephone.template-validation
-                             :refer [add-spec]])))
+            [com.yetanalytics.persephone.utils.json :as json])
+  #?(:cljs (:require-macros
+            [com.yetanalytics.persephone.template-validation
+             :refer [wrap-pred and-wrapped or-wrapped add-wrapped]])))
 
 ;; TODO StatementRefTemplate predicates
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Util functions
+;; Predicate macros
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Used only in tests
-(defn value-map
-  "Given an array of keys (each corresponding to a level of map
-   nesting), return corresponding values from a vector of maps."
-  [map-vec & ks]
-  (mapv #(get-in % ks) map-vec))
+;; We use these macros in order to identify the name of the predicate that
+;; returns false for a some series of nested predicates.
 
-;; We need to use a macro in order to preserve the name of the predicate
-;; function. Otherwise it will be shadowed to `pred-fn`.
 #?(:clj
-   (defmacro add-spec
-     "Given a spec, a predicate function, and values associated with the
-      predicate, create an s/and spec between the original spec and the
-      new predicate iff the values are not nil. Otherwise return the
-      original spec. Useful for threading."
-     [sp pred-fn values]
-     `(if (some? ~values)
-        (s/and ~sp (partial ~pred-fn ~values))
-        ~sp)))
+   (defmacro wrap-pred
+     "Wrap a predicate function f such that if f returns true,
+      return nil, and if f returns false, return the keywordized
+      name of f."
+     [f]
+     (assert (symbol? f))
+     (let [pred-name# (keyword f)]
+       `(fn [x#] (if (~f x#) nil ~pred-name#)))))
 
-(defn pred-name-of-error
-  "Given error data generated from s/explain, retrieve the
-   appropriate predicate name."
-  [spec-data]
-  (let [pred (-> spec-data ::s/problems first :pred)]
-       (if (coll? pred)
-         ; (partial pred? ...)
-         (-> pred second name)
-         ; pred?
-         (-> pred name))))
+#?(:clj
+   (defmacro and-wrapped
+     "Given two functions wrapped using wrap-pred, return nil
+      if both functions return true and the corresponding
+      keywordized fn name for the function that returns false.
+      Short circuiting."
+     [f1 f2]
+     `(fn [x#]
+        (if-let [res1# (~f1 x#)]
+          res1#
+          (when-let [res2# (~f2 x#)]
+            res2#)))))
+
+#?(:clj
+   (defmacro or-wrapped
+     "Given two functions wrapped using wrap-pred, return nil
+      if either function returns true and the keywordized fn
+      name for the first function if both return false."
+     [f1 f2]
+     `(fn [x#]
+        (when-let [res1# (~f1 x#)]
+          (when-let [res2# (~f2 x#)]
+            res1#)))))
+
+#?(:clj
+   (defmacro add-wrapped
+     "Given a function wrapped using wrap-pred or add-wrapped,
+      add a 2-ary predicate f only if the values are not nil."
+     [wrapped-fns f values]
+     `(if (some? ~values)
+        ~(let [pred-name# (keyword f)]
+           `(fn [x#]
+              (if-let [res# (~wrapped-fns x#)]
+                res#
+                (if (~f ~values x#) nil ~pred-name#))))
+        ~wrapped-fns)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Basic predicates 
@@ -61,67 +79,77 @@
 (defn none-matchable?
   "Returns true iff no value in `coll` is matchable."
   [coll]
-  (->> coll (filterv some?) empty?))
+  (->> coll (filter some?) empty?))
 
 (defn any-matchable?
   "Returns true iff at least one matchable value in `coll` exists."
   [coll]
-  (->> coll (filterv some?) not-empty boolean))
+  (->> coll (filter some?) not-empty boolean))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rules predicates.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn presence-pred-fn
+(defn- presence-pred-fn
   "pulls out the functionality common to the -values? functions
 
   `pred-fn` should be a fn of 2 arity
-  - first arg = `presence` ie. any | all | none
-  - second arg = `values`"
-  [presence-coll values-coll pred-fn]
-  (pred-fn (set presence-coll) (set values-coll)))
+  - first arg = `presence` set i.e. any | all | none
+  - second arg = `values` collection"
+  [presence-set values-coll pred-fn]
+  (pred-fn presence-set (-> values-coll set (disj nil))))
 
 ;; If 'any' is provided, evaluated values MUST include at least one value
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
 (defn some-any-values?
-  "Return true if there's at least one value in 'any'; false otherwise."
-  [any-coll values-coll]
-  (presence-pred-fn any-coll
-                    (filter some? values-coll)
-                    (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
+  "Return true if there's at least one value from `vals-coll` in
+   `any-set`; false otherwise."
+  [any-set vals-coll]
+  (presence-pred-fn
+   any-set
+   vals-coll
+   (fn [p v] (-> (cset/intersection v p) not-empty boolean))))
 
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'.
 ;; In other words, the set of 'all' MUST be a superset of the evaluated values.
 (defn only-all-values?
-  "Return true is every value is in 'all'; false otherwise."
-  [all-coll values-coll]
-  (presence-pred-fn all-coll
-                    (filter some? values-coll)
-                    (fn [p v] (cset/subset? v p))))
+  "Return true is every value from `vals-coll` is in `all-set`;
+   false otherwise."
+  [all-set vals-coll]
+  (presence-pred-fn
+   all-set
+   vals-coll
+   (fn [p v] (cset/subset? v p))))
 
 ;; If 'none' is provided, evaluated values MUST NOT include any values in
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
 ;; intersect.
 (defn no-none-values?
-  "Return true if there are no values in 'none'; false otherwise."
-  [none-coll values-coll]
-  (presence-pred-fn none-coll
-                    (filter some? values-coll)
-                    (fn [p v] (-> (cset/intersection v p) empty?))))
+  "Return true if there are no values from `vals-coll` in `none-set`;
+   false otherwise."
+  [none-set vals-coll]
+  (presence-pred-fn
+   none-set
+   vals-coll
+   (fn [p v] (empty? (cset/intersection v p)))))
 
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
-  "Return true if no unmatchable values exist; false otherwise."
-  [presence-coll values-coll]
-  (presence-pred-fn presence-coll
-                    values-coll ;; don't ignore unmatchable values
-                    (fn [_ v] (all-matchable? v))))
+  "Return true if no unmatchable values from `vals-coll` exist;
+   false otherwise."
+  [_all-set vals-coll]
+  (all-matchable? vals-coll))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Rule spec creation.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- nset
+  "'nilable set'; like `clojure.core/set` but preserves nil args."
+  [coll]
+  (when (some? coll) (set coll)))
 
 ;; MUST apply the 'any', 'all' and 'none' requirements if presence is missing,
 ;; 'included' or 'recommended' (ie. not 'excluded') and any matchable values
@@ -129,80 +157,84 @@
 ;;
 ;; If presence is 'included', location and selector MUST include at least one
 ;; matchable value and MUST NOT include any unmatchable values. 
-(defn create-included-spec
-  "Returns a clojure spec for when presence is 'included.'"
+(defn create-included-pred
+  "Returns a wrapped pred for when presence is 'included.'"
   [{:keys [any all none]}]
-  (-> (s/and any-matchable? all-matchable?)
-      (add-spec some-any-values? any)
-      (add-spec only-all-values? all) ;; no-unmatch-vals? is redundant
-      (add-spec no-none-values? none)))
+  (let [any-set  (nset any)
+        all-set  (nset all)
+        none-set (nset none)]
+    (-> (and-wrapped (wrap-pred any-matchable?) (wrap-pred all-matchable?))
+        (add-wrapped some-any-values? any-set)
+        (add-wrapped only-all-values? all-set) ;; no-unmatch-vals? is redundant
+        (add-wrapped no-none-values? none-set))))
 
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
-(defn create-excluded-spec
-  "Returns a clojure spec for when presence is 'excluded.'"
+(defn create-excluded-pred
+  "Returns a wrapped pred for when presence is 'excluded.'"
   [_]
   ;; the creation of a spec directly from a function is done using `s/spec`
-  (s/spec none-matchable?))
+  (wrap-pred none-matchable?))
 
 ;; If presence is 'recommended' or is missing, the evaluated values MUST 
 ;; conform to the 'any', 'all' and 'none' specs (but there are no additional
 ;; restrictions, i.e. it is possible not to have any matchable values).
 ;; 'recommended' allows profile authors to not have any/all/none in a rule.
-(defn create-default-spec
-  "Returns a predicate for when presence is 'recommended' or is missing."
+(defn create-default-pred
+  "Returns a wrapped pred for when presence is 'recommended' or is
+   missing."
   [{:keys [any all none]}]
-  (s/or :some-matchables (-> (s/spec any-matchable?)
-                             (add-spec some-any-values? any)
-                             (add-spec only-all-values? all)
-                             (add-spec no-unmatch-vals? all)
-                             (add-spec no-none-values? none))
-        :no-matchables   (s/spec none-matchable?)))
+  (let [any-set  (nset any)
+        all-set  (nset all)
+        none-set (nset none)]
+    (or-wrapped (-> (wrap-pred any-matchable?)
+                    (add-wrapped some-any-values? any-set)
+                    (add-wrapped only-all-values? all-set)
+                    (add-wrapped no-unmatch-vals? all-set)
+                    (add-wrapped no-none-values? none-set))
+                (wrap-pred none-matchable?))))
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
-(s/def ::rule
-  (s/or :no-presence
-        (fn [r] (and (not (contains? r :presence))
-                     (or (contains? r :any)
-                         (contains? r :all)
-                         (contains? r :none))))
-        :presence
-        (fn [r] (#{"included" "excluded" "recommended"} (:presence r)))))
-
-;; Should never happen with a validated Statement Template or Profile
+;; NOTE: Should never happen with a validated Statement Template or Profile
 (defn- assert-valid-rule
   [rule]
-  (when-let [err (s/explain-data ::rule rule)]
-    (throw (ex-info "Invalid Rule!" err))))
+  (when-not (or (and (not (contains? rule :presence))
+                     (or (contains? rule :any)
+                         (contains? rule :all)
+                         (contains? rule :none)))
+                (#{"included" "excluded" "recommended"} (:presence rule)))
+    (throw (ex-info "Invalid rule."
+                    {:type ::invalid-rule-syntax
+                     :rule rule}))))
 
-(defn create-rule-spec
-  "Given a rule, create a spec that will validate a Statement against it."
+(defn create-rule-pred
+  "Given a rule, create a predicate that will validate a Statement
+   against it. Returns the name of the atomic predicate that returns
+   false, or nil if all return true."
   [{:keys [presence] :as rule}]
   (assert-valid-rule rule)
   (case presence
-    "included"    (create-included-spec rule)
-    "excluded"    (create-excluded-spec rule)
-    "recommended" (create-default-spec rule)
-    nil           (create-default-spec rule)))
+    "included"    (create-included-pred rule)
+    "excluded"    (create-excluded-pred rule)
+    "recommended" (create-default-pred rule)
+    nil           (create-default-pred rule)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn find-values
-  "Given a Statement, a location JSONPath string, and an optional selector
-   JSONPath string, return a vector of the selected values. Unmatchable
-   values are returned as nils."
-  [stmt loc-path & [select-path]]
-  (let [locations (json-path/get-values stmt loc-path :return-missing? true)]
-    (if-not select-path
-      ;; No selector - return locations
-      locations
-      ;; Locations is a JSON array, so we can query it using the selector
-      ;; by adding a wildcard at the beginning
-      (let [select-path' (string/replace select-path #"(\$)" "$1[*]")]
-        (json-path/get-values locations select-path' :return-missing? true)))))
+  "Given a Statement `stmt`, a parsed location JSONPath `loc-path`,
+   and an optional selector JSONPath `select-path`, return a vector
+   of the selected values. Unmatchable values are returned as nils."
+  ([stmt loc-path]
+   (find-values stmt loc-path nil))
+  ([stmt loc-path select-path]
+   (let [locations (json/get-jsonpath-values stmt loc-path)]
+     (if-not select-path
+       locations ;; No selector - return locations
+       (json/get-jsonpath-values locations select-path)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
@@ -275,54 +307,48 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-rule-validator
-  "Given a rule, create a function that will validate new Statements against
-  the rule."
+  "Given `rule`, create a function that will validate new Statements
+   against the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec (create-rule-spec rule)]
+  (let [rule-spec     (create-rule-pred rule)
+        location-path (json/parse-jsonpath location)
+        ;; Locations values will be a JSON array, so we can query it using the
+        ;; selector by adding a wildcard at the beginning.
+        selector-path (when selector
+                        (-> selector
+                            (string/replace #"(\$)" "$1[*]")
+                            json/parse-jsonpath))]
     (fn [statement]
-      (let [values (find-values statement location selector)
-            error-data (s/explain-data rule-spec values)]
+      (let [values    (find-values statement location-path selector-path)
+            fail-pred (rule-spec values)]
         ;; nil indicates success
-        ;; spec error data the opposite
-        (if-not (nil? error-data)
+        (when-not (nil? fail-pred)
           ;; :pred - the predicate that failed, causing this error
           ;; :values - the values that the predicate failed on
           ;; :rule - the Statement Template rule associated with the error
-          {:pred   (pred-name-of-error error-data)
+          {:pred   fail-pred
            :values values
-           :rule   rule}
-          nil)))))
+           :rule   rule})))))
 
-(defn create-rule-validators
-  "Given a Statement Template, return a vector of validators representing its
-  rules, including its Determining Properties."
+(defn create-template-validator
+  "Given `template`, return a validator function that takes a
+   Statement as an argument and returns an nilable seq of error data."
   [template]
-  (let [new-rules (add-det-properties template)]
-    (mapv create-rule-validator new-rules)))
+  (let [rules' (add-det-properties template)
+        preds  (mapv create-rule-validator rules')]
+    (fn [statement]
+      (let [errors (->> preds
+                        (map (fn [f] (f statement)))
+                        (filter some?))]
+        (when (not-empty errors) errors)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Validate statement 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn validate-statement
-  "Given a Statement and a Statement Template, validate the Statement.
-   Returns nil if the Statement is valid, the spec error map otherwise"
-  [template statement]
-  (let [new-rules (add-det-properties template)
-        validators (mapv create-rule-validator new-rules)
-        error-vec (map #(% statement) validators)]
-    (when-not (none-matchable? error-vec) error-vec)))
-
-(defn valid-statement?
-  "Given a Statement and a Statement Template, validate the Statement.
-   Returns true if the Statement is valid, false otherwise"
-  [template statement]
-  (nil? (validate-statement template statement)))
-
-(defn print-error
-  "Given a Statement Template, a Statement, and error data, print an appropriate
-   error message. Always returns nil."
-  [template statement error-vec]
-  (let [template-id  (:id template)
-        statement-id (get statement "id")]
-    (emsg/print-error (filter some? error-vec) template-id statement-id)))
+(defn create-template-predicate
+  "Like `create-template-validator`, but returns a predicate that takes
+   a Statement as an argument and returns a boolean."
+  [template]
+  (let [rules' (add-det-properties template)
+        preds  (mapv create-rule-validator rules')]
+    (fn [statement]
+      (->> preds
+           (map (fn [f] (f statement)))
+           (every? nil?)))))

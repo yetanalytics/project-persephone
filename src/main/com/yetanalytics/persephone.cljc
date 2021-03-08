@@ -5,7 +5,8 @@
             [com.yetanalytics.persephone.template-validation :as t]
             [com.yetanalytics.persephone.pattern-validation :as p]
             [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone.utils.json :as json]))
+            [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.persephone.utils.errors :as err-printer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Assertions (Project Pan integration)
@@ -38,10 +39,46 @@
     #?(:clj (throw (Exception. msg))
        :cljs (throw (js/Error. msg)))))
 
+(defn template->validator
+  "Takes `template`, along with an optional :validate-template?
+   arg, and returns a tuple of the Statement Template ID and a
+   Statement validation function.
+  
+   :validate-template? is default true. If true, `template->validator`
+   checks that `template` conforms to the xAPI Profile spec."
+  [template & {:keys [validate-template?] :or {validate-template? true}}]
+  (let [template (if (string? template)
+                   (json/json->edn template :keywordize? true)
+                   template)]
+    (when validate-template? (assert-template template))
+    [(:id template) (t/create-template-validator template)]))
+
+(defn profile->validator
+  "Takes `profile`, along with an optional :validate-profile? arg,
+   and returns a vector of tuples of the Statement Template ID and
+   its Statement validation function.
+
+   :validate-profile? is default true. If true, `profile->validator`
+   checks that `profile` conforms to the xAPI Profile spec."
+  [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
+  (when validate-profile? (assert-profile profile))
+  (let [profile (if (string? profile)
+                  (json/json->edn profile :keywordize? true)
+                  profile)]
+    (reduce (fn [acc template]
+              (let [validator-fn (t/create-template-validator template)]
+                (conj acc [(:id template) validator-fn])))
+            []
+            (:templates profile))))
+
 (defn validate-statement-vs-template
-  "Takes a Statement Template and a Statement as arguments, with
-   the following optional arguments:
-   :fn-type - Sets the return value and side effects of the function:
+  "Takes `compiled-template` and `statement` where `compiled-template`
+   is the result of `template->validator`, and validates `statement`
+   against the Statement Template.
+
+   Takes the :fn-type keyword argument, which sets the return value
+   and side effects of `validate-statement-vs-template. Has the
+   following options:
      :predicate  Returns true for a valid Statement, false otherwise.
                  Default.
      :option     Returns the Statement if it's valid, nil otherwise
@@ -52,151 +89,140 @@
                  exception otherwise where the error data can be
                  extracted using `(-> e ex-data :errors)`.
      :printer    Prints an error message when the Statement is
-                 invalid. Always returns nil.
-   :validate-template? - If true, validate the Statement Template
-   against the xAPI Profile spec. Default true; only set to false
-   if you know what you're doing!"
-  [temp stmt & {:keys [fn-type validate-template?]
-                :or   {fn-type            :predicate
-                       validate-template? true}}]
-  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
-        template  (if (string? temp) (json/json->edn temp :keywordize? true) temp)]
-    (when validate-template? (assert-template template))
-    (let [errs (t/validate-statement template statement)]
+                 invalid. Always returns nil."
+  [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
+  (let [[id validator-fn] compiled-template]
+    (assert (fn? validator-fn))
+    (let [stmt (if (string? statement) (json/json->edn statement) statement)
+          errs (validator-fn stmt)]
       (case fn-type
-        :predicate (nil? errs)
-        :option    (if (nil? errs) statement nil)
         :result    errs
-        :printer   (do (when (some? errs) (t/print-error template
-                                                         statement
-                                                         errs))
-                       nil)
-        :assertion (if (nil? errs)
-                     nil
-                     (throw (ex-info "Invalid Statement." {:errors errs})))
+        :predicate (nil? errs)
+        :option    (if (nil? errs) stmt nil)
+        :printer   (when (some? errs)
+                     (err-printer/print-error errs id (get stmt "id")))
+        :assertion (when-not (nil? errs)
+                     (throw (ex-info "Invalid Statement."
+                                     {:type   ::invalid-statement
+                                      :errors errs})))
         (unknown-option-throw fn-type)))))
 
 (defn validate-statement-vs-profile
-  "Takes a Profile and a Statement as arguments. The Statement is
-   considered valid if the Statement is valid for at least one
-   Statement Template in the Profile. Takes the following optional
-   arguments:
-   :fn-type - Sets the return value and side effects of the function:
+  "Takes `compiled-profile` and `statement` where `compiled-profile`
+   is the result of `profile->validator`, and validates `statement`
+   against the Statement Templates in the Profile.
+
+   Takes the :fn-type keyword argument, which sets the return value
+   and side effects of `validate-statement-vs-profile.` Has the
+   following options:
      :predicate  Returns true for a valid Statement, false otherwise.
                  Default.
      :option     Returns the Statement if it's valid, nil otherwise
                  (c.f. Option/Maybe types).
      :result     Returns the validation error data if the Statement
                  is invalid, nil otherwise (c.f. Result types). The
-                 data is a vector of error data for each Statement
-                 Template.
+                 data is a map between each Statement Template and
+                 the error data they produced.
      :templates  Returns the IDs of the Statement Templates the
                  Statement is valid for.
      :assertion  Returns nil on a valid Statement, throws an
                  exception otherwise where the error data can be
-                 extracted using `(-> e ex-data :errors)`.
-   :validate-template? - If true, validate the Profile against the
-   xAPI Profile spec. Default true; only set to false if you know
-   what you're doing!"
-  [prof stmt & {:keys [fn-type validate-profile?]
-                :or   {fn-type           :predicate
-                       validate-profile? true}}]
-  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)
-        profile   (if (string? prof) (json/json->edn prof :keywordize? true) prof)
-        reduce-fn (fn [[template-ids results] template]
-                    (if-let [errs (t/validate-statement template statement)]
-                      [template-ids
-                       (conj results errs)]
-                      [(conj template-ids (:id template))
-                       results]))]
-    (when validate-profile? (assert-profile profile))
-    (let [[tmpl-ids errors] (reduce reduce-fn [[] []] (:templates profile))
-          is-passed         (or (empty? (:templates profile)) ; vacuously true
-                                (not-empty tmpl-ids))]
-      (case fn-type
-        :predicate (boolean is-passed)
-        :option    (if is-passed statement nil)
-        :result    (if is-passed nil errors)
-        :templates tmpl-ids
-        :assertion (if is-passed
-                     nil
-                     (throw (ex-info "Invalid Statement." {:errors errors})))
-        (unknown-option-throw fn-type)))))
+                 extracted using `(-> e ex-data :errors)`."
+  [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
+  (let [stmt
+        (if (string? statement) (json/json->edn statement) statement)
+        [valid-ids errors]
+        (reduce (fn [[valid-ids errs-map] [id validator-fn]]
+                  (if-let [errs (validator-fn stmt)]
+                    [valid-ids (assoc errs-map id errs)]
+                    [(conj valid-ids id) errs-map]))
+                [[] {}]
+                compiled-profile)
+        passed?
+        (or (empty? compiled-profile) ;; vacuously true
+            (boolean (not-empty valid-ids)))]
+    (case fn-type
+      :predicate passed?
+      :option    (if passed? statement nil)
+      :result    (if passed? nil errors)
+      :templates valid-ids
+      :assertion (when-not passed?
+                   (throw (ex-info "Invalid Statement."
+                                   {:type   ::invalid-statement
+                                    :errors errors})))
+      (unknown-option-throw fn-type))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TODO: Work with XML and Turtle Profiles
-;; TODO: Add Exception messages
+;; TODO: Add Exception messages when Patterns are rejected
 
-(defn compile-profile
-  "Take a JSON-LD profile (or an equivalent EDN data structure) as an
-   argument and returns a sequence of primary Pattern IDs to their
-   corresponding Pattern FSMs, which can then be used in
-   `read-next-statement`. Returns `{}` if there are no primary Patterns
-   in the profile."
-  [profile]
+(defn profile->fsms
+  "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
+   returns a map between primary Pattern IDs and their corresponding
+   Pattern FSMs. Returns `{}` if there are no primary Patterns in
+   `profile`."
+  [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
                   profile)]
-    ;; TODO: Make assert-profile toggleable?
-    (assert-profile profile)
+    (when validate-profile? (assert-profile profile))
     (-> profile p/profile->fsms)))
 
-(defn match-next-statement*
-  "Uses a compiled Pattern and its current state info to validate the
-   next Statement provided. Returns a new state info map if
-   validation is successful or the current one if validation fails.
+(defn match-statement-vs-pattern
+  "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is
+   one value in the map returned by `profile->fsms`. Uses `pat-fsm` to
+   validate `statement` and returns a new state info map.
    
-   The current state info map has the following fields:
+   `state-info` is a nilable map with the following fields:
      :states     The next state arrived at in the FSM after reading
-                 the input. If the FSM cannot read the input, then
-                 next-state is the empty set.
+                 the previous input. If the FSM could not read the
+                 input, then :states is the empty set.
      :accepted?  True if the FSM as arrived at an accept state
-                 after reading the input; false otherwise.
-   If state-info is nil, the function starts at the start state.
-   If :states is empty, or if input is nil, return state-info
-   without calling the FSM."
-  [pat-fsm state-info stmt]
+                 after reading the previous input; false otherwise.
+   If `state-info` is nil, the function starts at the start state.
+   If :states is empty, return `state-info`."
+  [pat-fsm state-info statement]
   (assert-dfa pat-fsm)
-  (let [statement (if (string? stmt) (json/json->edn stmt) stmt)]
-    (fsm/read-next pat-fsm state-info statement)))
+  (let [stmt (if (string? statement) (json/json->edn statement) statement)]
+    (fsm/read-next pat-fsm state-info stmt)))
 
-(defn match-next-statement
-  "Takes a map of Pattern IDs to Patterns FSMs (e.g. the result of
-   `compile-profile`), a `all-state-info` map, and a Statement,
-   validate that Statement. `curr-states-info` is a map of the
-   following structure:
+(defn match-statement-vs-profile
+  "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
+   `pat-fsm-map` is a return value of `profile->fsms`. Uses
+   `pat-fsm-map` to validate `statement` and return an updated value
+   for `state-info-map`.
 
-   { registration : { pattern-id : curr-state-info } }
+   `state-info-map` is a map with the following structure:
 
-   where `curr-state-info` is the return value of
-   `match-next-statement*`
+   `{ registration : { pattern-id : state-info } }`
 
-   `match-next-statement` will attempt to match the Statement against
-   all compiled Patterns in the collection. It treats all
-   Statements with the same registration value as part of the same
-   sequence; Statements without registrations will be treated
-   as having a default implicit registration. 
-   
-   Note: Subregistrations are not supported."
-  [pat-fsm-map all-state-info stmt]
-  #_(assert-dfa pat-fsm)
-  (let [statement 
-        (if (string? stmt) (json/json->edn stmt) stmt)
+   where `state-info` is a return value of `match-statement-vs-pattern`
+
+   `match-statement-vs-profile` will attempt to match `statement`
+   against all Patterns in `pat-fsm-map`. If `statement` matches a
+   Pattern, the updated state info will be associated with that
+   Pattern's ID, which in turn will be associated with the registration
+   value of `statement`. Statements without registrations will be
+   assigned a default :no-registration key. Subregistrations are not
+   supported."
+  [pat-fsm-map state-info-map statement]
+  (let [stmt
+        (if (string? statement) (json/json->edn statement) statement)
         registration
-        (get-in statement ["context" "registration"] :no-registration)]
+        (get-in stmt ["context" "registration"] :no-registration)]
     (update
-     all-state-info
+     state-info-map
      registration
      (fn [reg-state-info]
        (reduce-kv
         (fn [reg-state-info pat-id pat-fsm]
           (let [pat-state-info  (get reg-state-info pat-id)
-                pat-state-info' (match-next-statement* pat-fsm
+                pat-state-info' (match-statement-vs-pattern pat-fsm
                                                        pat-state-info
-                                                       statement)]
+                                                       stmt)]
             (assoc reg-state-info pat-id pat-state-info')))
         reg-state-info
         pat-fsm-map)))))

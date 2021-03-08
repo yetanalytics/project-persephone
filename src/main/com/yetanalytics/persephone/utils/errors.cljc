@@ -9,14 +9,14 @@
   "Exception thrown: Cannot process statement.")
 
 ;; Statement Template error messages
-(def error-msgs
-  {"all-matchable?"    "failed: all values need to be matchable"
-   "none-matchable?"   "failed: no values can be matchable"
-   "any-matchable?"    "failed: at least one matchable value must exist"
-   "some-any-values?"  "failed 'any' property: evaluated values must include some values given by 'any'"
-   "only-all-values?"  "failed 'all' property: evaluated values must only include values given by 'all'"
-   "no-unmatch-vals?"  "failed 'all' property: evaluated values must not include unmatchable values"
-   "no-none-values?"   "failed 'none' property: evaluated values must exclude values given by 'none'"})
+(def error-msgs-map
+  {:all-matchable?    "failed: all values need to be matchable"
+   :none-matchable?   "failed: no values can be matchable"
+   :any-matchable?    "failed: at least one matchable value must exist"
+   :some-any-values?  "failed 'any' property: evaluated values must include some values given by 'any'"
+   :only-all-values?  "failed 'all' property: evaluated values must only include values given by 'all'"
+   :no-unmatch-vals?  "failed 'all' property: evaluated values must not include unmatchable values"
+   :no-none-values?   "failed 'none' property: evaluated values must exclude values given by 'none'"})
 
 (defn val-str
   "Create a pretty-print string representation of a vector, where each entry
@@ -59,7 +59,7 @@
   [rule pred values]
   (str "Template rule was not followed:\n"
        (rule-str rule) "\n"
-       " " (get error-msgs pred "failed: unknown error occured") "\n"
+       " " (get error-msgs-map pred "failed: unknown error occured") "\n"
        " statement values:\n"
        (val-str values) "\n"))
 

@@ -1,4 +1,4 @@
-(ns com.yetanalytics.persephone-test.util-tests.fsm-test
+(ns com.yetanalytics.persephone-test.util-test.fsm-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.fsm :as fsm]))
 
@@ -400,9 +400,10 @@
     (is (= #{1 2}
            (fsm/epsilon-closure (fsm/concat-nfa [a-fsm b-fsm]) 1)))
     (is (= #{0 2 4 6 8}
-           (fsm/epsilon-closure (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
-                                                b-fsm])
-                                8)))
+           (fsm/epsilon-closure
+            (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
+                            b-fsm])
+            8)))
     (is (= #{0 2 3 4 5 6 7}
            (fsm/epsilon-closure
             (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
@@ -411,41 +412,6 @@
            (fsm/epsilon-closure
             (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
             1)))))
-
-(deftest move-test
-  (testing "Move by one state on an NFA."
-    (is (= [1]
-           (fsm/nfa-move a-fsm "a" 0)))
-    (is (= []
-           (fsm/nfa-move a-fsm "b" 0)))
-    (is (= []
-           (fsm/nfa-move a-fsm "a" 1)))
-    (is (= nil
-           (fsm/nfa-move a-fsm "a" 2)))
-    (is (= [1]
-           (fsm/nfa-move (fsm/concat-nfa [a-fsm b-fsm]) "a" 0)))
-    (is (= []
-           (fsm/nfa-move (fsm/concat-nfa [a-fsm b-fsm]) "a" 1)))
-    (is (= [1]
-           (fsm/nfa-move (fsm/concat-nfa [a-fsm b-fsm]) "a" 0)))
-    (is (= [1 2]
-           (fsm/nfa-move {:type        :nfa
-                          :symbols     {"a" is-a?}
-                          :states      #{0 1 2}
-                          :start       0
-                          :accept      #{1}
-                          :transitions {0 {"a" #{1 2}}}}
-                         "a"
-                         0)))
-    (is (= [1]
-           (fsm/nfa-move {:type        :nfa
-                          :symbols     {"a" is-a? "b" is-b?}
-                          :states      #{0 1 2}
-                          :start       0
-                          :accept      #{1}
-                          :transitions {0 {"a" #{1} "b" #{2}}}}
-                         "a"
-                         0)))))
 
 (deftest powerset-construction-test
   (testing "Constructing a DFA out of an NFA via the powerset construction."
@@ -484,7 +450,7 @@
                                    2 {}}})
            (fsm/nfa->dfa (fsm/concat-nfa [a-fsm b-fsm]))))
     (is (= #?(:clj {:type        :dfa
-                    :symbols     {"a" is-a?
+                    :symbols    {"a" is-a?
                                   "b" is-b?}
                     :states      #{0 1 2}
                     :start       2

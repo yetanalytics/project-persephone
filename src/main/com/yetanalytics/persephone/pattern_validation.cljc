@@ -116,7 +116,7 @@
                             {:type    :invalid-pattern
                              :pattern node}))))
     (= "StatementTemplate" type)
-    (fsm/transition-nfa id (partial tv/valid-statement? node))
+    (fsm/transition-nfa id (tv/create-template-predicate node))
     :else
     node))
 

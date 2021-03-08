@@ -50,7 +50,7 @@
                  :verb       "http://foo.org/verb3"}]
    :patterns   [{:id         "http://foo.org/p1"
                  :type       "Pattern"
-                 :inScheme   "https://foo.org/version1" 
+                 :inScheme   "https://foo.org/version1"
                  :primary    true
                  :prefLabel  {:en "Pattern 1"}
                  :definition {:en "Alternate of Pattern 2 and Template 1"}

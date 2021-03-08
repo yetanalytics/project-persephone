@@ -16,9 +16,9 @@
                       org.clojure/clojurescript
                       org.clojure/data.json
                       com.yetanalytics/xapi-schema]}
-        com.yetanalytics/pathetic ; Latest commit: 2/26/21
+        com.yetanalytics/pathetic ; Latest commit: 3/8/21
         {:git/url "git@github.com:yetanalytics/pathetic.git"
-         :sha     "7ba3618389d42edaea6d987b9f88fd6097172989"
+         :sha     "d9bb933399de6710cb146ca29944050a5e291ae4"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json
@@ -26,9 +26,9 @@
  :aliases
  {:dev
   {:extra-paths ["src/dev"]
-   :extra-deps  {cider/piggieback {:mvn/version "0.5.2"} ; cljs only
-                 dorothy/dorothy  {:mvn/version "0.0.7"}
-                 criterium/criterium {:mvn/version "0.4.6"}
+   :extra-deps  {cider/piggieback    {:mvn/version "0.5.2"} ; cljs only
+                 dorothy/dorothy     {:mvn/version "0.0.7"}
+                 criterium/criterium {:mvn/version "0.4.6"} ; clj only
                  com.taoensso/tufte  {:mvn/version "2.2.0"}}}
   :test
   {:extra-paths ["src/test" "src/gen" "test-resources"]

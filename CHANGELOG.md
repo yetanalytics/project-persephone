@@ -1,6 +1,11 @@
 # Change Log
 
-## 0.5.0 - 2021-05-25
+## 0.5.1 - 2021-04-07
+- Updated deps to remove those that affected downstream usage:
+  - Removed jsonschema npm dependency.
+  - Removed jitpack Maven repo.
+
+## 0.5.0 - 2021-03-08
 - Update persephone API function names and optional args to be in line with each other.
 - Statement Templates are no longer compiled on each Statement read.
 - Compiled JSONPaths are now stored in a stateful cache for quick access.

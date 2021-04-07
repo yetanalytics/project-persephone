@@ -3,15 +3,15 @@
         org.clojure/clojurescript     {:mvn/version "1.10.764"
                                        :exclusions  [org.clojure/data.json]}
         org.clojure/data.json         {:mvn/version "1.0.0"} ; clj only
-        com.yetanalytics/xapi-schema ; Latest commit: 1/28/21
+        com.yetanalytics/xapi-schema ; Latest commit: 3/26/21
         {:git/url    "git@github.com:yetanalytics/xapi-schema.git"
-         :sha        "0e552227e74913d1b35dfa648407b9a9ac4b6b00"
+         :sha        "77f78d1713e50e7b8610f58b5137695b0fccddaa"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json]}
-        com.yetanalytics/project-pan ; Latest commit: 2/3/21
+        com.yetanalytics/project-pan ; Latest commit: 4/7/21
         {:git/url    "git@github.com:yetanalytics/project-pan.git" 
-         :sha        "abc26a7a2c30be9e26009e945a402f913842e8d3"
+         :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json
@@ -63,5 +63,4 @@
   {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}
    :main-opts  ["-m" "cloverage.coverage"
                 "-p" "src/main"
-                "-s" "src/test"]}}
- :mvn/repos {"jitpack" {:url "https://jitpack.io"}}}
+                "-s" "src/test"]}}}

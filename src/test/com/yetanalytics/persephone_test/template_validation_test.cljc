@@ -622,8 +622,8 @@
 (deftest print-error-test
   (testing "printing an error message using the print-error fn"
     (is (= (str "----- Invalid Statement -----\n"
+                "Template ID:  http://foo.org/example/template\n"
                 "Statement ID: fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
-                "Template ID: http://foo.org/example/template\n"
                 "\n"
                 "Template Verb property was not matched.\n"
                 " template Verb:\n"

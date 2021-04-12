@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.5.2 - 2021-04-12
+- Fix incorrect Determining Properties logic.
+- Minor changes/refactors to error messages.
+
 ## 0.5.1 - 2021-04-07
 - Updated deps to remove those that affected downstream usage:
   - Removed jsonschema npm dependency.

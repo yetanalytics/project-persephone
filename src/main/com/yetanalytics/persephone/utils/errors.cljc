@@ -10,13 +10,14 @@
 
 ;; Statement Template error messages
 (def error-msgs-map
-  {:all-matchable?    "failed: all values need to be matchable"
-   :none-matchable?   "failed: no values can be matchable"
-   :any-matchable?    "failed: at least one matchable value must exist"
-   :some-any-values?  "failed 'any' property: evaluated values must include some values given by 'any'"
-   :only-all-values?  "failed 'all' property: evaluated values must only include values given by 'all'"
-   :no-unmatch-vals?  "failed 'all' property: evaluated values must not include unmatchable values"
-   :no-none-values?   "failed 'none' property: evaluated values must exclude values given by 'none'"})
+  {:all-matchable?     "failed: all values need to be matchable"
+   :none-matchable?    "failed: no values can be matchable"
+   :any-matchable?     "failed: at least one matchable value must exist"
+   :some-any-values?   "failed 'any' property: evaluated values must include some values given by 'any'"
+   :only-all-values?   "failed 'all' property: evaluated values must only include values given by 'all'"
+   :no-unmatch-vals?   "failed 'all' property: evaluated values must not include unmatchable values"
+   :no-none-values?    "failed 'none' property: evaluated values must exclude values given by 'none'"
+   :every-val-present? "failed: all values given by rule must be found in evaluated values."})
 
 (defn val-str
   "Create a pretty-print string representation of a vector, where each entry
@@ -43,7 +44,7 @@
   [rule prop values]
   (str "Template " prop " property was not matched.\n"
        " template " prop ":\n"
-       (-> rule :all val-str) "\n"
+       (-> rule :prop-vals val-str) "\n"
        " statement " prop ":\n"
        (val-str values) "\n"))
 
@@ -66,7 +67,7 @@
 (defn error-msg-str
   "Create a pretty error log output when a property or rule is not followed."
   [{:keys [pred rule values]}]
-  (let [prop (get rule :determiningProperty nil)]
+  (let [prop (get rule :determining-property nil)]
     (if (some? prop)
       (prop-error-str rule prop values)
       (rule-error-str rule pred values))))

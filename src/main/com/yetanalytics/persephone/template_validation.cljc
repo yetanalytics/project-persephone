@@ -134,6 +134,15 @@
    vals-coll
    (fn [p v] (empty? (cset/intersection v p)))))
 
+(defn every-val-present?
+  "Return true if every value in `presence-set` can be found in
+   `vals-coll`; false otherwise."
+  [presence-set vals-coll]
+  (presence-pred-fn
+   presence-set
+   vals-coll
+   (fn [p v] (cset/superset? v p))))
+
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
@@ -194,12 +203,21 @@
                     (add-wrapped no-none-values? none-set))
                 (wrap-pred none-matchable?))))
 
+(defn create-det-prop-pred
+  "Returns a wrapped pred for use with Determining Properties.
+   `prop-vals` contains the values of the given Property."
+  [{:keys [prop-vals]}]
+  (let [pres-set (nset prop-vals)]
+    (-> (wrap-pred any-matchable?)
+        (add-wrapped every-val-present? pres-set))))
+
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
 ;; NOTE: Should never happen with a validated Statement Template or Profile
 (defn- assert-valid-rule
   [rule]
-  (when-not (or (and (not (contains? rule :presence))
+  (when-not (or (contains? rule :determining-property)
+                (and (not (contains? rule :presence))
                      (or (contains? rule :any)
                          (contains? rule :all)
                          (contains? rule :none)))
@@ -214,11 +232,13 @@
    false, or nil if all return true."
   [{:keys [presence] :as rule}]
   (assert-valid-rule rule)
-  (case presence
-    "included"    (create-included-pred rule)
-    "excluded"    (create-excluded-pred rule)
-    "recommended" (create-default-pred rule)
-    nil           (create-default-pred rule)))
+  (if (contains? rule :determining-property)
+    (create-det-prop-pred rule)
+    (case presence
+      "included"    (create-included-pred rule)
+      "excluded"    (create-excluded-pred rule)
+      "recommended" (create-default-pred rule)
+      nil           (create-default-pred rule))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -243,7 +263,7 @@
 ;; be rewritten as such.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn add-det-properties
+(defn add-determining-properties
   "Convert Determining Properties into rules and add them to the Template's
   rules. Returns the modified rules vector."
   [{:keys [verb
@@ -257,45 +277,37 @@
   (letfn [(build-det-props [accum]
             (cond-> accum
               verb
-              (conj {:location "$.verb.id"
-                     :presence "included"
-                     :all [verb]
-                     :determiningProperty "Verb"})
+              (conj {:location  "$.verb.id"
+                     :prop-vals [verb]
+                     :determining-property "Verb"})
               objectActivityType
-              (conj {:location "$.object.definition.type"
-                     :presence "included"
-                     :all [objectActivityType]
-                     :determiningProperty "objectActivityType"})
+              (conj {:location  "$.object.definition.type"
+                     :prop-vals [objectActivityType]
+                     :determining-property "objectActivityType"})
               contextParentActivityType
               (conj {:location
                      "$.context.contextActivities.parent[*].definition.type"
-                     :presence "included"
-                     :all contextParentActivityType
-                     :determiningProperty "contextParentActivityType"})
+                     :prop-vals contextParentActivityType
+                     :determining-property "contextParentActivityType"})
               contextGroupingActivityType
               (conj {:location
                      "$.context.contextActivities.grouping[*].definition.type"
-                     :presence "included"
-                     :all contextGroupingActivityType
-                     :determiningProperty "contextGroupingActivityType"})
+                     :prop-vals contextGroupingActivityType
+                     :determining-property "contextGroupingActivityType"})
               contextCategoryActivityType
               (conj {:location
                      "$.context.contextActivities.category[*].definition.type"
-                     :presence "included"
-                     :all contextCategoryActivityType
-                     :determiningProperty "contextCategoryActivityType"})
+                     :prop-vals contextCategoryActivityType
+                     :determining-property "contextCategoryActivityType"})
               contextOtherActivityType
               (conj {:location
                      "$.context.contextActivities.other[*].definition.type"
-                     :presence "included"
-                     :all contextOtherActivityType
-                     :determiningProperty "contextOtherActivityType"})
+                     :prop-vals contextOtherActivityType
+                     :determining-property "contextOtherActivityType"})
               attachmentUsageType
-              (conj {:location
-                     "$.attachments[*].usageType"
-                     :presence "included"
-                     :all attachmentUsageType
-                     :determiningProperty "attachmentUsageType"})))]
+              (conj {:location  "$.attachments[*].usageType"
+                     :prop-vals attachmentUsageType
+                     :determining-property "attachmentUsageType"})))]
     ;; refactor makes the process more clear, via seperation of concerns
     ;; - build rule config from template definition
     ;; - aggregate all rules together into a single coll
@@ -334,7 +346,7 @@
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
   [template]
-  (let [rules' (add-det-properties template)
+  (let [rules' (add-determining-properties template)
         preds  (mapv create-rule-validator rules')]
     (fn [statement]
       (let [errors (->> preds
@@ -346,7 +358,7 @@
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."
   [template]
-  (let [rules' (add-det-properties template)
+  (let [rules' (add-determining-properties template)
         preds  (mapv create-rule-validator rules')]
     (fn [statement]
       (->> preds

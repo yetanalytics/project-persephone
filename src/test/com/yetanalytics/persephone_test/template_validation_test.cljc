@@ -363,34 +363,27 @@
 (deftest add-det-properties
   (testing "add-det-properties function: Add the Determining Properties as 
            rules."
-    (is (= [{:location            "$.verb.id"
-             :presence            "included"
-             :all                 ["http://foo.org/verb"]
-             :determiningProperty "Verb"}
-            {:location            "$.object.definition.type"
-             :presence            "included"
-             :all                 ["http://foo.org/oat"]
-             :determiningProperty "objectActivityType"}
-            {:location            "$.context.contextActivities.parent[*].definition.type"
-             :presence            "included"
-             :all                 ["http://foo.org/cpat1" "http://foo.org/cpat2"]
-             :determiningProperty "contextParentActivityType"}
-            {:location            "$.context.contextActivities.grouping[*].definition.type"
-             :presence            "included"
-             :all                 ["http://foo.org/cgat1" "http://foo.org/cgat2"]
-             :determiningProperty "contextGroupingActivityType"}
-            {:location            "$.context.contextActivities.category[*].definition.type"
-             :presence            "included"
-             :all                 ["http://foo.org/ccat1" "http://foo.org/ccat2"]
-             :determiningProperty "contextCategoryActivityType"}
-            {:location            "$.context.contextActivities.other[*].definition.type"
-             :presence            "included"
-             :all                 ["http://foo.org/coat1" "http://foo.org/coat2"]
-             :determiningProperty "contextOtherActivityType"}
-            {:location            "$.attachments[*].usageType"
-             :presence            "included"
-             :all                 ["http://foo.org/aut1" "http://foo.org/aut2"]
-             :determiningProperty "attachmentUsageType"}
+    (is (= [{:location             "$.verb.id"
+             :prop-vals            ["http://foo.org/verb"]
+             :determining-property "Verb"}
+            {:location             "$.object.definition.type"
+             :prop-vals            ["http://foo.org/oat"]
+             :determining-property "objectActivityType"}
+            {:location             "$.context.contextActivities.parent[*].definition.type"
+             :prop-vals            ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+             :determining-property "contextParentActivityType"}
+            {:location             "$.context.contextActivities.grouping[*].definition.type"
+             :prop-vals            ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+             :determining-property "contextGroupingActivityType"}
+            {:location             "$.context.contextActivities.category[*].definition.type"
+             :prop-vals            ["http://foo.org/ccat1" "http://foo.org/ccat2"]
+             :determining-property "contextCategoryActivityType"}
+            {:location             "$.context.contextActivities.other[*].definition.type"
+             :prop-vals            ["http://foo.org/coat1" "http://foo.org/coat2"]
+             :determining-property "contextOtherActivityType"}
+            {:location             "$.attachments[*].usageType"
+             :prop-vals            ["http://foo.org/aut1" "http://foo.org/aut2"]
+             :determining-property "attachmentUsageType"}
             {:location "$.actor.objectType"
              :presence "included"}
             {:location "$.actor.member[*].name"
@@ -408,7 +401,7 @@
             {:location "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
              :presence "included"
              :all      ["Activity"]}]
-           (tv/add-det-properties ex-template)))))
+           (tv/add-determining-properties ex-template)))))
 
 ;; This set of tests is a pred on the Statement Template rule logic.
 ;; NOTE: validator-fn returns nil on success, error data on failure.
@@ -517,7 +510,19 @@
       (is (nil? (validator-fn ["bar" "baz" "qux"])))
       (is (= :no-none-values? (:pred (validator-fn ["foo"]))))
       (is (= :no-none-values? (:pred (validator-fn ["foo" "bar"]))))
-      (is (= :no-none-values? (:pred (validator-fn [nil "foo" nil])))))))
+      (is (= :no-none-values? (:pred (validator-fn [nil "foo" nil])))))
+    (let [validator-fn (tv/create-rule-validator {:location "$.*"
+                                                  :prop-vals ["foo" "bar"]
+                                                  :determining-property "X"})]
+      ;; MUST include all the Determining Properties [values] in the Statement Template
+      (is (nil? (validator-fn ["foo" "bar"])))
+      (is (nil? (validator-fn ["foo" "bar" "baz"])))
+      (is (nil? (validator-fn ["baz" "bar" "qux ""foo"])))
+      (is (nil? (validator-fn [nil "foo" nil "bar" nil])))
+      (is (= :every-val-present? (:pred (validator-fn ["foo"]))))
+      (is (= :every-val-present? (:pred (validator-fn ["baz" "foo"]))))
+      (is (= :every-val-present? (:pred (validator-fn [nil "foo" nil]))))
+      (is (= :any-matchable? (:pred (validator-fn [nil])))))))
 
 (deftest create-template-validator-test
   (testing "create-template-validator function: Given a template, create a
@@ -561,68 +566,53 @@
 
 (deftest create-template-validator-test-2
   (testing "validate-statement function"
-    (is (= [{:pred :only-all-values?
+    (is (= [{:pred :every-val-present?
              :values ["http://example.com/xapi/verbs#sent-a-statement"]
              :rule {:location "$.verb.id"
+                    :prop-vals ["http://foo.org/verb"]
+                    :determining-property "Verb"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.object.definition.type"
+                    :prop-vals ["http://foo.org/oat"]
+                    :determining-property "objectActivityType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.context.contextActivities.parent[*].definition.type"
+                    :prop-vals ["http://foo.org/cpat1" "http://foo.org/cpat2"]
+                    :determining-property "contextParentActivityType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.context.contextActivities.grouping[*].definition.type"
+                    :prop-vals ["http://foo.org/cgat1" "http://foo.org/cgat2"]
+                    :determining-property "contextGroupingActivityType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.context.contextActivities.category[*].definition.type"
+                    :prop-vals ["http://foo.org/ccat1" "http://foo.org/ccat2"]
+                    :determining-property "contextCategoryActivityType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.context.contextActivities.other[*].definition.type"
+                    :prop-vals ["http://foo.org/coat1" "http://foo.org/coat2"]
+                    :determining-property "contextOtherActivityType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.attachments[*].usageType"
+                    :prop-vals ["http://foo.org/aut1" "http://foo.org/aut2"]
+                    :determining-property "attachmentUsageType"}}
+            {:pred :any-matchable?
+             :values [nil]
+             :rule {:location "$.actor.member[*].name"
                     :presence "included"
-                    :all ["http://foo.org/verb"]
-                    :determiningProperty "Verb"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.object.definition.type"
-              :presence "included"
-              :all ["http://foo.org/oat"]
-              :determiningProperty "objectActivityType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.context.contextActivities.parent[*].definition.type"
-              :presence "included"
-              :all ["http://foo.org/cpat1" "http://foo.org/cpat2"]
-              :determiningProperty "contextParentActivityType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.context.contextActivities.grouping[*].definition.type"
-              :presence "included"
-              :all ["http://foo.org/cgat1" "http://foo.org/cgat2"]
-              :determiningProperty "contextGroupingActivityType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.context.contextActivities.category[*].definition.type"
-              :presence "included"
-              :all ["http://foo.org/ccat1" "http://foo.org/ccat2"]
-              :determiningProperty "contextCategoryActivityType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.context.contextActivities.other[*].definition.type"
-              :presence "included"
-              :all ["http://foo.org/coat1" "http://foo.org/coat2"]
-              :determiningProperty "contextOtherActivityType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.attachments[*].usageType"
-              :presence "included"
-              :all ["http://foo.org/aut1" "http://foo.org/aut2"]
-              :determiningProperty "attachmentUsageType"}}
-            {:pred :any-matchable?
-             :values [nil]
-             :rule
-             {:location "$.actor.member[*].name"
-              :presence "included"
-              :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
-              :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
+                    :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
+                    :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
             {:pred :any-matchable?
              :values [nil nil nil nil nil]
-             :rule
-             {:location
-              "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
-              :presence "included"
-              :all ["Activity"]}}]
+             :rule {:location
+                    "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
+                    :presence "included"
+                    :all ["Activity"]}}]
            ((tv/create-template-validator ex-template) ex-statement-1)))))
 
 (deftest create-template-predicate-test-2

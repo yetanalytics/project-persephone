@@ -288,13 +288,12 @@
                 cmi-tmpl-1
                 ex-statement
                 :fn-type :result)))
-    (is (= {:pred   :only-all-values?
+    (is (= {:pred   :every-val-present?
             :values ["https://example.com/scores"]
             :rule
             {:location "$.verb.id"
-             :presence "included"
-             :all      ["http://adlnet.gov/expapi/verbs/launched"]
-             :determiningProperty "Verb"}}
+             :prop-vals ["http://adlnet.gov/expapi/verbs/launched"]
+             :determining-property "Verb"}}
            (first (p/validate-statement-vs-template
                    cmi-tmpl-1
                    ex-statement

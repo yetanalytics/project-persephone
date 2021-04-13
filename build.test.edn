@@ -1,4 +1,4 @@
 {
  :install-deps true
  :target       :nodejs
- }
+}

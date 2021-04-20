@@ -189,6 +189,8 @@
   (let [stmt (if (string? statement) (json/json->edn statement) statement)]
     (fsm/read-next pat-fsm state-info stmt)))
 
+(def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
+
 (defn match-statement-vs-profile
   "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
    `pat-fsm-map` is a return value of `profile->fsms`. Uses
@@ -212,17 +214,23 @@
   (let [stmt
         (if (string? statement) (json/json->edn statement) statement)
         registration
-        (get-in stmt ["context" "registration"] :no-registration)]
+        (get-in stmt ["context" "registration"] :no-registration)
+        ?sub-registration
+        (get-in stmt ["context" "extensions" subreg-iri "subregistration"])
+        reg-key
+        (cond-> registration
+          ?sub-registration
+          (str "-" ?sub-registration))]
     (update
      state-info-map
-     registration
+     reg-key
      (fn [reg-state-info]
        (reduce-kv
         (fn [reg-state-info pat-id pat-fsm]
           (let [pat-state-info  (get reg-state-info pat-id)
                 pat-state-info' (match-statement-vs-pattern pat-fsm
-                                                       pat-state-info
-                                                       stmt)]
+                                                            pat-state-info
+                                                            stmt)]
             (assoc reg-state-info pat-id pat-state-info')))
         reg-state-info
         pat-fsm-map)))))

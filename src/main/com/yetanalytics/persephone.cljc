@@ -46,19 +46,18 @@
 
 (defn- assert-subregs
   [profile-id statement registration subreg-ext]
-  (letfn [(throw-invalid-subreg
-            [msg]
-            (throw (ex-info msg {:kind      ::invalid-subregistration
-                                 :profile   profile-id
-                                 :statement statement})))]
-    (when (some? subreg-ext)
-      (cond
-        (not (s/valid? stmt-spec/subreg-ext-spec subreg-ext))
-        (throw-invalid-subreg "Subregistration extension fails spec!")
-        (= :no-registration registration)
-        (throw-invalid-subreg "Subregistrations present without registration!")
-        :else
-        nil))))
+  (when (some? subreg-ext)
+    (if-let [errs (s/explain-data stmt-spec/subreg-ext-spec subreg-ext)]
+      (throw (ex-info "Subregistration extension fails spec!"
+                      {:kind      ::invalid-subregistration
+                       :profile   profile-id
+                       :statement statement
+                       :errors    errs}))
+      (when (= :no-registration registration)
+        (throw (ex-info "Subregistrations present without registration!"
+                        {:kind      ::invalid-subregistration
+                         :profile   profile-id
+                         :statement statement}))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions

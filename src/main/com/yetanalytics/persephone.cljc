@@ -6,6 +6,7 @@
             [com.yetanalytics.persephone.pattern-validation  :as p]
             [com.yetanalytics.persephone.utils.fsm    :as fsm]
             [com.yetanalytics.persephone.utils.json   :as json]
+            [com.yetanalytics.persephone.utils.time   :as time]
             [com.yetanalytics.persephone.utils.errors :as err-printer]
             [com.yetanalytics.persephone.utils.spec   :as stmt-spec]))
 
@@ -200,6 +201,18 @@
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages when Patterns are rejected
 
+;; O(n) search instead of O(n log n) sorting.
+(defn- latest-version
+  "Get the most recent version ID of `profile`."
+  [{:keys [versions] :as _profile}]
+  (reduce (fn [{latest-ts :generatedAtTime :as latest-ver}
+               {newest-ts :generatedAtTime :as newest-ver}]
+            (if (neg-int? (time/compare-timestamps latest-ts newest-ts))
+              newest-ver ; latest-ts occured before newest-ts
+              latest-ver))
+          (first versions) ; okay since empty arrays are banned by the spec
+          versions))
+
 (defn profile->fsms
   "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
    returns a map between primary Pattern IDs and their corresponding
@@ -209,15 +222,14 @@
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
-                  profile)
-        ;; TODO: More robust timestamp sorting
-        prof-id (->> profile :versions (sort-by :generatedAtTime) last :id)
-        add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))]
+                  profile)]
     (when validate-profile? (assert-profile profile))
-    (->> profile
-         p/profile->fsms
-         (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
-                    (add-pid {})))))
+    (let [prof-id (-> profile latest-version :id)
+          add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))]
+      (->> profile
+           p/profile->fsms
+           (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
+                      (add-pid {}))))))
 
 (defn match-statement-vs-pattern
   "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is

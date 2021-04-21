@@ -43,6 +43,24 @@
                     {:kind    ::invalid-dfa
                      :pattern pattern-fsm}))))
 
+(defn- assert-subregistrations
+  [profile-id statement registration subreg-ext]
+  (letfn [(throw-invalid-subreg
+           [msg]
+           (throw (ex-info msg {:kind      ::invalid-subregistration
+                                :profile   profile-id
+                                :statement statement})))]
+    (when (some? subreg-ext)
+      (cond
+        (not (vector? subreg-ext))
+        (throw-invalid-subreg "Subregistration extension is not array-valued!")
+        (empty? subreg-ext)
+        (throw-invalid-subreg "Empty subregistration extension array!")
+        (= :no-registration registration)
+        (throw-invalid-subreg "Subregistrations present without registration!")
+        :else
+        nil))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -171,13 +189,14 @@
   "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
    returns a map between primary Pattern IDs and their corresponding
    Pattern FSMs. Returns `{}` if there are no primary Patterns in
-   `profile`."
+   `profile`. The ID of `profile` is saved as metadata."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
-                  profile)]
+                  profile)
+        prof-id (get profile :id)]
     (when validate-profile? (assert-profile profile))
-    (-> profile p/profile->fsms)))
+    (-> profile p/profile->fsms (vary-meta assoc :profile-id prof-id))))
 
 (defn match-statement-vs-pattern
   "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is
@@ -217,28 +236,37 @@
    assigned a default :no-registration key.
    
    If sub-registrations are present, then `state-info-map` keys will
-   be a pair of registrations to sub-registrations."
+   be a pair of registrations to sub-registrations. A sub-registration
+   object will only be applied when its \"profile\" field corresponds
+   to the profile ID of `pat-fsm-map` (given as metadata); if no
+   such object has that ID, no sub-registration is applied."
   [pat-fsm-map state-info-map statement]
   (let [stmt
         (if (string? statement) (json/json->edn statement) statement)
+        profile-id
+        (-> pat-fsm-map meta :profile-id)
         registration
         (get-in stmt ["context" "registration"] :no-registration)
-        ?sub-registration
-        (get-in stmt ["context" "extensions" subreg-iri "subregistration"])]
-    (if (and (= :no-registration registration) (some? ?sub-registration))
-      (throw (ex-info "Sub-registration present without registration!"
-                      {:kind      ::invalid-subregistration
-                       :statement statement}))
-      (let [reg-key    (if ?sub-registration
-                         [registration ?sub-registration]
-                         registration)
-            update-psi (fn [reg-state-info pat-id pat-fsm]
-                         (let [pat-state-info  (get reg-state-info pat-id)
-                               pat-state-info' (match-statement-vs-pattern
-                                                pat-fsm
-                                                pat-state-info
-                                                stmt)]
-                           (assoc reg-state-info pat-id pat-state-info')))
-            update-rsi (fn [reg-state-info]
-                         (reduce-kv update-psi reg-state-info pat-fsm-map))]
-        (update state-info-map reg-key update-rsi)))))
+        ?sub-registration-ext
+        (get-in stmt ["context" "extensions" subreg-iri])]
+    (assert-subregistrations profile-id stmt registration ?sub-registration-ext)
+    (letfn [(subreg-pred
+              [subreg-obj]
+              (when (= profile-id (get subreg-obj "profile"))
+                (get subreg-obj "subregistration")))
+            (get-reg-key
+              []
+              (let [?sub-reg (some subreg-pred ?sub-registration-ext)]
+                (if ?sub-reg [registration ?sub-reg] registration)))
+            (update-pat-si
+              [reg-state-info pat-id pat-fsm]
+              (let [pat-state-info  (get reg-state-info pat-id)
+                    pat-state-info' (match-statement-vs-pattern
+                                     pat-fsm
+                                     pat-state-info
+                                     stmt)]
+                (assoc reg-state-info pat-id pat-state-info')))
+            (update-reg-si
+              [reg-state-info]
+              (reduce-kv update-pat-si reg-state-info pat-fsm-map))]
+      (update state-info-map (get-reg-key) update-reg-si))))

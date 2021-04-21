@@ -480,15 +480,17 @@
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] "registration-3")
       (assoc-in ["context" "extensions" p/subreg-iri]
-                {"profile"         "https://w3id.org/xapi/cmi5"
-                 "subregistration" "sub-reg-000"})))
+                [{"profile"         "https://w3id.org/xapi/cmi5"
+                  "subregistration" "sub-reg-000"}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] "registration-3")
       (assoc-in ["context" "extensions" p/subreg-iri]
-                {"profile"         "https://w3id.org/xapi/cmi5"
-                 "subregistration" "sub-reg-001"})))
+                [{"profile"         "https://example.org/profile"
+                  "subregistration" "foo-bar"}
+                 {"profile"         "https://w3id.org/xapi/cmi5"
+                  "subregistration" "sub-reg-001"}])))
 
 (deftest match-statement-vs-profile-test
   (testing "the match-statement-vs-profile function w/ registrations."

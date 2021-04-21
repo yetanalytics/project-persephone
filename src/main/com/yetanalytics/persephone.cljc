@@ -1,12 +1,13 @@
 (ns com.yetanalytics.persephone
-  (:require [clojure.spec.alpha :as s]
+  (:require [clojure.spec.alpha   :as s]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.pan.objects.template :as pan-template]
+            [com.yetanalytics.pan.objects.template           :as pan-template]
             [com.yetanalytics.persephone.template-validation :as t]
-            [com.yetanalytics.persephone.pattern-validation :as p]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone.utils.json :as json]
-            [com.yetanalytics.persephone.utils.errors :as err-printer]))
+            [com.yetanalytics.persephone.pattern-validation  :as p]
+            [com.yetanalytics.persephone.utils.fsm    :as fsm]
+            [com.yetanalytics.persephone.utils.json   :as json]
+            [com.yetanalytics.persephone.utils.errors :as err-printer]
+            [com.yetanalytics.persephone.utils.spec   :as stmt-spec]))
 
 (def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
 
@@ -43,19 +44,17 @@
                     {:kind    ::invalid-dfa
                      :pattern pattern-fsm}))))
 
-(defn- assert-subregistrations
+(defn- assert-subregs
   [profile-id statement registration subreg-ext]
   (letfn [(throw-invalid-subreg
-           [msg]
-           (throw (ex-info msg {:kind      ::invalid-subregistration
-                                :profile   profile-id
-                                :statement statement})))]
+            [msg]
+            (throw (ex-info msg {:kind      ::invalid-subregistration
+                                 :profile   profile-id
+                                 :statement statement})))]
     (when (some? subreg-ext)
       (cond
-        (not (vector? subreg-ext))
-        (throw-invalid-subreg "Subregistration extension is not array-valued!")
-        (empty? subreg-ext)
-        (throw-invalid-subreg "Empty subregistration extension array!")
+        (not (s/valid? stmt-spec/subreg-ext-spec subreg-ext))
+        (throw-invalid-subreg "Subregistration extension fails spec!")
         (= :no-registration registration)
         (throw-invalid-subreg "Subregistrations present without registration!")
         :else
@@ -249,7 +248,7 @@
         (get-in stmt ["context" "registration"] :no-registration)
         ?sub-registration-ext
         (get-in stmt ["context" "extensions" subreg-iri])]
-    (assert-subregistrations profile-id stmt registration ?sub-registration-ext)
+    (assert-subregs profile-id stmt registration ?sub-registration-ext)
     (letfn [(subreg-pred
               [subreg-obj]
               (when (= profile-id (get subreg-obj "profile"))

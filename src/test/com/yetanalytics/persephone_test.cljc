@@ -473,24 +473,30 @@
 
 (def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
 
+(def registration-2 "c816c015-e07f-46de-aaa5-47abd9a57e06")
+(def registration-3 "c4605182-13bc-47f2-8ccf-3a4d6342926d")
+(def sub-reg-1 "7cfef0b6-aea3-45fb-802a-246f1d6d18a3")
+(def sub-reg-2 "793c1aec-20e5-4c34-bf74-eae2370e8084")
+(def sub-reg-3 "ed0cdb5a-1728-42c5-8fc0-20fc89c5a1c9")
+
 (def satisfied-stmt-2
-  (assoc-in satisfied-stmt ["context" "registration"] "registration-2"))
+  (assoc-in satisfied-stmt ["context" "registration"] registration-2))
 
 (def satisfied-stmt-3
   (-> satisfied-stmt
-      (assoc-in ["context" "registration"] "registration-3")
+      (assoc-in ["context" "registration"] registration-3)
       (assoc-in ["context" "extensions" p/subreg-iri]
                 [{"profile"         "https://w3id.org/xapi/cmi5"
-                  "subregistration" "sub-reg-000"}])))
+                  "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
-      (assoc-in ["context" "registration"] "registration-3")
+      (assoc-in ["context" "registration"] registration-3)
       (assoc-in ["context" "extensions" p/subreg-iri]
                 [{"profile"         "https://example.org/profile"
-                  "subregistration" "foo-bar"}
+                  "subregistration" sub-reg-3}
                  {"profile"         "https://w3id.org/xapi/cmi5"
-                  "subregistration" "sub-reg-001"}])))
+                  "subregistration" sub-reg-2}])))
 
 (deftest match-statement-vs-profile-test
   (testing "the match-statement-vs-profile function w/ registrations."
@@ -506,12 +512,12 @@
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 (get "registration-2")
+                 (get registration-2)
                  count)))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
                         (match-cmi-2 satisfied-stmt-2)
-                        (get "registration-2")
+                        (get registration-2)
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
@@ -541,7 +547,7 @@
                         (match-cmi-2 satisfied-stmt-2)
                         (match-cmi-2 abandoned-stmt)
                         (match-cmi-2 satisfied-stmt-2)
-                        (get "registration-2")
+                        (get registration-2)
                         (get "https://w3id.org/xapi/cmi5#toplevel")))))
   (testing "the match-statement-vs-profile function w/ sub-registrations."
     (is (= 4 (-> {}
@@ -555,21 +561,21 @@
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get ["registration-3" "sub-reg-000"])
+                 (get [registration-3 sub-reg-1])
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get ["registration-3" "sub-reg-001"])
+                 (get [registration-3 sub-reg-2])
                  count)))
     (is (= 0 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get "registration-3")
+                 (get registration-3)
                  count)))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt-3)
@@ -582,5 +588,5 @@
                         (match-cmi-2 satisfied-stmt-4)
                         (match-cmi-2 abandoned-stmt)
                         (match-cmi-2 satisfied-stmt-4)
-                        (get ["registration-3" "sub-reg-001"])
+                        (get [registration-3 sub-reg-2])
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))))

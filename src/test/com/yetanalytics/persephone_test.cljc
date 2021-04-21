@@ -628,3 +628,71 @@
                                    "context"
                                    dissoc
                                    "registration"))))))
+
+(defn- create-statement-batch
+  [statement-coll]
+  (loop [stmt-coll  statement-coll
+         stmt-coll' []
+         idx        10] ; keep two digits
+    (if-let [stmt (first stmt-coll)]
+      (let [ts    (str "2019-08-10T12:" idx ":00+00:00") ; increment seconds
+            stmt' (assoc stmt "timestamp" ts)]
+        (recur (rest stmt-coll)
+               (conj stmt-coll' stmt')
+               (inc idx)))
+      stmt-coll')))
+
+(def ^:private statement-batch
+  (create-statement-batch [satisfied-stmt
+                           launched-stmt
+                           initialized-stmt
+                           failed-stmt
+                           satisfied-stmt
+                           abandoned-stmt
+                           waived-stmt
+                           satisfied-stmt
+                           launched-stmt
+                           initialized-stmt
+                           completed-stmt
+                           satisfied-stmt
+                           passed-stmt
+                           terminated-stmt]))
+
+(deftest statement-batch-test
+  (testing "match-statement-batch-vs-pattern function"
+    (is (:accepted? (p/match-statement-batch-vs-pattern
+                     cmi-fsm
+                     nil
+                     statement-batch)))
+    (is (:accepted? (p/match-statement-batch-vs-pattern
+                     cmi-fsm
+                     nil
+                     (shuffle statement-batch)))))
+  (testing "match-statement-batch-vs-profile function"
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             statement-batch)
+                            [:no-registration
+                             "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             (shuffle statement-batch))
+                            [:no-registration
+                             "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             (create-statement-batch [satisfied-stmt-3
+                                                      satisfied-stmt-4
+                                                      launched-stmt
+                                                      satisfied-stmt-4
+                                                      initialized-stmt
+                                                      satisfied-stmt-4
+                                                      failed-stmt
+                                                      satisfied-stmt-4
+                                                      abandoned-stmt
+                                                      satisfied-stmt-4]))
+                            [[registration-3 sub-reg-2]
+                             "https://w3id.org/xapi/cmi5#toplevel"])))))

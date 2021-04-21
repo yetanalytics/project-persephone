@@ -6,8 +6,14 @@
 (defn parse-timestamp
   "Parse the ISO 8601 timestamp `s`."
   [s]
-  #?(:clj (instant/read-instant-date s)
-     :cljs (cljs-reader/parse-timestamp s)))
+  (try
+    #?(:clj (instant/read-instant-date s)
+       :cljs (cljs-reader/parse-timestamp s))
+    (catch #?(:clj Exception :cljs js/Error) _
+      (let [msg (if (nil? s)
+                  "Cannot parse nil or missing timestamp string!"
+                  (str "Cannot parse timestamp: " s))]
+        (throw (ex-info msg {:kind ::parse-failure :timestamp s}))))))
 
 (defn compare-timestamps*
   "Same as `compare-timestamps` but assumes `t1` and `t2` are

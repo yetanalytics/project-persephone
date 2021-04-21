@@ -208,7 +208,7 @@
   (reduce (fn [{latest-ts :generatedAtTime :as latest-ver}
                {newest-ts :generatedAtTime :as newest-ver}]
             (if (neg-int? (time/compare-timestamps latest-ts newest-ts))
-              newest-ver ; latest-ts occured before newest-ts
+              newest-ver   ; latest-ts occured before newest-ts
               latest-ver))
           (first versions) ; okay since empty arrays are banned by the spec
           versions))
@@ -313,3 +313,36 @@
               [reg-state-info]
               (reduce-kv update-pat-si reg-state-info pat-fsm-map))]
       (update state-info-map (get-reg-key) update-reg-si))))
+
+(defn- cmp-statements
+  "Compare Statements `s1` and `s2` by their timestamp values."
+  [s1 s2]
+  (let [t1 (get s1 "timestamp")
+        t2 (get s2 "timestamp")]
+    (time/compare-timestamps t1 t2)))
+
+(defn match-statement-batch-vs-pattern
+  "Like `match-statement-vs-pattern`, but takes a collection of
+   Statements instead of a singleton Statement. Automatically
+   orders Statements by timestamp value, which should be
+   present."
+  [pat-fsm state-info statement-coll]
+  (loop [stmt-coll (sort cmp-statements statement-coll)
+         st-info   state-info]
+    (if-let [stmt (first stmt-coll)]
+      (recur (rest stmt-coll)
+             (match-statement-vs-pattern pat-fsm st-info stmt))
+      st-info)))
+
+(defn match-statement-batch-vs-profile
+  "Like `match-statement-vs-profile`, but takes a collection of
+   Statements instead of a singleton Statement. Automatically
+   orders Statements by timestamp value, which should be
+   present."
+  [pat-fsm-map state-info-map statement-coll]
+  (loop [stmt-coll (sort cmp-statements statement-coll)
+         si-map    state-info-map]
+    (if-let [stmt (first stmt-coll)]
+      (recur (rest stmt-coll)
+             (match-statement-vs-profile pat-fsm-map si-map stmt))
+      si-map)))

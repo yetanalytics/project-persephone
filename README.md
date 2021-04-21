@@ -21,6 +21,10 @@ Patterns, which are compiled into finite-state machines (FSMs). That is accompli
 
 - `match-statement-vs-profile`: Taking a compiled Pattern, a current state info map, and a Statement, matches the Statement against all of the Profile's Patterns and returns updated state info.
 
+- `match-statement-batch-vs-pattern`: Same as `match-statement-vs-pattern`, but takes a batch (i.e. collection) of Statements as an argument.
+
+- `match-statement-batch-vs-profile`: Same as `match-statement-vs-profile`, but takes a batch (i.e. collection) of Statements as an argument.
+
 To compile a Profile into FSMs, use the `profile->fsms` function. This will return a map between Pattern IDs and compiled Patterns, the latter which can be used in `match-statement-vs-pattern`.
 
 ### Validation on Statement Template
@@ -108,7 +112,9 @@ That per-Pattern state info map is the return value for `match-statement-vs-patt
 
 If the state info map is `nil`, then `match-statement-vs-pattern` will begin at the start state of the FSM. If `:states` is empty, then  `match-statement-vs-pattern` will return the same map, since it cannot read any more states; otherwise, it returns an updated map with a new `:state` value.
 
-`match-statement-vs-profile` attempts to call `match-statement-vs-pattern` on each compiled Pattern in the Pattern map. If a sequence of Statements with different registrations is passed to `match-statement-vs-profile`, then each set of same-registration Patterns is treated as its own stream, hence the need for a mapping between registrations and state info.
+`match-statement-vs-profile` attempts to match the Statement against each compiled Pattern in the Pattern map. If a sequence of Statements with different registrations is passed to `match-statement-vs-profile`, then each set of same-registration Patterns is treated as its own stream, hence the need for a mapping between registrations and state info.
+
+`match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile` are batch validation versions of their singleton counterparts. Before validation, both functions automatically sort the Statement batches by timestamp values, which should be present, or else calling these functions could lead to undefined behavior.
 
 For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; important concepts include deterministic and non-deterministic finite automata, Thompson's Algorithm for NFA composition, the powerset construction for NFA to DFA conversion, and Brzozowski's algorithm for DFA minimization.
 
@@ -120,9 +126,6 @@ While Concepts are an integral part of most xAPI profiles, this library does not
 
 - Deal with profile-external Templates and Patterns (requires a triple store)
     - Deal with StatementRef properties.
-- Deal with subtleties of reading Statements:
-    - Statements MUST be read in timestamp order.
-    - Statements have additional grouping requirements given by the`subregistration` property.
 - Squish bugs (see Issue tracker).
 
 ## License

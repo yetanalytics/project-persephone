@@ -87,7 +87,8 @@
      "name"       "Will Hoyt"
      "mbox"       "mailto:will@yetanalytics.com"}
     "contextActivities"
-    {"parent"   [{"objectType" "Activity"
+    {"category" [{"id" "https://w3id.org/xapi/cmi5"}] ; For cmi5 tests
+     "parent"   [{"objectType" "Activity"
                   "id"         "https://example.com/competency/clojure-skill"
                   "definition" {"name"        {"en" "Skill in the Clojure Language"}
                                 "description" {"en" "This person is skilled in Clojure."}
@@ -180,16 +181,18 @@
       (update "result" dissoc "success")
       (assoc-in ["result" "completion"] true)
       (assoc-in ["result" "duration"] "PT4H35M59.14S")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def passed-stmt
   (-> ex-statement
       (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/passed")
       (update "result" dissoc "completion")
       (assoc-in ["result" "duration"] "PT4H35M59.14S")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def failed-stmt
   (-> ex-statement
@@ -197,8 +200,9 @@
       (assoc-in ["result" "success"] false)
       (update "result" dissoc "completion")
       (assoc-in ["result" "duration"] "P8W")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def abandoned-stmt
   (-> ex-statement
@@ -214,8 +218,9 @@
       (update "result" dissoc "score")
       (assoc-in ["result" "extensions" "https://w3id.org/xapi/cmi5/result/extensions/reason"]
                 {"en-US" "Prerequisites not met."})
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def terminated-stmt
   (-> ex-statement

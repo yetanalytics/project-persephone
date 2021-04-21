@@ -8,9 +8,16 @@
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.utils.errors :as err-printer]))
 
+(def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Assertions (Project Pan integration)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- throw-unknown-opt [opt-keyword]
+  (let [msg (str "Unknown option: :" (name opt-keyword))]
+    #?(:clj (throw (IllegalArgumentException. msg))
+       :cljs (throw (js/Error. msg)))))
 
 ;; FIXME: We need to set the :relation? key to true, but currently this will
 ;; cause errors because external IRIs are not supported yet in project-pan.
@@ -18,26 +25,27 @@
 (defn- assert-profile
   [profile]
   (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
-    (throw (ex-info "Invalid Profile." err))))
+    (throw (ex-info "Invalid Profile!"
+                    {:kind   ::invalid-profile
+                     :errors err}))))
 
 (defn- assert-template
   [template]
   (when-some [err (s/explain-data ::pan-template/template template)]
-    (throw (ex-info "Invalid Statement Template." err))))
+    (throw (ex-info "Invalid Statement Template!"
+                    {:kind   ::invalid-template
+                     :errors err}))))
 
 (defn- assert-dfa
   [pattern-fsm]
   (when-not (= :dfa (:type pattern-fsm))
-    (throw (ex-info "Compiled pattern is invalid!" {:pattern pattern-fsm}))))
+    (throw (ex-info "Compiled pattern is invalid!"
+                    {:kind    ::invalid-dfa
+                     :pattern pattern-fsm}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- unknown-option-throw [fn-type-kwd]
-  (let [msg (str "Unknown option: " (name fn-type-kwd))]
-    #?(:clj (throw (Exception. msg))
-       :cljs (throw (js/Error. msg)))))
 
 (defn template->validator
   "Takes `template`, along with an optional :validate-template?
@@ -105,7 +113,7 @@
                      (throw (ex-info "Invalid Statement."
                                      {:type   ::invalid-statement
                                       :errors errs})))
-        (unknown-option-throw fn-type)))))
+        (throw-unknown-opt fn-type)))))
 
 (defn validate-statement-vs-profile
   "Takes `compiled-profile` and `statement` where `compiled-profile`
@@ -150,7 +158,7 @@
                    (throw (ex-info "Invalid Statement."
                                    {:type   ::invalid-statement
                                     :errors errors})))
-      (unknown-option-throw fn-type))))
+      (throw-unknown-opt fn-type))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions
@@ -189,48 +197,48 @@
   (let [stmt (if (string? statement) (json/json->edn statement) statement)]
     (fsm/read-next pat-fsm state-info stmt)))
 
-(def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
-
 (defn match-statement-vs-profile
   "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
    `pat-fsm-map` is a return value of `profile->fsms`. Uses
    `pat-fsm-map` to validate `statement` and return an updated value
    for `state-info-map`.
 
-   `state-info-map` is a map with the following structure:
+   `state-info-map` is a map of the form:
 
-   `{ registration : { pattern-id : state-info } }`
+   `{ registration { pattern-id state-info } }`
 
-   where `state-info` is a return value of `match-statement-vs-pattern`
+   where `state-info` is returned by `match-statement-vs-pattern`.
 
    `match-statement-vs-profile` will attempt to match `statement`
    against all Patterns in `pat-fsm-map`. If `statement` matches a
    Pattern, the updated state info will be associated with that
-   Pattern's ID, which in turn will be associated with the registration
+   Pattern's ID, which will then be associated with the registration
    value of `statement`. Statements without registrations will be
-   assigned a default :no-registration key. Subregistrations are not
-   supported."
+   assigned a default :no-registration key.
+   
+   If sub-registrations are present, then `state-info-map` keys will
+   be a pair of registrations to sub-registrations."
   [pat-fsm-map state-info-map statement]
   (let [stmt
         (if (string? statement) (json/json->edn statement) statement)
         registration
         (get-in stmt ["context" "registration"] :no-registration)
         ?sub-registration
-        (get-in stmt ["context" "extensions" subreg-iri "subregistration"])
-        reg-key
-        (cond-> registration
-          ?sub-registration
-          (str "-" ?sub-registration))]
-    (update
-     state-info-map
-     reg-key
-     (fn [reg-state-info]
-       (reduce-kv
-        (fn [reg-state-info pat-id pat-fsm]
-          (let [pat-state-info  (get reg-state-info pat-id)
-                pat-state-info' (match-statement-vs-pattern pat-fsm
-                                                            pat-state-info
-                                                            stmt)]
-            (assoc reg-state-info pat-id pat-state-info')))
-        reg-state-info
-        pat-fsm-map)))))
+        (get-in stmt ["context" "extensions" subreg-iri "subregistration"])]
+    (if (and (= :no-registration registration) (some? ?sub-registration))
+      (throw (ex-info "Sub-registration present without registration!"
+                      {:kind      ::invalid-subregistration
+                       :statement statement}))
+      (let [reg-key    (if ?sub-registration
+                         [registration ?sub-registration]
+                         registration)
+            update-psi (fn [reg-state-info pat-id pat-fsm]
+                         (let [pat-state-info  (get reg-state-info pat-id)
+                               pat-state-info' (match-statement-vs-pattern
+                                                pat-fsm
+                                                pat-state-info
+                                                stmt)]
+                           (assoc reg-state-info pat-id pat-state-info')))
+            update-rsi (fn [reg-state-info]
+                         (reduce-kv update-psi reg-state-info pat-fsm-map))]
+        (update state-info-map reg-key update-rsi)))))

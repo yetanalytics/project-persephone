@@ -476,8 +476,22 @@
 (def satisfied-stmt-2
   (assoc-in satisfied-stmt ["context" "registration"] "registration-2"))
 
+(def satisfied-stmt-3
+  (-> satisfied-stmt
+      (assoc-in ["context" "registration"] "registration-3")
+      (assoc-in ["context" "extensions" p/subreg-iri]
+                {"profile"         "https://w3id.org/xapi/cmi5"
+                 "subregistration" "sub-reg-000"})))
+
+(def satisfied-stmt-4
+  (-> satisfied-stmt
+      (assoc-in ["context" "registration"] "registration-3")
+      (assoc-in ["context" "extensions" p/subreg-iri]
+                {"profile"         "https://w3id.org/xapi/cmi5"
+                 "subregistration" "sub-reg-001"})))
+
 (deftest match-statement-vs-profile-test
-  (testing "the match-statement-vs-profile function"
+  (testing "the match-statement-vs-profile function w/ registrations."
     (is (= 2 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
@@ -485,7 +499,7 @@
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 :no-registration
+                 (get :no-registration)
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
@@ -512,7 +526,7 @@
                         (match-cmi-2 satisfied-stmt)
                         (match-cmi-2 passed-stmt)
                         (match-cmi-2 terminated-stmt)
-                        :no-registration
+                        (get :no-registration)
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
@@ -526,4 +540,45 @@
                         (match-cmi-2 abandoned-stmt)
                         (match-cmi-2 satisfied-stmt-2)
                         (get "registration-2")
+                        (get "https://w3id.org/xapi/cmi5#toplevel")))))
+  (testing "the match-statement-vs-profile function w/ sub-registrations."
+    (is (= 4 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 count)))
+    (is (= 1 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get ["registration-3" "sub-reg-000"])
+                 count)))
+    (is (= 1 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get ["registration-3" "sub-reg-001"])
+                 count)))
+    (is (= 0 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get "registration-3")
+                 count)))
+    (is (:accepted? (-> {}
+                        (match-cmi-2 satisfied-stmt-3)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 launched-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 initialized-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 failed-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 abandoned-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (get ["registration-3" "sub-reg-001"])
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))))

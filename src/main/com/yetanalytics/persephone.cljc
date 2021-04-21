@@ -44,6 +44,13 @@
                     {:kind    ::invalid-dfa
                      :pattern pattern-fsm}))))
 
+(defn- assert-dfas
+  [profile-fsm-m]
+  (when-not (every? #(= :dfa (:type %)) (vals profile-fsm-m))
+    (throw (ex-info "Compiled ID-pattern map is invalid!"
+                    {:kind    ::invalid-dfas
+                     :pattern profile-fsm-m}))))
+
 (defn- assert-prof-ref
   [profile-id statement]
   (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
@@ -59,13 +66,13 @@
   (when (some? subreg-ext)
     (if-let [errs (s/explain-data stmt-spec/subreg-ext-spec subreg-ext)]
       (throw (ex-info "Subregistration extension fails spec!"
-                      {:kind      ::invalid-subregistration
+                      {:kind      ::invalid-subreg-nonconformant
                        :profile   profile-id
                        :statement statement
                        :errors    errs}))
       (when (= :no-registration registration)
         (throw (ex-info "Subregistrations present without registration!"
-                        {:kind      ::invalid-subregistration
+                        {:kind      ::invalid-subreg-no-registration
                          :profile   profile-id
                          :statement statement}))))))
 
@@ -203,7 +210,8 @@
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
                   profile)
-        prof-id (get profile :id)
+        ;; TODO: More robust timestamp sorting
+        prof-id (->> profile :versions (sort-by :generatedAtTime) last :id)
         add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))]
     (when validate-profile? (assert-profile profile))
     (->> profile
@@ -262,6 +270,7 @@
    `statement` category context activites or if the sub-registration
    extension is invalid."
   [pat-fsm-map state-info-map statement]
+  (assert-dfas pat-fsm-map)
   (let [stmt
         (if (string? statement) (json/json->edn statement) statement)
         profile-id
@@ -270,6 +279,7 @@
         (get-in stmt ["context" "registration"] :no-registration)
         ?subreg-ext
         (get-in stmt ["context" "extensions" subreg-iri])]
+    (assert-prof-ref profile-id stmt)
     (assert-subregs profile-id stmt registration ?subreg-ext)
     (letfn [(subreg-pred
               [subreg-obj]

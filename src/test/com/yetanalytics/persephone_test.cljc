@@ -87,7 +87,7 @@
      "name"       "Will Hoyt"
      "mbox"       "mailto:will@yetanalytics.com"}
     "contextActivities"
-    {"category" [{"id" "https://w3id.org/xapi/cmi5"}] ; For cmi5 tests
+    {"category" [{"id" "https://w3id.org/xapi/cmi5/v1.0"}] ; For cmi5 tests
      "parent"   [{"objectType" "Activity"
                   "id"         "https://example.com/competency/clojure-skill"
                   "definition" {"name"        {"en" "Skill in the Clojure Language"}
@@ -491,7 +491,7 @@
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
       (assoc-in ["context" "extensions" p/subreg-iri]
-                [{"profile"         "https://w3id.org/xapi/cmi5"
+                [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
@@ -500,7 +500,7 @@
       (assoc-in ["context" "extensions" p/subreg-iri]
                 [{"profile"         "https://example.org/profile"
                   "subregistration" sub-reg-3}
-                 {"profile"         "https://w3id.org/xapi/cmi5"
+                 {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-2}])))
 
 (deftest match-statement-vs-profile-test
@@ -595,3 +595,36 @@
                         (match-cmi-2 satisfied-stmt-4)
                         (get [registration-3 sub-reg-2])
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))))
+
+(defn- match-cmi-ex
+  [statement]
+  (try (match-cmi {} statement)
+       (catch #?(:clj Exception :cljs js/Error) e
+         (-> e ex-data :kind))))
+
+(defn- match-cmi-2-ex
+  [statement]
+  (try (match-cmi-2 {} statement)
+       (catch #?(:clj Exception :cljs js/Error) e
+         (-> e ex-data :kind))))
+
+(deftest pattern-exceptions-test
+  (testing "match-statement-vs-pattern exceptions"
+    (is (= ::p/missing-profile-reference
+           (match-cmi-ex (assoc-in satisfied-stmt
+                                   ["context" "contextActivities" "category"]
+                                   [])))))
+  (testing "match-statement-vs-profile exceptions"
+    (is (= ::p/missing-profile-reference
+           (match-cmi-2-ex (assoc-in satisfied-stmt
+                                     ["context" "contextActivities" "category"]
+                                     []))))
+    (is (= ::p/invalid-subreg-nonconformant
+           (match-cmi-2-ex (assoc-in satisfied-stmt-3
+                                     ["context" "extensions" p/subreg-iri]
+                                     []))))
+    (is (= ::p/invalid-subreg-no-registration
+           (match-cmi-2-ex (update satisfied-stmt-3
+                                   "context"
+                                   dissoc
+                                   "registration"))))))

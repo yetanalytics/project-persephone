@@ -7,8 +7,7 @@
             [com.yetanalytics.persephone.utils.fsm    :as fsm]
             [com.yetanalytics.persephone.utils.json   :as json]
             [com.yetanalytics.persephone.utils.time   :as time]
-            [com.yetanalytics.persephone.utils.errors :as err-printer]
-            [com.yetanalytics.persephone.utils.spec   :as stmt-spec]))
+            [com.yetanalytics.persephone.utils.errors :as err-printer]))
 
 (def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
 
@@ -65,17 +64,28 @@
 (defn- assert-subregs
   [profile-id statement registration subreg-ext]
   (when (some? subreg-ext)
-    (if-let [errs (s/explain-data stmt-spec/subreg-ext-spec subreg-ext)]
-      (throw (ex-info "Subregistration extension fails spec!"
+    (cond
+      (= :no-registration registration)
+      (throw (ex-info "Subregistrations present without registration!"
+                      {:kind      ::invalid-subreg-no-registration
+                       :profile   profile-id
+                       :statement statement}))
+      (empty? subreg-ext)
+      (throw (ex-info "Subregistration extension is an empty array!"
                       {:kind      ::invalid-subreg-nonconformant
                        :profile   profile-id
                        :statement statement
-                       :errors    errs}))
-      (when (= :no-registration registration)
-        (throw (ex-info "Subregistrations present without registration!"
-                        {:kind      ::invalid-subreg-no-registration
-                         :profile   profile-id
-                         :statement statement}))))))
+                       :extension subreg-ext}))
+      (not (every? #(and (contains? % "profile")
+                         (contains? % "subregistration"))
+                   subreg-ext))
+      (throw (ex-info "Subregistration object is missing keys!"
+                      {:kind      ::invalid-subreg-nonconformant
+                       :profile   profile-id
+                       :statement statement
+                       :extension subreg-ext}))
+      :else
+      nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -324,8 +334,7 @@
 (defn match-statement-batch-vs-pattern
   "Like `match-statement-vs-pattern`, but takes a collection of
    Statements instead of a singleton Statement. Automatically
-   orders Statements by timestamp value, which should be
-   present."
+   orders Statements by timestamp value, which should be present."
   [pat-fsm state-info statement-coll]
   (loop [stmt-coll (sort cmp-statements statement-coll)
          st-info   state-info]
@@ -337,8 +346,7 @@
 (defn match-statement-batch-vs-profile
   "Like `match-statement-vs-profile`, but takes a collection of
    Statements instead of a singleton Statement. Automatically
-   orders Statements by timestamp value, which should be
-   present."
+   orders Statements by timestamp value, which should be present."
   [pat-fsm-map state-info-map statement-coll]
   (loop [stmt-coll (sort cmp-statements statement-coll)
          si-map    state-info-map]

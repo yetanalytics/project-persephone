@@ -5,6 +5,8 @@
             [clojure.walk       :as w]
             [xapi-schema.spec   :as xs]))
 
+;; Currently unused in production code, but may be useful for testing.
+
 (s/def ::profile ::xs/iri)
 (s/def ::subregistration ::xs/uuid)
 

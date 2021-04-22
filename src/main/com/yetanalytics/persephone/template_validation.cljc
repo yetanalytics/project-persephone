@@ -333,38 +333,61 @@
 (declare create-template-validator)
 (declare create-template-predicate)
 
+(defn- template-id->fn
+  [create-from-temp-fn get-template-fn template-id]
+  (if-let [template (get-template-fn template-id)]
+    (create-from-temp-fn template)
+    (throw (ex-info "Template not found!"
+                    {:kind        ::template-not-found
+                     :template-id template-id
+                     :template-fn get-template-fn}))))
+
 (defn- create-statement-ref-validator
   "The arguments are as follows:
-   `stmt-ref-temp-id`  The ID of the Statement Template
+   `stmt-ref-templates`  The Statement Ref Template array
    `stmt-ref-path`     The location of the Statement Reference
-   `id-template-map`   A map between Template IDs and Templates
+   `get-template-fn`   A function to get a Template by ID
    `get-statement-fn`  A function that takes in a Statement ID and
                        returns the Statement
    
    The function returns a potentially-nested vector of errors if
    validation fails, nil otherwise."
-  [stmt-ref-temp-id stmt-ref-path id-template-map get-statement-fn]
-  (let [sref-template  (get id-template-map stmt-ref-temp-id)
-        sref-validator (create-template-validator sref-template)]
+  [stmt-ref-template-ids stmt-ref-path get-template-fn get-statement-fn]
+  (let [stmt-validators (map (partial template-id->fn
+                                      create-template-validator
+                                      get-template-fn)
+                             stmt-ref-template-ids)
+        stmt-ref-path'  (parse-locator stmt-ref-path)]
     (fn [statement]
-      (if-let [sref-id (first (find-values statement stmt-ref-path))]
-        (sref-validator (get-statement-fn sref-id))
-        [{:pred   :statement-ref-id?
-          :values [nil]
-          :rule   {:location stmt-ref-path
-                   :presence "included"}}]))))
+      ;; TODO: Throw/return errors
+      (let [stmt-ref (first (find-values statement stmt-ref-path'))
+            stmt-id  (get stmt-ref "id")
+            stmt     (get-statement-fn stmt-id)]
+        (-> (reduce (fn [acc validator]
+                      (if-some [errs (validator stmt)]
+                        (concat acc errs)
+                        (reduced nil)))
+                    '()
+                    stmt-validators)
+            vec
+            not-empty)))))
 
 (defn- create-statement-ref-predicate
   "Same arguments as `create-statement-ref-validator`.
    
    The function returns false if validation fails, true otherwise."
-  [stmt-ref-temp-id stmt-ref-path id-template-map get-statement-fn]
-  (let [sref-template  (get id-template-map stmt-ref-temp-id)
-        sref-predicate (create-template-predicate sref-template)]
+  [stmt-ref-template-ids stmt-ref-path get-template-fn get-statement-fn]
+  (let [stmt-predicates (map (partial template-id->fn
+                                      create-template-predicate
+                                      get-template-fn)
+                             stmt-ref-template-ids)
+        stmt-ref-path'  (parse-locator stmt-ref-path)]
     (fn [statement]
-      (if-let [sref-id (first (find-values statement stmt-ref-path))]
-        (sref-predicate (get-statement-fn sref-id))
-        false))))
+      ;; TODO: Throw/return errors
+      (let [stmt-ref (first (find-values statement stmt-ref-path'))
+            stmt-id  (get stmt-ref "id")
+            stmt     (get-statement-fn stmt-id)]
+        (boolean (some (fn [predicate] (predicate stmt)) stmt-predicates))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validators and predicates
@@ -406,43 +429,43 @@
 
 (defn- create-rule-validators
   [template rules ?stmt-ref-opts]
-  (if-some [{id-temp-m   :id-template-map
-             get-stmt-fn :get-statement-fn}
-            ?stmt-ref-opts]
-    (let [?obj-srt (:objectStatementRefTemplate template)
-          ?ctx-srt (:contextStatementRefTemplate template)]
-      (cond-> (mapv create-rule-validator rules)
-        ?obj-srt
-        (conj (create-statement-ref-validator ?obj-srt
-                                              "$.object"
-                                              id-temp-m
-                                              get-stmt-fn))
-        ?ctx-srt
-        (conj (create-statement-ref-validator ?ctx-srt
-                                              "$.context.statement"
-                                              id-temp-m
-                                              get-stmt-fn))))
-    (mapv create-rule-validator rules)))
+  (let [{?obj-srts :objectStatementRefTemplate
+         ?ctx-srts :contextStatementRefTemplate}
+        template
+        {get-temp-fn :get-template-fn
+         get-stmt-fn :get-statement-fn}
+        ?stmt-ref-opts]
+    (cond-> (mapv create-rule-validator rules)
+      (and ?stmt-ref-opts ?obj-srts)
+      (conj (create-statement-ref-validator ?obj-srts
+                                            "$.object"
+                                            get-temp-fn
+                                            get-stmt-fn))
+      (and ?stmt-ref-opts ?ctx-srts)
+      (conj (create-statement-ref-validator ?ctx-srts
+                                            "$.context.statement"
+                                            get-temp-fn
+                                            get-stmt-fn)))))
 
 (defn- create-rule-predicates
   [template rules ?stmt-ref-opts]
-  (if-some [{id-temp-m   :id-template-map
-             get-stmt-fn :get-statement-fn}
-            ?stmt-ref-opts]
-    (let [?obj-srt (:objectStatementRefTemplate template)
-          ?ctx-srt (:contextStatementRefTemplate template)]
-      (cond-> (mapv create-rule-predicate rules)
-        ?obj-srt
-        (conj (create-statement-ref-predicate ?obj-srt
-                                              "$.object"
-                                              id-temp-m
-                                              get-stmt-fn))
-        ?ctx-srt
-        (conj (create-statement-ref-predicate ?ctx-srt
-                                              "$.context.statement"
-                                              id-temp-m
-                                              get-stmt-fn))))
-    (mapv create-rule-predicate rules)))
+  (let [{?obj-srts :objectStatementRefTemplate
+         ?ctx-srts :contextStatementRefTemplate}
+        template
+        {get-temp-fn :get-template-fn
+         get-stmt-fn :get-statement-fn}
+        ?stmt-ref-opts]
+    (cond-> (mapv create-rule-predicate rules)
+      (and ?stmt-ref-opts ?obj-srts)
+      (conj (create-statement-ref-predicate ?obj-srts
+                                            "$.object"
+                                            get-temp-fn
+                                            get-stmt-fn))
+      (and ?stmt-ref-opts ?ctx-srts)
+      (conj (create-statement-ref-predicate ?ctx-srts
+                                            "$.context.statement"
+                                            get-temp-fn
+                                            get-stmt-fn)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bringing it all together

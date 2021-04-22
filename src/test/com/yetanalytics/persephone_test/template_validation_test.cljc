@@ -558,6 +558,11 @@
                ex-statement-3)))
     (is (nil? ((tv/create-template-validator
                 {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+               ex-statement-4)))
+    (is (nil? ((tv/create-template-validator {})
+               ex-statement-4)))
+    (is (some? ((tv/create-template-validator
+                {:verb "http://adlnet.gov/expapi/verbs/experienced-not"})
                ex-statement-4)))))
 
 (deftest create-template-predicate-test
@@ -716,3 +721,109 @@
               ((tv/create-template-validator ex-template) ex-statement-1)
               (:id ex-template)
               (get ex-statement-1 "id")))))))
+
+(deftest statement-ref-templates-test
+  (let [id-template-map
+        {"stmt-ref-template-0" {:id "stmt-ref-template-0"
+                                :objectStatementRefTemplate
+                                ["stmt-ref-template-1"
+                                 "stmt-template-a"]
+                                :contextStatementRefTemplate
+                                ["stmt-template-a"
+                                 "stmt-ref-template-1"]}
+         "stmt-ref-template-1" {:id "stmt-ref-template-1"
+                                :objectStatementRefTemplate
+                                ["stmt-ref-template-2"]
+                                :contextStatementRefTemplate
+                                ["stmt-ref-template-2"]}
+         "stmt-ref-template-2" {:id "stmt-ref-template-2"
+                                :objectStatementRefTemplate
+                                ["stmt-ref-template-3"]
+                                :contextStatementRefTemplate
+                                ["stmt-ref-template-3"]}
+         "stmt-ref-template-3" {:id "stmt-ref-template-3"
+                                :objectStatementRefTemplate
+                                ["stmt-template-a"]
+                                :contextStatementRefTemplate
+                                ["stmt-template-a"]}
+         "stmt-ref-template-4" {:id "stmt-ref-template-4"
+                                :objectStatementRefTemplate
+                                ["stmt-template-b"]
+                                :contextStatementRefTemplate
+                                ["stmt-template-b"]}
+         "stmt-template-a" {:id   "stmt-template-a"
+                            :verb "http://foo.org/verb"}
+         "stmt-template-b" {:id   "stmt-template-b"
+                            :verb "http://foo.org/verb-2"}}
+        stmt-map
+        {"stmt-0" (-> ex-statement-0
+                      (assoc "id" "stmt-0")
+                      (assoc "object" {"id"         "stmt-1"
+                                       "objectType" "StatementRef"})
+                      (assoc-in ["context" "statement"]
+                                {"id"         "stmt-1"
+                                 "objectType" "StatementRef"}))
+         "stmt-1" (-> ex-statement-0
+                      (assoc "id" "stmt-1")
+                      (assoc "object" {"id"         "stmt-2"
+                                       "objectType" "StatementRef"})
+                      (assoc-in ["context" "statement"]
+                                {"id"         "stmt-2"
+                                 "objectType" "StatementRef"}))
+         "stmt-2" (-> ex-statement-0
+                      (assoc "id" "stmt-2")
+                      (assoc "object" {"id"         "stmt-3"
+                                       "objectType" "StatementRef"})
+                      (assoc-in ["context" "statement"]
+                                {"id"         "stmt-3"
+                                 "objectType" "StatementRef"}))
+         "stmt-3" (-> ex-statement-0
+                      (assoc "id" "stmt-3")
+                      (assoc "object" {"id"         "stmt-4"
+                                       "objectType" "StatementRef"})
+                      (assoc-in ["context" "statement"]
+                                {"id"         "stmt-4"
+                                 "objectType" "StatementRef"}))
+         "stmt-4" (-> ex-statement-0
+                      (assoc "id" "stmt-4"))}
+        make-validator
+        (fn [id]
+          (tv/create-template-validator
+           (get id-template-map id)
+           :statement-ref-opts {:id-template-map  id-template-map
+                                :get-statement-fn stmt-map}))
+        make-predicate
+        (fn [id]
+          (tv/create-template-predicate
+           (get id-template-map id)
+           :statement-ref-opts {:id-template-map  id-template-map
+                                :get-statement-fn stmt-map}))]
+    (testing "statement ref template validators - valid"
+      (is (nil? ((make-validator "stmt-ref-template-0")
+                 (get stmt-map "stmt-0"))))
+      (is (nil? ((make-validator "stmt-ref-template-1")
+                 (get stmt-map "stmt-1"))))
+      (is (nil? ((make-validator "stmt-ref-template-2")
+                 (get stmt-map "stmt-2"))))
+      (is (nil? ((make-validator "stmt-ref-template-3")
+                 (get stmt-map "stmt-3")))))
+    (testing "statement ref template predicates - valid"
+      (is ((make-predicate "stmt-ref-template-0")
+           (get stmt-map "stmt-0")))
+      (is ((make-predicate "stmt-ref-template-1")
+           (get stmt-map "stmt-1")))
+      (is ((make-predicate "stmt-ref-template-2")
+           (get stmt-map "stmt-2")))
+      (is ((make-predicate "stmt-ref-template-3")
+           (get stmt-map "stmt-3"))))
+    (testing "statement ref template validator - invalid"
+      (is (= {:pred   :every-val-present?
+              :values ["http://foo.org/verb"]
+              :rule   {:location             "$.verb.id"
+                       :prop-vals            ["http://foo.org/verb-2"]
+                       :determining-property "Verb"}}
+             (first ((make-validator "stmt-ref-template-4")
+                     (get stmt-map "stmt-3"))))))
+    (testing "statement ref template predicate - invalid"
+        (is (not ((make-predicate "stmt-ref-template-4")
+                  (get stmt-map "stmt-3")))))))

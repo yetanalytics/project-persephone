@@ -93,8 +93,8 @@
 
 (defn template->validator
   "Takes `template`, along with an optional :validate-template?
-   arg, and returns a tuple of the Statement Template ID and a
-   Statement validation function.
+   arg, and returns a map contaiing the Statement Template ID,
+   a validation function, and a predicate function.
   
    :validate-template? is default true. If true, `template->validator`
    checks that `template` conforms to the xAPI Profile spec."
@@ -103,7 +103,9 @@
                    (json/json->edn template :keywordize? true)
                    template)]
     (when validate-template? (assert-template template))
-    [(:id template) (t/create-template-validator template)]))
+    {:id           (:id template)
+     :validator-fn (t/create-template-validator template)
+     :predicate-fn (t/create-template-predicate template)}))
 
 (defn profile->validator
   "Takes `profile`, along with an optional :validate-profile? arg,
@@ -117,11 +119,11 @@
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
                   profile)]
-    (reduce (fn [acc template]
-              (let [validator-fn (t/create-template-validator template)]
-                (conj acc [(:id template) validator-fn])))
-            []
-            (:templates profile))))
+    (reduce
+     (fn [acc template]
+       (conj acc (template->validator template :validate-template? false)))
+     []
+     (:templates profile))))
 
 (defn validate-statement-vs-template
   "Takes `compiled-template` and `statement` where `compiled-template`
@@ -143,21 +145,24 @@
      :printer    Prints an error message when the Statement is
                  invalid. Always returns nil."
   [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [[id validator-fn] compiled-template]
-    (assert (fn? validator-fn))
-    (let [stmt (if (string? statement) (json/json->edn statement) statement)
-          errs (validator-fn stmt)]
-      (case fn-type
-        :result    errs
-        :predicate (nil? errs)
-        :option    (if (nil? errs) stmt nil)
-        :printer   (when (some? errs)
-                     (err-printer/print-error errs id (get stmt "id")))
-        :assertion (when-not (nil? errs)
-                     (throw (ex-info "Invalid Statement."
-                                     {:type   ::invalid-statement
-                                      :errors errs})))
-        (throw-unknown-opt fn-type)))))
+  (let [stmt (if (string? statement) (json/json->edn statement) statement)
+        {:keys [id validator-fn predicate-fn]} compiled-template]
+    (case fn-type
+      :predicate
+      (predicate-fn stmt)
+      :option
+      (when (predicate-fn stmt) stmt)
+      :result
+      (validator-fn stmt)
+      :printer
+      (when-some [errs (validator-fn stmt)]
+        (err-printer/print-error errs id (get stmt "id")))
+      :assertion
+      (when-some [errs (validator-fn stmt)]
+        (throw (ex-info "Invalid Statement." {:type   ::invalid-statement
+                                              :errors errs})))
+      ;; else
+      (throw-unknown-opt fn-type))))
 
 (defn validate-statement-vs-profile
   "Takes `compiled-profile` and `statement` where `compiled-profile`
@@ -181,28 +186,43 @@
                  exception otherwise where the error data can be
                  extracted using `(-> e ex-data :errors)`."
   [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt
-        (if (string? statement) (json/json->edn statement) statement)
-        [valid-ids errors]
-        (reduce (fn [[valid-ids errs-map] [id validator-fn]]
-                  (if-let [errs (validator-fn stmt)]
-                    [valid-ids (assoc errs-map id errs)]
-                    [(conj valid-ids id) errs-map]))
-                [[] {}]
-                compiled-profile)
-        passed?
-        (or (empty? compiled-profile) ;; vacuously true
-            (boolean (not-empty valid-ids)))]
-    (case fn-type
-      :predicate passed?
-      :option    (if passed? statement nil)
-      :result    (if passed? nil errors)
-      :templates valid-ids
-      :assertion (when-not passed?
-                   (throw (ex-info "Invalid Statement."
-                                   {:type   ::invalid-statement
-                                    :errors errors})))
-      (throw-unknown-opt fn-type))))
+  (let [stmt (if (string? statement) (json/json->edn statement) statement)]
+    (letfn [(valid-stmt?
+             [stmt]
+             (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
+                            compiled-profile)))
+            (get-valid-ids
+             [stmt]
+             (reduce (fn [valid-ids {:keys [id predicate-fn]}]
+                       (if (predicate-fn stmt)
+                         (conj valid-ids id)
+                         valid-ids))
+                     []
+                     compiled-profile))
+            (get-errors ; Returns nil if stmt is valid, else the id-error map
+             [stmt]
+             (not-empty ; no templates => vacuously true
+              (reduce (fn [acc {:keys [id validator-fn]}]
+                        (if-some [errs (validator-fn stmt)]
+                          (assoc acc id errs)
+                          (reduced nil)))
+                      {}
+                      compiled-profile)))]
+      (case fn-type
+        :predicate
+        (valid-stmt? stmt)
+        :option
+        (when (valid-stmt? stmt) stmt)
+        :result
+        (get-errors stmt)
+        :templates
+        (get-valid-ids stmt)
+        :assertion
+        (when-some [errs (get-errors stmt)]
+          (throw (ex-info "Invalid Statement." {:type   ::invalid-statement
+                                                :errors errs})))
+        ;; else
+        (throw-unknown-opt fn-type)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions

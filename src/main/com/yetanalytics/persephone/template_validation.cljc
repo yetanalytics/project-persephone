@@ -361,6 +361,4 @@
   (let [rules' (add-determining-properties template)
         preds  (mapv create-rule-validator rules')]
     (fn [statement]
-      (->> preds
-           (map (fn [f] (f statement)))
-           (every? nil?)))))
+      (every? (fn [f] (nil? (f statement))) preds))))

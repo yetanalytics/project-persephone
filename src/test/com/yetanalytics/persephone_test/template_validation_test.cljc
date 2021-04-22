@@ -359,7 +359,10 @@
            (tv/find-values ex-statement-0
                            (path/parse-paths "$..raw"))))))
 
-;; Determining Properties test
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Determining Properties tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (deftest add-det-properties
   (testing "add-det-properties function: Add the Determining Properties as 
            rules."
@@ -401,7 +404,20 @@
             {:location "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
              :presence "included"
              :all      ["Activity"]}]
-           (tv/add-determining-properties ex-template)))))
+           (tv/add-determining-properties ex-template)))
+    (is (= [{:location             "$.verb.id"
+             :prop-vals            ["http://example.org/verb"]
+             :determining-property "Verb"}]
+           (tv/add-determining-properties
+            {:verb "http://example.org/verb"})))
+    ;; Doesn't work with string keyws
+    (is (= []
+           (tv/add-determining-properties
+            {"verb" "http://example.org/verb"})))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validator/Predicate creation tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; This set of tests is a pred on the Statement Template rule logic.
 ;; NOTE: validator-fn returns nil on success, error data on failure.
@@ -529,19 +545,19 @@
             validator function that accepts Statements."
     (is (nil? ((tv/create-template-validator ex-template) ex-statement-0)))
     (is (nil? ((tv/create-template-validator
-                {"verb" "http://example.com/xapi/verbs#sent-a-statement"})
+                {:verb "http://example.com/xapi/verbs#sent-a-statement"})
                ex-statement-1)))
     (is (nil? ((tv/create-template-validator
-                {"verb" "http://adlnet.gov/expapi/verbs/attempted"})
+                {:verb "http://adlnet.gov/expapi/verbs/attempted"})
                ex-statement-2)))
     (is (nil? ((tv/create-template-validator
-                {"verb" "http://adlnet.gov/expapi/verbs/attended"
-                 "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
-                 "contextCategoryActivityType"
+                {:verb "http://adlnet.gov/expapi/verbs/attended"
+                 :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+                 :contextCategoryActivityType
                  ["http://example.com/expapi/activities/meetingcategory"]})
                ex-statement-3)))
     (is (nil? ((tv/create-template-validator
-                {"verb" "http://adlnet.gov/expapi/verbs/experienced"})
+                {:verb "http://adlnet.gov/expapi/verbs/experienced"})
                ex-statement-4)))))
 
 (deftest create-template-predicate-test
@@ -549,20 +565,25 @@
             predicate that accepts Statements."
     (is ((tv/create-template-predicate ex-template) ex-statement-0))
     (is ((tv/create-template-predicate
-          {"verb" "http://example.com/xapi/verbs#sent-a-statement"})
+          {:verb "http://example.com/xapi/verbs#sent-a-statement"})
          ex-statement-1))
     (is ((tv/create-template-predicate
-          {"verb" "http://adlnet.gov/expapi/verbs/attempted"})
+          {:verb "http://adlnet.gov/expapi/verbs/attempted"})
          ex-statement-2))
     (is ((tv/create-template-predicate
-          {"verb" "http://adlnet.gov/expapi/verbs/attended"
-           "objectActivityType" "http://adlnet.gov/expapi/activities/meeting"
-           "contextCategoryActivityType"
+          {:verb "http://adlnet.gov/expapi/verbs/attended"
+           :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+           :contextCategoryActivityType
            ["http://example.com/expapi/activities/meetingcategory"]})
          ex-statement-3))
     (is ((tv/create-template-predicate
-          {"verb" "http://adlnet.gov/expapi/verbs/experienced"})
-         ex-statement-4))))
+          {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+         ex-statement-4))
+    (is ((tv/create-template-predicate {})
+         ex-statement-4))
+    (is (not ((tv/create-template-predicate
+               {:verb "http://adlnet.gov/expapi/verbs/experienced-not"})
+              ex-statement-4)))))
 
 (deftest create-template-validator-test-2
   (testing "validate-statement function"

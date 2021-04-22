@@ -256,6 +256,19 @@
        locations ;; No selector - return locations
        (json/get-jsonpath-values locations select-path)))))
 
+(defn parse-locator
+  "Parse the `locator` path."
+  [locator]
+  (json/parse-jsonpath locator))
+
+(defn parse-selector
+  "Conform and parse the `selector` path to be used on values returned
+   by a locator."
+  [selector]
+  ;; Locations values will be a JSON array, so we can query it using the
+  ;; selector by adding a wildcard at the beginning.
+  (-> selector (string/replace #"(\$)" "$1[*]") json/parse-jsonpath))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
 ;; A Statement Template MUST include all Determining Properties.
@@ -314,25 +327,61 @@
     (-> [] build-det-props (into rules))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bringing it all together
-;; A Statement MUST follow all the rules in the Statement Template.
+;; Statement Ref Template validators
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declare create-template-validator)
+(declare create-template-predicate)
+
+(defn- create-statement-ref-validator
+  "The arguments are as follows:
+   `stmt-ref-temp-id`  The ID of the Statement Template
+   `stmt-ref-path`     The location of the Statement Reference
+   `id-template-map`   A map between Template IDs and Templates
+   `get-statement-fn`  A function that takes in a Statement ID and
+                       returns the Statement
+   
+   The function returns a potentially-nested vector of errors if
+   validation fails, nil otherwise."
+  [stmt-ref-temp-id stmt-ref-path id-template-map get-statement-fn]
+  (let [sref-template  (get id-template-map stmt-ref-temp-id)
+        sref-validator (create-template-validator sref-template)]
+    (fn [statement]
+      (if-let [sref-id (first (find-values statement stmt-ref-path))]
+        (sref-validator (get-statement-fn sref-id))
+        [{:pred   :statement-ref-id?
+          :values [nil]
+          :rule   {:location stmt-ref-path
+                   :presence "included"}}]))))
+
+(defn- create-statement-ref-predicate
+  "Same arguments as `create-statement-ref-validator`.
+   
+   The function returns false if validation fails, true otherwise."
+  [stmt-ref-temp-id stmt-ref-path id-template-map get-statement-fn]
+  (let [sref-template  (get id-template-map stmt-ref-temp-id)
+        sref-predicate (create-template-predicate sref-template)]
+    (fn [statement]
+      (if-let [sref-id (first (find-values statement stmt-ref-path))]
+        (sref-predicate (get-statement-fn sref-id))
+        false))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validators and predicates
+;; Validators return an error map on failure and nil otherwise.
+;; Predicates return a boolean value.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-rule-validator
   "Given `rule`, create a function that will validate new Statements
    against the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-spec     (create-rule-pred rule)
-        location-path (json/parse-jsonpath location)
-        ;; Locations values will be a JSON array, so we can query it using the
-        ;; selector by adding a wildcard at the beginning.
-        selector-path (when selector
-                        (-> selector
-                            (string/replace #"(\$)" "$1[*]")
-                            json/parse-jsonpath))]
+  (let [rule-validator (create-rule-pred rule)
+        location-path  (parse-locator location)
+        selector-path  (when selector (parse-selector selector))]
     (fn [statement]
       (let [values    (find-values statement location-path selector-path)
-            fail-pred (rule-spec values)]
+            fail-pred (rule-validator values)]
         ;; nil indicates success
         (when-not (nil? fail-pred)
           ;; :pred - the predicate that failed, causing this error
@@ -342,23 +391,78 @@
            :values values
            :rule   rule})))))
 
+(defn create-rule-predicate
+  "Given `rule`, create a function that returns true or false when
+   validating Statements against it."
+  [{:keys [location selector] :as rule}]
+  (let [rule-validator (create-rule-pred rule)
+        location-path  (parse-locator location)
+        selector-path  (when selector (parse-selector selector))]
+    (fn [statement]
+      (let [values    (find-values statement location-path selector-path)
+            fail-pred (rule-validator values)]
+        ;; nil indicates success
+        (nil? fail-pred)))))
+
+(defn- create-rule-validators
+  [template rules ?stmt-ref-opts]
+  (if-some [{id-temp-m   :id-template-map
+             get-stmt-fn :get-statement-fn}
+            ?stmt-ref-opts]
+    (let [?obj-srt (:objectStatementRefTemplate template)
+          ?ctx-srt (:contextStatementRefTemplate template)]
+      (cond-> (mapv create-rule-validator rules)
+        ?obj-srt
+        (conj (create-statement-ref-validator ?obj-srt
+                                              "$.object"
+                                              id-temp-m
+                                              get-stmt-fn))
+        ?ctx-srt
+        (conj (create-statement-ref-validator ?ctx-srt
+                                              "$.context.statement"
+                                              id-temp-m
+                                              get-stmt-fn))))
+    (mapv create-rule-validator rules)))
+
+(defn- create-rule-predicates
+  [template rules ?stmt-ref-opts]
+  (if-some [{id-temp-m   :id-template-map
+             get-stmt-fn :get-statement-fn}
+            ?stmt-ref-opts]
+    (let [?obj-srt (:objectStatementRefTemplate template)
+          ?ctx-srt (:contextStatementRefTemplate template)]
+      (cond-> (mapv create-rule-predicate rules)
+        ?obj-srt
+        (conj (create-statement-ref-predicate ?obj-srt
+                                              "$.object"
+                                              id-temp-m
+                                              get-stmt-fn))
+        ?ctx-srt
+        (conj (create-statement-ref-predicate ?ctx-srt
+                                              "$.context.statement"
+                                              id-temp-m
+                                              get-stmt-fn))))
+    (mapv create-rule-predicate rules)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bringing it all together
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
-  [template]
-  (let [rules' (add-determining-properties template)
-        preds  (mapv create-rule-validator rules')]
+  [template & {:keys [statement-ref-opts]}]
+  (let [rules      (add-determining-properties template)
+        validators (create-rule-validators template rules statement-ref-opts)]
     (fn [statement]
-      (let [errors (->> preds
-                        (map (fn [f] (f statement)))
-                        (filter some?))]
-        (when (not-empty errors) errors)))))
+      (let [errors (->> validators (map #(% statement)) flatten (filter some?))]
+        (not-empty errors)))))
 
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."
-  [template]
-  (let [rules' (add-determining-properties template)
-        preds  (mapv create-rule-validator rules')]
+  [template & {:keys [statement-ref-opts]}]
+  (let [rules (add-determining-properties template)
+        preds (create-rule-predicates template rules statement-ref-opts)]
     (fn [statement]
-      (every? (fn [f] (nil? (f statement))) preds))))
+      (every? (fn [pred] (pred statement)) preds))))

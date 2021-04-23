@@ -50,7 +50,7 @@
     statement <property>:
       <value B>
    ```"
-  [rule prop values]
+  [prop prop-vals real-vals]
   (fmt (str "Template %s property was not matched.\n"
             " template %s:\n"
             "%s\n"
@@ -58,9 +58,44 @@
             "%s\n")
        prop
        prop
-       (-> rule :prop-vals val-str)
+       (val-str prop-vals)
        prop
-       (-> values val-str)))
+       (val-str real-vals)))
+
+(defn sref-error-str
+  "Return an error message string for a Statement Ref Template error.
+   Format:
+   ```
+   <error message>
+   <error data>
+   ```"
+  [failure sref value]
+  (let [sref-name
+        (cond
+          (= "$.object" sref)
+          "Object Statement Ref"
+          (= "$.context.statement" sref)
+          "Context Statement Ref"
+          :else
+          "Statement Ref")
+        err-msg
+        (case failure
+          :sref-not-found
+          (fmt "No %s is present in the Statement:"
+               sref-name)
+          :sref-object-type-invalid
+          (fmt "The objectType of the following %s is not \"StatementRef\":"
+               sref-name)
+          :sref-id-missing
+          (fmt "The following %s has no id value:"
+               sref-name)
+          :sref-stmt-not-found
+          (fmt "Cannot find Statement given by the id in the %s:"
+               sref-name))]
+    (fmt (str "%s\n"
+              "%s")
+         err-msg
+         (str value))))
 
 (defn rule-error-str
   "Return an error message string for a rule error. Format:
@@ -87,10 +122,18 @@
   "Create a pretty error log output when a property or rule is not
    followed."
   [{:keys [pred rule values] :as _error}]
-  (let [prop (get rule :determining-property nil)]
-    (if (some? prop)
-      (prop-error-str rule prop values)
-      (rule-error-str rule pred values))))
+  (cond
+    ;; Statement Ref Templates
+    (= :statement-ref? pred)
+    (let [{fail :failure sref :location} rule]
+      (sref-error-str fail sref values))
+    ;; Determining Properties
+    (contains? rule :determining-property)
+    (let [{prop :determining-property vals :prop-vals} rule]
+      (prop-error-str prop vals values))
+    ;; Rules
+    :else
+    (rule-error-str rule pred values)))
 
 (defn print-error
   "Prints an error message for all Template validation errors on a

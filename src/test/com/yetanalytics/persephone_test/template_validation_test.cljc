@@ -410,7 +410,7 @@
              :determining-property "Verb"}]
            (tv/add-determining-properties
             {:verb "http://example.org/verb"})))
-    ;; Doesn't work with string keyws
+    ;; Doesn't work with string keys
     (is (= []
            (tv/add-determining-properties
             {"verb" "http://example.org/verb"})))))
@@ -748,41 +748,48 @@
                                 ["stmt-template-a"]}
          "stmt-ref-template-4" {:id "stmt-ref-template-4"
                                 :objectStatementRefTemplate
-                                ["stmt-template-b"]
+                                ["stmt-template-b"
+                                 "stmt-ref-template-5"]
                                 :contextStatementRefTemplate
-                                ["stmt-template-b"]}
+                                ["stmt-ref-template-5"]}
+         "stmt-ref-template-5" {:id "stmt-ref-template-5"
+                                :verb "http://foo.org/verb-bar"
+                                :contextStatementRefTemplate
+                                ["stmt-template-c"]}
          "stmt-template-a" {:id   "stmt-template-a"
                             :verb "http://foo.org/verb"}
          "stmt-template-b" {:id   "stmt-template-b"
-                            :verb "http://foo.org/verb-2"}}
+                            :verb "http://foo.org/verb-2"}
+         "stmt-template-c" {:id   "stmt-template-c"
+                            :verb "http://foo.org/verb-3"}}
         stmt-map
         {"stmt-0" (-> ex-statement-0
                       (assoc "id" "stmt-0")
-                      (assoc "object" {"id"         "stmt-1"
+                      (assoc "object" {"id" "stmt-1"
                                        "objectType" "StatementRef"})
                       (assoc-in ["context" "statement"]
-                                {"id"         "stmt-1"
+                                {"id" "stmt-1"
                                  "objectType" "StatementRef"}))
          "stmt-1" (-> ex-statement-0
                       (assoc "id" "stmt-1")
-                      (assoc "object" {"id"         "stmt-2"
+                      (assoc "object" {"id" "stmt-2"
                                        "objectType" "StatementRef"})
                       (assoc-in ["context" "statement"]
-                                {"id"         "stmt-2"
+                                {"id" "stmt-2"
                                  "objectType" "StatementRef"}))
          "stmt-2" (-> ex-statement-0
                       (assoc "id" "stmt-2")
-                      (assoc "object" {"id"         "stmt-3"
+                      (assoc "object" {"id" "stmt-3"
                                        "objectType" "StatementRef"})
                       (assoc-in ["context" "statement"]
-                                {"id"         "stmt-3"
+                                {"id" "stmt-3"
                                  "objectType" "StatementRef"}))
          "stmt-3" (-> ex-statement-0
                       (assoc "id" "stmt-3")
-                      (assoc "object" {"id"         "stmt-4"
+                      (assoc "object" {"id" "stmt-4"
                                        "objectType" "StatementRef"})
                       (assoc-in ["context" "statement"]
-                                {"id"         "stmt-4"
+                                {"id" "stmt-4"
                                  "objectType" "StatementRef"}))
          "stmt-4" (-> ex-statement-0
                       (assoc "id" "stmt-4"))}
@@ -790,13 +797,13 @@
         (fn [id]
           (tv/create-template-validator
            (get id-template-map id)
-           :statement-ref-opts {:id-template-map  id-template-map
+           :statement-ref-opts {:get-template-fn  id-template-map
                                 :get-statement-fn stmt-map}))
         make-predicate
         (fn [id]
           (tv/create-template-predicate
            (get id-template-map id)
-           :statement-ref-opts {:id-template-map  id-template-map
+           :statement-ref-opts {:get-template-fn  id-template-map
                                 :get-statement-fn stmt-map}))]
     (testing "statement ref template validators - valid"
       (is (nil? ((make-validator "stmt-ref-template-0")
@@ -817,13 +824,112 @@
       (is ((make-predicate "stmt-ref-template-3")
            (get stmt-map "stmt-3"))))
     (testing "statement ref template validator - invalid"
-      (is (= {:pred   :every-val-present?
-              :values ["http://foo.org/verb"]
-              :rule   {:location             "$.verb.id"
-                       :prop-vals            ["http://foo.org/verb-2"]
-                       :determining-property "Verb"}}
-             (first ((make-validator "stmt-ref-template-4")
-                     (get stmt-map "stmt-3"))))))
+      (let [stmt (-> ex-statement-0
+                      (dissoc "object")
+                      (dissoc "context"))]
+        (is (= [{:pred   :statement-ref?
+                 :values stmt
+                 :rule   {:location "$.object"
+                          :failure  :sref-not-found}}
+                {:pred   :statement-ref?
+                 :values stmt
+                 :rule   {:location "$.context.statement"
+                          :failure  :sref-not-found}}]
+               ((make-validator "stmt-ref-template-3") stmt))))
+      (let [stmt (-> ex-statement-0
+                     (assoc-in ["object"]
+                               {"objectType" "Foo" "id" "bar"})
+                     (assoc-in ["context" "statement"]
+                               {"objectType" "Foo" "id" "bar"}))]
+        (is (= [{:pred   :statement-ref?
+                 :values (get-in stmt ["object"])
+                 :rule   {:location "$.object"
+                          :failure  :sref-object-type-invalid}}
+                {:pred   :statement-ref?
+                 :values (get-in stmt ["context" "statement"])
+                 :rule   {:location "$.context.statement"
+                          :failure  :sref-object-type-invalid}}]
+               ((make-validator "stmt-ref-template-3") stmt))))
+      (let [stmt (-> ex-statement-0
+                     (assoc-in ["object"]
+                               {"objectType" "StatementRef"})
+                     (assoc-in ["context" "statement"]
+                               {"objectType" "StatementRef"}))]
+        (is (= [{:pred   :statement-ref?
+                 :values (get-in stmt ["object"])
+                 :rule   {:location "$.object"
+                          :failure  :sref-id-missing}}
+                {:pred   :statement-ref?
+                 :values (get-in stmt ["context" "statement"])
+                 :rule   {:location "$.context.statement"
+                          :failure  :sref-id-missing}}]
+               ((make-validator "stmt-ref-template-3") stmt))))
+      (let [stmt (-> ex-statement-0
+                     (assoc-in ["object"]
+                               {"objectType" "StatementRef" "id" "baz"})
+                     (assoc-in ["context" "statement"]
+                               {"objectType" "StatementRef" "id" "qux"}))]
+        (is (= [{:pred   :statement-ref?
+                 :values (get-in stmt ["object" "id"])
+                 :rule   {:location "$.object"
+                          :failure  :sref-stmt-not-found}}
+                {:pred   :statement-ref?
+                 :values (get-in stmt ["context" "statement" "id"])
+                 :rule   {:location "$.context.statement"
+                          :failure  :sref-stmt-not-found}}]
+               ((make-validator "stmt-ref-template-3") stmt))))
+      (is (= [{:pred   :every-val-present?
+               :values ["http://foo.org/verb"]
+               :rule   {:location             "$.verb.id"
+                        :prop-vals            ["http://foo.org/verb-bar"]
+                        :determining-property "Verb"}}
+              {:pred   :statement-ref?
+               :values (get stmt-map "stmt-4")
+               :rule   {:location "$.context.statement"
+                        :failure  :sref-not-found}}]
+             ((make-validator "stmt-ref-template-5")
+              (get stmt-map "stmt-4"))))
+      (is (= [{:pred   :every-val-present?
+               :values ["http://foo.org/verb"]
+               :rule   {:location             "$.verb.id"
+                        :prop-vals            ["http://foo.org/verb-2"]
+                        :determining-property "Verb"}}
+              {:pred   :every-val-present?
+               :values ["http://foo.org/verb"]
+               :rule   {:location             "$.verb.id"
+                        :prop-vals            ["http://foo.org/verb-bar"]
+                        :determining-property "Verb"}}
+              {:pred   :statement-ref?
+               :values (get stmt-map "stmt-4")
+               :rule   {:location "$.context.statement"
+                        :failure  :sref-not-found}}
+              {:pred   :every-val-present?
+               :values ["http://foo.org/verb"]
+               :rule   {:location             "$.verb.id"
+                        :prop-vals            ["http://foo.org/verb-bar"]
+                        :determining-property "Verb"}}
+              {:pred   :every-val-present?
+               :values ["http://foo.org/verb"]
+               :rule   {:location             "$.verb.id"
+                        :prop-vals            ["http://foo.org/verb-3"]
+                        :determining-property "Verb"}}]
+             ((make-validator "stmt-ref-template-4")
+              (assoc-in (get stmt-map "stmt-3")
+                        ["context" "statement"]
+                        {"objectType" "StatementRef"
+                         "id" "stmt-3"})))))
     (testing "statement ref template predicate - invalid"
         (is (not ((make-predicate "stmt-ref-template-4")
                   (get stmt-map "stmt-3")))))))
+
+(comment
+  ((tv/create-template-validator
+    {:id "stmt-ref-template-3"
+     :objectStatementRefTemplate
+     ["stmt-template-a"]}
+    :statement-ref-opts {:get-template-fn  (fn [_] {:id   "stmt-template-a"
+                                                    :verb "http://foo.org/verb"})
+                         :get-statement-fn (fn [_] ex-statement-0)})
+   ex-statement-0
+   #_(assoc ex-statement-0 "object" {"id"         "stmt-1"
+                                   "objectType" "StatementRef"})))

@@ -334,13 +334,16 @@
 (declare create-template-predicate)
 
 (defn- template-id->fn
-  [create-from-temp-fn get-template-fn template-id]
-  (if-let [template (get-template-fn template-id)]
-    (create-from-temp-fn template)
-    (throw (ex-info "Template not found!"
-                    {:kind        ::template-not-found
-                     :template-id template-id
-                     :template-fn get-template-fn}))))
+  "Get the template validator or predicate using `get-template-fn`,
+   and throw if `get-template-fn` returns nil."
+  [create-from-temp-fn statement-ref-opts template-id]
+  (let [{:keys [get-template-fn]} statement-ref-opts]
+    (if-some [template (get-template-fn template-id)]
+      (create-from-temp-fn template :statement-ref-opts statement-ref-opts)
+      (throw (ex-info "Template not found!"
+                      {:kind        ::template-not-found
+                       :template-id template-id
+                       :template-fn get-template-fn})))))
 
 (defn- create-statement-ref-validator
   "The arguments are as follows:
@@ -352,42 +355,76 @@
    
    The function returns a potentially-nested vector of errors if
    validation fails, nil otherwise."
-  [stmt-ref-template-ids stmt-ref-path get-template-fn get-statement-fn]
-  (let [stmt-validators (map (partial template-id->fn
-                                      create-template-validator
-                                      get-template-fn)
-                             stmt-ref-template-ids)
-        stmt-ref-path'  (parse-locator stmt-ref-path)]
+  [stmt-ref-template-ids stmt-ref-path statement-ref-opts]
+  (let [{:keys [get-statement-fn]} statement-ref-opts
+        stmt-validators  (map (partial template-id->fn
+                                       create-template-validator
+                                       statement-ref-opts)
+                              stmt-ref-template-ids)
+        sref-path        (parse-locator stmt-ref-path)
+        validate-stmt-fn (fn [sref-stmt]
+                           ;; Return nil on first valid stmt ref template
+                           (-> (reduce (fn [acc validator]
+                                         (if-some [errs (validator sref-stmt)]
+                                           (concat acc errs)
+                                           (reduced nil)))
+                                       '()
+                                       stmt-validators)
+                               vec
+                               not-empty))]
     (fn [statement]
-      ;; TODO: Throw/return errors
-      (let [stmt-ref (first (find-values statement stmt-ref-path'))
-            stmt-id  (get stmt-ref "id")
-            stmt     (get-statement-fn stmt-id)]
-        (-> (reduce (fn [acc validator]
-                      (if-some [errs (validator stmt)]
-                        (concat acc errs)
-                        (reduced nil)))
-                    '()
-                    stmt-validators)
-            vec
-            not-empty)))))
+      ;; Pre-define let-bindings to avoid deep if-some nesting
+      (let [sref       (first (find-values statement sref-path))
+            sref-type? (= "StatementRef" (get sref "objectType"))
+            sref-id    (get sref "id")
+            sref-stmt  (when (and sref-type? sref-id)
+                         (get-statement-fn sref-id))]
+        (cond
+          (not sref)
+          [{:pred    :statement-ref?
+            :values  statement
+            :rule    {:location stmt-ref-path
+                      :failure  :sref-not-found}}]
+          (not sref-type?)
+          [{:pred    :statement-ref?
+            :values  sref
+            :rule    {:location stmt-ref-path
+                      :failure  :sref-object-type-invalid}}]
+          (not sref-id)
+          [{:pred    :statement-ref?
+            :values  sref
+            :rule    {:location stmt-ref-path
+                      :failure  :sref-id-missing}}]
+          (not sref-stmt)
+          [{:pred    :statement-ref?
+            :values  sref-id
+            :rule    {:location stmt-ref-path
+                      :failure  :sref-stmt-not-found}}]
+          :else
+          (validate-stmt-fn sref-stmt))))))
 
 (defn- create-statement-ref-predicate
   "Same arguments as `create-statement-ref-validator`.
    
    The function returns false if validation fails, true otherwise."
-  [stmt-ref-template-ids stmt-ref-path get-template-fn get-statement-fn]
-  (let [stmt-predicates (map (partial template-id->fn
-                                      create-template-predicate
-                                      get-template-fn)
-                             stmt-ref-template-ids)
-        stmt-ref-path'  (parse-locator stmt-ref-path)]
+  [stmt-ref-template-ids stmt-ref-path statement-ref-opts]
+  (let [{:keys [get-statement-fn]} statement-ref-opts
+        stmt-predicates  (map (partial template-id->fn
+                                       create-template-predicate
+                                       statement-ref-opts)
+                              stmt-ref-template-ids)
+        sref-path        (parse-locator stmt-ref-path)
+        valid-sref-stmt? (fn [sref-stmt]
+                           (some (fn [predicate] (predicate sref-stmt))
+                                 stmt-predicates))]
     (fn [statement]
-      ;; TODO: Throw/return errors
-      (let [stmt-ref (first (find-values statement stmt-ref-path'))
-            stmt-id  (get stmt-ref "id")
-            stmt     (get-statement-fn stmt-id)]
-        (boolean (some (fn [predicate] (predicate stmt)) stmt-predicates))))))
+      (let [sref       (first (find-values statement sref-path))
+            sref-type? (= "StatementRef" (get sref "objectType"))
+            sref-id    (get sref "id")]
+        (boolean ; coerce nils to false
+         (when (and sref-type? sref-id)
+           (when-some [sref-stmt (get-statement-fn sref-id)]
+             (valid-sref-stmt? sref-stmt))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validators and predicates
@@ -431,41 +468,31 @@
   [template rules ?stmt-ref-opts]
   (let [{?obj-srts :objectStatementRefTemplate
          ?ctx-srts :contextStatementRefTemplate}
-        template
-        {get-temp-fn :get-template-fn
-         get-stmt-fn :get-statement-fn}
-        ?stmt-ref-opts]
+        template]
     (cond-> (mapv create-rule-validator rules)
       (and ?stmt-ref-opts ?obj-srts)
       (conj (create-statement-ref-validator ?obj-srts
                                             "$.object"
-                                            get-temp-fn
-                                            get-stmt-fn))
+                                            ?stmt-ref-opts))
       (and ?stmt-ref-opts ?ctx-srts)
       (conj (create-statement-ref-validator ?ctx-srts
                                             "$.context.statement"
-                                            get-temp-fn
-                                            get-stmt-fn)))))
+                                            ?stmt-ref-opts)))))
 
 (defn- create-rule-predicates
   [template rules ?stmt-ref-opts]
   (let [{?obj-srts :objectStatementRefTemplate
          ?ctx-srts :contextStatementRefTemplate}
-        template
-        {get-temp-fn :get-template-fn
-         get-stmt-fn :get-statement-fn}
-        ?stmt-ref-opts]
+        template]
     (cond-> (mapv create-rule-predicate rules)
       (and ?stmt-ref-opts ?obj-srts)
       (conj (create-statement-ref-predicate ?obj-srts
                                             "$.object"
-                                            get-temp-fn
-                                            get-stmt-fn))
+                                            ?stmt-ref-opts))
       (and ?stmt-ref-opts ?ctx-srts)
       (conj (create-statement-ref-predicate ?ctx-srts
                                             "$.context.statement"
-                                            get-temp-fn
-                                            get-stmt-fn)))))
+                                            ?stmt-ref-opts)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bringing it all together
@@ -478,7 +505,10 @@
   (let [rules      (add-determining-properties template)
         validators (create-rule-validators template rules statement-ref-opts)]
     (fn [statement]
-      (let [errors (->> validators (map #(% statement)) flatten (filter some?))]
+      (let [errors (->> validators
+                        (map #(% statement))
+                        flatten ; concat error colls from different validators
+                        (filter some?))]
         (not-empty errors)))))
 
 (defn create-template-predicate

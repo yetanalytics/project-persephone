@@ -111,44 +111,53 @@
   "Given a Pattern (e.g. as a node in a Pattern tree), return the
    corresponding FSM. The FSM built at this node is a composition of
    FSMs built from the child nodes."
-  [{:keys [type id] :as node}]
-  (cond
-    (= "Pattern" type)
-    (let [{:keys [sequence alternates optional zeroOrMore oneOrMore]} node]
-      (cond (some? sequence)
-            (fsm/concat-nfa sequence)
-            (some? alternates)
-            (fsm/union-nfa alternates)
-            (some? optional)
-            (fsm/optional-nfa optional)
-            (some? zeroOrMore)
-            (fsm/kleene-nfa zeroOrMore)
-            (some? oneOrMore)
-            (fsm/plus-nfa oneOrMore)
-            :else
-            (throw-invalid-pattern node)))
-    (= "StatementTemplate" type)
-    (fsm/transition-nfa id (tv/create-template-predicate node))
-    :else
-    node))
+  ([node]
+   (pattern->fsm node nil))
+  ([{:keys [type id] :as node} stmt-ref-opts]
+   (cond
+     (= "Pattern" type)
+     (let [{:keys [sequence alternates optional zeroOrMore oneOrMore]} node]
+       (cond (some? sequence)
+             (fsm/concat-nfa sequence)
+             (some? alternates)
+             (fsm/union-nfa alternates)
+             (some? optional)
+             (fsm/optional-nfa optional)
+             (some? zeroOrMore)
+             (fsm/kleene-nfa zeroOrMore)
+             (some? oneOrMore)
+             (fsm/plus-nfa oneOrMore)
+             :else
+             (throw-invalid-pattern node)))
+     (= "StatementTemplate" type)
+     (fsm/transition-nfa id (tv/create-template-predicate node stmt-ref-opts))
+     :else
+     node)))
 
 (defn pattern-tree->fsm
   "Turn a Pattern tree data structure into an FSM using a post-order
    DFS tree traversal."
-  [pattern-tree]
-  (->> pattern-tree (w/postwalk pattern->fsm) fsm/nfa->dfa fsm/minimize-dfa))
+  ([pattern-tree]
+   (pattern-tree->fsm pattern-tree nil))
+  ([pattern-tree stmt-ref-opts]
+   (->> pattern-tree
+        (w/postwalk (fn [node] (pattern->fsm node stmt-ref-opts)))
+        fsm/nfa->dfa
+        fsm/minimize-dfa)))
 
 (defn profile->fsms
   "Given a Profile, returns a map between primary Pattern IDs and
    their respective FSMs that can perform Statement validation.
    Assumes a valid Profile."
-  [profile]
-  (let [temp-pat-map (mapify-all profile)
-        pattern-seq  (primary-patterns profile)]
-    (reduce (fn [acc {pat-id :id :as pattern}]
-              (let [pat-fsm (-> pattern
-                                (grow-pattern-tree temp-pat-map)
-                                pattern-tree->fsm)]
-                (assoc acc pat-id pat-fsm)))
-            {}
-            pattern-seq)))
+  ([profile]
+   (profile->fsms profile nil))
+  ([profile statement-ref-fns]
+   (let [temp-pat-map (mapify-all profile)
+         pattern-seq  (primary-patterns profile)]
+     (reduce (fn [acc {pat-id :id :as pattern}]
+               (let [pat-fsm (-> pattern
+                                 (grow-pattern-tree temp-pat-map)
+                                 (pattern-tree->fsm statement-ref-fns))]
+                 (assoc acc pat-id pat-fsm)))
+             {}
+             pattern-seq))))

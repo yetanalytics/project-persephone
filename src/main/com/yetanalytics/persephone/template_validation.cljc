@@ -339,7 +339,7 @@
   [create-from-temp-fn statement-ref-opts template-id]
   (let [{:keys [get-template-fn]} statement-ref-opts]
     (if-some [template (get-template-fn template-id)]
-      (create-from-temp-fn template :statement-ref-opts statement-ref-opts)
+      (create-from-temp-fn template statement-ref-opts)
       (throw (ex-info "Template not found!"
                       {:kind        ::template-not-found
                        :template-id template-id
@@ -501,21 +501,25 @@
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
-  [template & {:keys [statement-ref-opts]}]
-  (let [rules      (add-determining-properties template)
-        validators (create-rule-validators template rules statement-ref-opts)]
-    (fn [statement]
-      (let [errors (->> validators
-                        (map #(% statement))
-                        flatten ; concat error colls from different validators
-                        (filter some?))]
-        (not-empty errors)))))
+  ([template]
+   (create-template-validator template nil))
+  ([template statement-ref-opts]
+   (let [rules      (add-determining-properties template)
+         validators (create-rule-validators template rules statement-ref-opts)]
+     (fn [statement]
+       (let [errors (->> validators
+                         (map (fn [validator] (validator statement)))
+                         flatten ; concat error colls from different validators
+                         (filter some?))]
+         (not-empty errors))))))
 
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."
-  [template & {:keys [statement-ref-opts]}]
-  (let [rules (add-determining-properties template)
-        preds (create-rule-predicates template rules statement-ref-opts)]
-    (fn [statement]
-      (every? (fn [pred] (pred statement)) preds))))
+  ([template]
+   (create-template-predicate template nil))
+  ([template statement-ref-fns]
+   (let [rules (add-determining-properties template)
+         preds (create-rule-predicates template rules statement-ref-fns)]
+     (fn [statement]
+       (every? (fn [pred] (pred statement)) preds)))))

@@ -91,27 +91,11 @@
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn template->validator
-  "Takes `template`, along with an optional :validate-template?
-   arg, and returns a map contaiing the Statement Template ID,
-   a validation function, and a predicate function.
-  
-   :validate-template? is default true. If true, `template->validator`
-   checks that `template` conforms to the xAPI Profile spec."
-  [template & {:keys [validate-template?] :or {validate-template? true}}]
-  (let [template (if (string? template)
-                   (json/json->edn template :keywordize? true)
-                   template)]
-    (when validate-template? (assert-template template))
-    {:id           (:id template)
-     :validator-fn (t/create-template-validator template)
-     :predicate-fn (t/create-template-predicate template)}))
-
-(defn profile->validator
-  "Takes `profile`, along with an optional :validate-profile? arg,
-   and returns a vector of tuples of the Statement Template ID and
-   its Statement validation function.
-
+(defn profile->id-template-map
+  "Takes `profile` and returns a map between Statement Template IDs
+   and the Templates themselves. Used for Statement Ref Template
+   resolution.
+   
    :validate-profile? is default true. If true, `profile->validator`
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
@@ -119,9 +103,77 @@
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
                   profile)]
+    (reduce (fn [acc {:keys [id] :as template}]
+              (assoc acc id template))
+            {}
+            (:templates profile))))
+
+;; Doesn't exactly conform to stmt batch requirements since in theory,
+;; a statement ref ID can refer to a FUTURE statement in the batch.
+;; However, this shouldn't really matter in practice.
+(defn statement-batch->id-statement-map
+  "Takes the coll `statement-batch` and returns a map between
+   Statement IDs and the Statement themselves. Used for Statement
+   Ref resolution, particularly in statement batch matching."
+  [statement-batch]
+  (reduce (fn [acc statement]
+            (assoc acc (get statement "id") statement))
+          {}
+          statement-batch))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Statement Validation Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn template->validator
+  "Takes `template`, along with an optional :validate-template?
+   arg, and returns a map contaiing the Statement Template ID,
+   a validation function, and a predicate function.
+
+   :statement-ref-fns is a map with the following key-val pairs:
+     :get-template-fn   Function that takes a Statement Template ID
+                        and returns the corresponding Template. Can be
+                        created using `profile->id-template-map`.
+                        Must return `nil` if the Template is not found.
+     :get-statement-fn  Function that takes a Statement ID and
+                        returns the corresponding Statement. Must
+                        return `nil` if the Statement is not found.
+   If :statement-ref-fns is not provided, Statement Ref Template
+   properties are ignored.
+
+   :validate-template? is default true. If true, `template->validator`
+   checks that `template` conforms to the xAPI Profile spec."
+  [template & {:keys [statement-ref-fns validate-template?]
+               :or   {validate-template? true}}]
+  (let [template (if (string? template)
+                   (json/json->edn template :keywordize? true)
+                   template)]
+    (when validate-template? (assert-template template))
+    {:id           (:id template)
+     :validator-fn (t/create-template-validator template statement-ref-fns)
+     :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
+
+(defn profile->validator
+  "Takes `profile`, along with an optional :validate-profile? arg,
+   and returns a vector of tuples of the Statement Template ID and
+   its Statement validation function.
+
+   :statement-ref-fns takes the key-value pairs described in
+   `template->validator`.
+
+   :validate-profile? is default true. If true, `profile->validator`
+   checks that `profile` conforms to the xAPI Profile spec."
+  [profile & {:keys [statement-ref-fns validate-profile?]
+              :or   {validate-profile? true}}]
+  (when validate-profile? (assert-profile profile))
+  (let [profile (if (string? profile)
+                  (json/json->edn profile :keywordize? true)
+                  profile)]
     (reduce
      (fn [acc template]
-       (conj acc (template->validator template :validate-template? false)))
+       (conj acc (template->validator template
+                                      :statement-ref-fns statement-ref-fns
+                                      :validate-template? false)))
      []
      (:templates profile))))
 
@@ -248,18 +300,25 @@
    returns a map between primary Pattern IDs and their corresponding
    Pattern FSMs. Returns `{}` if there are no primary Patterns in
    `profile`. The ID of `profile` is saved as metadata for both the
-   return value and each individual FSM."
-  [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
+   return value and each individual FSM.
+   
+   :statement-ref-fns takes the key-value pairs described in
+   `template->validator`.
+
+   :validate-profile? is default true. If true, `profile->validator`
+   checks that `profile` conforms to the xAPI Profile spec."
+  [profile & {:keys [statement-ref-fns validate-profile?]
+              :or   {validate-profile? true}}]
   (let [profile (if (string? profile)
                   (json/json->edn profile :keywordize? true)
                   profile)]
     (when validate-profile? (assert-profile profile))
     (let [prof-id (-> profile latest-version :id)
-          add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))]
-      (->> profile
-           p/profile->fsms
-           (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
-                      (add-pid {}))))))
+          add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))
+          fsm-map (p/profile->fsms profile statement-ref-fns)]
+      (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
+                 (add-pid {})
+                 fsm-map))))
 
 (defn match-statement-vs-pattern
   "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is

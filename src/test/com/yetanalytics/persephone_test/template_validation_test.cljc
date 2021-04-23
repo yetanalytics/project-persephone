@@ -797,14 +797,14 @@
         (fn [id]
           (tv/create-template-validator
            (get id-template-map id)
-           :statement-ref-opts {:get-template-fn  id-template-map
-                                :get-statement-fn stmt-map}))
+           {:get-template-fn  id-template-map
+            :get-statement-fn stmt-map}))
         make-predicate
         (fn [id]
           (tv/create-template-predicate
            (get id-template-map id)
-           :statement-ref-opts {:get-template-fn  id-template-map
-                                :get-statement-fn stmt-map}))]
+           {:get-template-fn  id-template-map
+            :get-statement-fn stmt-map}))]
     (testing "statement ref template validators - valid"
       (is (nil? ((make-validator "stmt-ref-template-0")
                  (get stmt-map "stmt-0"))))
@@ -889,11 +889,13 @@
                         :failure  :sref-not-found}}]
              ((make-validator "stmt-ref-template-5")
               (get stmt-map "stmt-4"))))
-      (is (= [{:pred   :every-val-present?
+      (is (= [;; stmt-template-b
+              {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-2"]
                         :determining-property "Verb"}}
+              ;; stmt-ref-template-5 - object
               {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
@@ -903,6 +905,7 @@
                :values (get stmt-map "stmt-4")
                :rule   {:location "$.context.statement"
                         :failure  :sref-not-found}}
+              ;; stmt-ref-template-5 - context
               {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"

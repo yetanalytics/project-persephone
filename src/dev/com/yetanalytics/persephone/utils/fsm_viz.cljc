@@ -20,8 +20,7 @@
              (concat accum
                      (reduce-kv
                       (fn [accum symb dests]
-                        (case
-                         (:type fsm)
+                        (case (:type fsm)
                           :nfa
                           (concat accum (reduce
                                          (fn [accum dest]

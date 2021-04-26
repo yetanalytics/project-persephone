@@ -219,7 +219,7 @@
                          (contains? rule :none)))
                 (#{"included" "excluded" "recommended"} (:presence rule)))
     (throw (ex-info "Invalid rule."
-                    {:type ::invalid-rule-syntax
+                    {:kind ::invalid-rule-syntax
                      :rule rule}))))
 
 (defn create-rule-pred

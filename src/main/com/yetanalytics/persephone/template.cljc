@@ -101,14 +101,13 @@
 (defn- template-id->fn
   "Get the template validator or predicate using `get-template-fn`,
    and throw if `get-template-fn` returns nil."
-  [create-from-temp-fn statement-ref-opts template-id]
-  (let [{:keys [get-template-fn]} statement-ref-opts]
-    (if-some [template (get-template-fn template-id)]
-      (create-from-temp-fn template statement-ref-opts)
-      (throw (ex-info (str "Template not found: " template-id)
-                      {:kind        ::template-not-found
-                       :template-id template-id
-                       :template-fn get-template-fn})))))
+  [create-from-temp-fn {:keys [get-template-fn] :as stmt-ref-fns} template-id]
+  (if-some [template (get-template-fn template-id)]
+    (create-from-temp-fn template stmt-ref-fns)
+    (throw (ex-info (str "Template not found: " template-id)
+                    {:kind        ::template-not-found
+                     :template-id template-id
+                     :template-fn get-template-fn}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validators

@@ -215,7 +215,7 @@
         (err-printer/print-errors errs))
       :assertion
       (when-some [errs (validator-fn stmt)]
-        (throw (ex-info "Invalid Statement." {:type   ::invalid-statement
+        (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
                                               :errors errs})))
       ;; else
       (throw-unknown-opt fn-type))))
@@ -275,7 +275,7 @@
         (get-valid-ids stmt)
         :assertion
         (when-some [errs (get-errors stmt)]
-          (throw (ex-info "Invalid Statement." {:type   ::invalid-statement
+          (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
                                                 :errors errs})))
         ;; else
         (throw-unknown-opt fn-type)))))

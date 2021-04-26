@@ -37,7 +37,7 @@
                  :validate-profile? false)]
         (if (some? err)
           (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
-                          {:type      :datasim-template-test-failed
+                          {:kind      :datasim-template-test-failed
                            :statement next-stmt
                            :error     err}))
           (recur (rest stmts))))
@@ -61,7 +61,7 @@
                        (get state-info' registration))]
         (if is-rejected?
           (throw (ex-info "Statement stream not matched by tc3 Profile"
-                          {:type       :datasim-pattern-test-failed
+                          {:kind       :datasim-pattern-test-failed
                            :statement  next-stmt
                            :patterns   tc3-dfas
                            :state-info state-info'}))

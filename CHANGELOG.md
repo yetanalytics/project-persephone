@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.6.0 - 2021-04-26
+- Add Statement batch validation versus Patterns.
+- Add support for subregistrations.
+- Add support for Statement Ref Templates.
+- Further optimization of Statement validation.
+
 ## 0.5.2 - 2021-04-12
 - Fix incorrect Determining Properties logic.
 - Minor changes/refactors to error messages.

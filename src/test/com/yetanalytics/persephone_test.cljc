@@ -287,12 +287,11 @@
                 cmi-tmpl-1
                 ex-statement
                 :fn-type :result)))
-    (is (= {:pred   :every-val-present?
-            :values ["https://example.com/scores"]
-            :rule
-            {:location "$.verb.id"
-             :prop-vals ["http://adlnet.gov/expapi/verbs/launched"]
-             :determining-property "Verb"}
+    (is (= {:pred :every-val-present?
+            :vals ["https://example.com/scores"]
+            :rule {:location             "$.verb.id"
+                   :prop-vals            ["http://adlnet.gov/expapi/verbs/launched"]
+                   :determining-property "Verb"}
             :temp "https://w3id.org/xapi/cmi5#launched"
             :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
            (first (p/validate-statement-vs-template
@@ -373,11 +372,12 @@
                 (p/profile->validator cmi-profile)
                 {}
                 :fn-type :result))))
-    (is (= {:pred   :any-matchable?
-            :values [nil]
-            :rule   {:location "$.id" :presence "included"}
-            :temp   "https://w3id.org/xapi/cmi5#generalrestrictions"
-            :stmt   nil}
+    (is (= {:pred :any-matchable?
+            :vals [nil]
+            :rule {:location "$.id"
+                   :presence "included"}
+            :temp "https://w3id.org/xapi/cmi5#generalrestrictions"
+            :stmt nil}
            (-> (p/validate-statement-vs-profile
                 (p/profile->validator cmi-profile)
                 {}
@@ -694,10 +694,10 @@
                              "https://w3id.org/xapi/cmi5#toplevel"])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Will Profile
+;; CATCH Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def will-profile (slurp "test-resources/sample_profiles/will-catch.json"))
+(def catch-profile (slurp "test-resources/sample_profiles/catch.json"))
 
 (comment ;; For pattern https://w3id.org/xapi/catch/patterns#f1-1-01-completion
   "https://w3id.org/xapi/catch/templates#professional-development-event"
@@ -721,8 +721,8 @@
                 "definition" {"name" {"en-US" "Some Activity"}
                               "type" "https://foo.org/some-activity"}}
    "context"   {"contextActivities"
-                {"category"
-                 {"https://w3id.org/xapi/catch/v1" {"id" "https://w3id.org/xapi/catch/v1"}}
+                {"category" [{"objectType" "Activity"
+                              "id"         "https://w3id.org/xapi/catch/v1"}]
                  "parent"   [{"objectType" "Activity"
                               "id"         "https://example.com/competency/clojure-skill"
                               "definition" {"name"        {"en" "Skill in the Clojure Language"}
@@ -750,6 +750,8 @@
 (def attended-advocacy-stmt
   (-> statement-basics
       (assoc-in ["id"] "attended-advocacy-stmt")
+      (assoc-in ["verb"] {"id" "http://adlnet.gov/expapi/verbs/attended"
+                          "display" {"en-US" "Attended"}})
       (assoc-in ["object"]
                 {"objectType" "Activity"
                  "id" "https://w3id.org/xapi/catch/activitytypes/advocacy-event#1"
@@ -794,12 +796,12 @@
    test-stmt-2
    test-stmt-3])
 
-(def will-id-temp-map (p/profile->id-template-map will-profile))
-(def will-id-stmt-map (p/statement-batch->id-statement-map will-stmt-batch))
-(def will-compiled-profile
-  (p/profile->validator will-profile
-                        :statement-ref-fns {:get-statement-fn will-id-stmt-map
-                                            :get-template-fn will-id-temp-map}
+(def catch-id-temp-map (p/profile->id-template-map catch-profile))
+(def catch-id-stmt-map (p/statement-batch->id-statement-map will-stmt-batch))
+(def catch-compiled-profile
+  (p/profile->validator catch-profile
+                        :statement-ref-fns {:get-statement-fn catch-id-stmt-map
+                                            :get-template-fn  catch-id-temp-map}
                         :validate-profile? false))
 
 (def evidence-advocacy-provide-irl
@@ -811,19 +813,19 @@
          (some (fn [{id :id :as temp}]
                  (when (= id evidence-advocacy-provide-irl)
                    temp))
-               will-compiled-profile)
+               catch-compiled-profile)
          test-stmt-1))
     (is (p/validate-statement-vs-template
          (some (fn [{id :id :as temp}]
                  (when (= id evidence-advocacy-provide-irl)
                    temp))
-               will-compiled-profile)
+               catch-compiled-profile)
          test-stmt-2))
     (is (not (p/validate-statement-vs-template
               (some (fn [{id :id :as temp}]
                       (when (= id evidence-advocacy-provide-irl)
                         temp))
-                    will-compiled-profile)
+                    catch-compiled-profile)
               test-stmt-3)))
     (is (= (str "----- Invalid Statement -----\n"
                 "Template ID:  https://w3id.org/xapi/catch/templates#evidence-advocacy-provide\n"
@@ -839,12 +841,12 @@
               (some (fn [{id :id :as temp}]
                       (when (= id "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
                         temp))
-                    will-compiled-profile)
+                    catch-compiled-profile)
               test-stmt-3
               :fn-type :printer))))
-    (is (p/validate-statement-vs-profile will-compiled-profile
+    (is (p/validate-statement-vs-profile catch-compiled-profile
                                          test-stmt-1))
-    (is (p/validate-statement-vs-profile will-compiled-profile
+    (is (p/validate-statement-vs-profile catch-compiled-profile
                                          test-stmt-2))
-    (is (not (p/validate-statement-vs-profile will-compiled-profile
+    (is (not (p/validate-statement-vs-profile catch-compiled-profile
                                               test-stmt-3)))))

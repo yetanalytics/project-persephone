@@ -6,7 +6,7 @@
   ],
   "@context": "https://w3id.org/xapi/profiles/context",
   "author": {
-    "id": "https://www.yetanalyitcs.io",
+    "id": "https:///www.yetanalyitcs.io",
     "type": "Organization",
     "name": "Yet Analytics"
   },
@@ -755,13 +755,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.result.score.raw",
           "presence": "included",
@@ -839,13 +840,14 @@
             "en": "The timestamp when the learner viewed the rubric"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "this statement template should be used whenever a learner clicks on the drop down button to view a scoring rubric within the catch application.  This is possible within many different types of activities and will show up in every pattern in which an activity includes a rubric.  This is a simple statement of actor viewed rubric in some activity"
@@ -890,13 +892,14 @@
             "en": "this should be the name of the activity"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for when a learner needs to go back and rework a resource due to not meeting a score threshold.  This statement should come before/at the same time as the second submit statement for a given object."
@@ -945,13 +948,14 @@
             "en": "this is the reflection if entered by the learner"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for a learner providing a reflection about a piece of content or activity within the CATCH application."
@@ -995,13 +999,14 @@
             "en": "should be true if the submission was successful, false otherwise"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1066,13 +1071,14 @@
             "en": "the threshold which determines completion"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1123,13 +1129,14 @@
             "en": "should be true to indicate completion"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1178,13 +1185,14 @@
             "en": "should be 'Needs Work'"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1233,13 +1241,14 @@
             "en": "should be 'In Review'"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1288,13 +1297,14 @@
             "en": "should be 'Complete'"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1345,13 +1355,14 @@
             "en": "The message displayed to the user"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.context.statement",
           "presence": "included",
@@ -1419,13 +1430,14 @@
             "en": "this should be the id of the activity completed.  as of now, that id consists of .../catch/activities/{certification}/{domain}/{competency}/{activity-type}/{activity-name}"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for generating statements indicating that an activity was completed.  Fires off after a pattern of activity specific statements occurs measured via a threshold."
@@ -1451,13 +1463,14 @@
             "en": "The timestamp when the learner viewed the rubric"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "The description, purpose and usage of this template"
@@ -1488,13 +1501,14 @@
             "en": "The timestamp when the learner viewed the rubric"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ]
     },
     {
@@ -1543,13 +1557,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statements when the learner uploaded a lesson plan instead of designing one.  The uploaded lesson plan should be one designed by the teacher."
@@ -1606,13 +1621,14 @@
             "en": "An array of objects which contain the information about the State standards covered by the lesson plan.  each object should contain the subject, grade, strand and expectations if avialable."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This statement tempalte is for when the learner uses the provided Lesson plan template to create a lesson plan instead of uploading a lesson plan."
@@ -1662,13 +1678,14 @@
             "en": "the provider of the PD if provided"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statments describing a learner attending a PD session."
@@ -1692,43 +1709,46 @@
       "contextParentActivityType": [
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
-      "rules": [
-        {
-          "location": "$.timestamp",
-          "presence": "included",
-          "scopeNote": {
-            "en": "when the learner hit the submit button"
-          }
-        },
-        {
-          "location": "$.object.definition.name",
-          "presence": "included",
-          "scopeNote": {
-            "en": "This is the name defined in the refrenced statement"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
-      ],
+        "rules": [
+            {
+                "location": "$.timestamp",
+                "presence": "included",
+                "scopeNote": {
+                    "en": "when the learner hit the submit button"
+                }
+            },
+            {
+                "location": "$.object.definition.name",
+                "presence": "included",
+                "scopeNote": {
+                    "en": "This is the name defined in the refrenced statement"
+                }
+            },
+            {
+                "location": "$.context.contextActivities.category[*].id",
+                "presence": "included",
+                "any" : ["https://w3id.org/xapi/catch/v1"],
+                "scopeNote": {
+                    "en": "this states the the statement conforms to this profile"
+                }
+            },
+            {
+                "location": "$.context.contextActivities.grouping[*].id",
+                "presence": "included",
+                "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+                "scopeNote": {
+                    "en": "the domain"
+                }
+            },
+            {
+                "location": "$.context.contextActivities.parent[*].id",
+                "presence": "included",
+                "any" : ["https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits"],
+                "scopeNote": {
+                    "en": "the competency"
+                }
+            }
+        ],
       "definition": {
         "en": "This template is for statements regarding activity f1.1.01. This statement should refrence the PD event itself."
       },
@@ -1777,13 +1797,14 @@
             "en": "The source of the provided schedule. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to a schedule"
@@ -1833,13 +1854,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading a schedule"
@@ -1889,27 +1911,30 @@
             "en": "the source of the schedlue.  If there was a provided statement, it should be the platform within that statement.  If there was an uploaded statement, this should be the 'Local File System'."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "This template matches statements about submitting a schedule"
@@ -1945,13 +1970,14 @@
             "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statments describing a learner attending an advocacy session."
@@ -1987,13 +2013,14 @@
             "en": "the meta data about an advocacy event.  Includes an array for the type and an array for the audience."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statments describing a learner presenting at an advocacy session."
@@ -2047,13 +2074,14 @@
             "en": "The source of the provided schedule. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to evidence of an advocacy event.  The object should be the provided evidence.  The statement refrence should refrence the attended or presented event"
@@ -2107,13 +2135,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading  evidence of an advocacy event.  The object should be the uploaded evidence.  The statement refrence should refrence the attended or presented event"
@@ -2167,27 +2196,30 @@
             "en": "the source of the evidence.  If there was a provided statement, it should be the platform within that statement.  If there was an uploaded statement, this should be the 'Local File System'."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "This template matches statements about submitting evidence of attending or presenting a/at an advocacy event"
@@ -2244,27 +2276,30 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/twiop"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity f1.2.01.  The object of these statements should be the designed or uploaded lesson plan for this activity."
@@ -2321,27 +2356,30 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/twiop"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity f1.2.02.  The object of these statements should be the designed or uploaded lesson plan for this activity."
@@ -2398,27 +2436,30 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/twiop"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/twiop']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity f1.2.03.  The object of these statements should be the designed or uploaded lesson plan for this activity."
@@ -2440,13 +2481,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -2482,20 +2524,22 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/cross-linguistic-connections"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cross-linguistic-connections']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity f3.2.01.  The object of this statement should be the designed or uploaded lesson plan."
@@ -2517,13 +2561,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -2559,20 +2604,22 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/utilizing-resources"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/utilizing-resources']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity M3.2.01. The object should be the uploaded/designed lesson plan."
@@ -2597,13 +2644,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -2639,20 +2687,22 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/planning-and-preparation']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/utilizing-resources"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/utilizing-resources']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity M3.3.01. The object should be the uploaded/designed lesson plan."
@@ -2684,13 +2734,14 @@
             "en": "When the learner clicks the link to the article"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -2733,13 +2784,14 @@
             "en": "The name of the article read"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.result.duration",
           "presence": "included",
@@ -2782,27 +2834,30 @@
             "en": "The name of the article read"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/education-environment"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/cultural-awareness"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "This template is for the completion of viewing, reading and optionally reflecting on a single research article as described by activity f2-1-01."
@@ -2852,13 +2907,14 @@
             "en": "The source of the provided survey/survey results. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to surveys and/or survey results.  Survey and Survey results should be seperate statements"
@@ -2912,13 +2968,14 @@
             "en": "this field should only be used to refrence the uploading/providing statements about surveys when the object of this statement is the result of the survey"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading a survey and/or survey results for the users computer. Survey and Survey results should be seperate statements"
@@ -2965,27 +3022,30 @@
             "en": "If the learner provided survey results, the statement about providing the results should be refrenced when the current object is the survey.  If the learner did not provide results, this field should not be included in the statement"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/education-environment"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/cultural-awareness"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "This template matches statements which are generated when a learner submits their survey and optional survey results.  The object should be the survey and the results should be refrenced if they were provided.  The refrence is to the uploaded or provided statement regarding the survey results"
@@ -3007,13 +3067,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -3049,20 +3110,22 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/education-environment']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/education-environment"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/cultural-awareness"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/cultural-awareness']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity m2.1.01.  The object of this statement should be the designed or uploaded lesson plan."
@@ -3112,13 +3175,14 @@
             "en": "All tags provided by the teacher."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statements regarding the learner reaching out to families in some way.  The object's name will be the provided type in activity f4.2.01.  Each type of communication should have a unique IRI associated with it so patterns of how teachers communicate can easily be established. ie. when the type is email, that has a unique id vs flyer has its own unique identifier across all teachers.  If multiple types are supplied, the IRI should be based off of the first type entered, the one used for the object name."
@@ -3178,13 +3242,14 @@
             "en": "The source of the provided schedule. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to evidence of communication with familes.  This statement should refrence a statement which matches the communicated-with-families template.  The object is the provided link."
@@ -3244,13 +3309,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading evidence of communication with familes.  This statement should refrence a statement which matches the communicated-with-families template.  The object is the uploaded document."
@@ -3310,27 +3376,30 @@
             "en": "either the users file system or the source of the provided link."
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/professional-responsibilities"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/family-engagement"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/family-engagement']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "This template is for statements regarding the submission of evidence about communication with families. For each communication-with-families/upload statement, there should be a statement matching this template.  A learner uploads/provides the evidence and then submits it."
@@ -3352,13 +3421,14 @@
         "https://w3id.org/xapi/catch/activitytypes/competency"
       ],
       "rules": [
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "included",
@@ -3394,20 +3464,22 @@
             "en": "when the teacher hit the submit button"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/professional-responsibilities"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/family-engagement"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/family-engagement']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "The submission statement specific to activity M1.2.01. The object of this statement should be the designed/uploaded lesson plan"
@@ -3453,13 +3525,14 @@
             "en": "the tags provided by the teacher."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statements regarding the learner reaching out to parents in some way.  The object's id should be a randomly generated UUID."
@@ -3512,13 +3585,14 @@
             "en": "The source of the provided schedule. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to evidence of communication to parents.  This statement should refrence a statement which matches the communicated-to-parents template.  The object is the provided link."
@@ -3571,13 +3645,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading evidence of communication to parents.  This statement should refrence a statement which matches the communicated-with-parents template.  The object is the uploaded document."
@@ -3609,13 +3684,14 @@
             "en": "the time at which the teacher hit submit"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
+          },
         {
           "location": "$.object.definition.name",
           "presence": "recommended",
@@ -3630,20 +3706,22 @@
             "en": "the tags provided by the teacher."
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/professional-responsibilities"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/community-engagement"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/community-engagement']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        }
       ],
       "definition": {
         "en": "this template describes the user hitting submit.  A statement matching this template should be produced for each piece of evidence provided or uploaded."
@@ -3686,13 +3764,14 @@
             "en": "the tags provided by the teacher."
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template is for statements regarding the learner engaging with the community.  The object's id should be a randomly generated UUID."
@@ -3745,13 +3824,14 @@
             "en": "The source of the provided schedule. Should be parsed out of the url"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about providing a link to evidence of attending a community activity.  This statement should refrence a statement which matches the community-activity template.  The object is the provided link."
@@ -3804,13 +3884,14 @@
             "en": "The users file system.  This is implied by the verb upload but may be beneficial to have in the statement.  If its used, it should be used in all statements which match this template"
           }
         },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        }
       ],
       "definition": {
         "en": "This template matches statements about uploading evidence of attending a community activity.  This statement should refrence a statement which matches the community-activity template.  The object is the uploaded document."
@@ -3849,27 +3930,30 @@
             "en": "the name of the object in the referenced statement"
           }
         },
-        {
-          "location": "$.context.contextActivities.grouping['https://w3id.org/xapi/catch/activities/domain/professional-responsibilities']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the domain"
+          {
+              "location": "$.context.contextActivities.grouping[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/domain/professional-responsibilities"],
+              "scopeNote": {
+                  "en": "the domain"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.parent[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/activities/competency/community-engagement"],
+              "scopeNote": {
+                  "en": "the competency"
+              }
+          },
+          {
+              "location": "$.context.contextActivities.category[*].id",
+              "presence": "included",
+              "any" : ["https://w3id.org/xapi/catch/v1"],
+              "scopeNote": {
+                  "en": "this states the the statement conforms to this profile"
+              }
           }
-        },
-        {
-          "location": "$.context.contextActivities.parent['https://w3id.org/xapi/catch/activities/competency/community-engagement']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "the competency"
-          }
-        },
-        {
-          "location": "$.context.contextActivities.category['https://w3id.org/xapi/catch/v1']",
-          "presence": "included",
-          "scopeNote": {
-            "en": "this states the the statement conforms to this profile"
-          }
-        }
       ],
       "definition": {
         "en": "This template is for when the learner hits submit.  There should be a statement matching this template for each provided/uploaded evidence.  These statements should refrence the statement about the event itself."
@@ -3892,9 +3976,7 @@
       "definition": {
         "en": "This is a pattern for someone looking at a rubric"
       },
-      "optional": {
-        "id": "https://w3id.org/xapi/catch/templates#view-rubric"
-      }
+      "optional": "https://w3id.org/xapi/catch/templates#view-rubric"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#reflection",
@@ -3906,9 +3988,7 @@
       "definition": {
         "en": "This is a pattern for someone writing a reflection"
       },
-      "optional": {
-        "id": "https://w3id.org/xapi/catch/templates#wrote-reflection"
-      }
+      "optional": "https://w3id.org/xapi/catch/templates#wrote-reflection"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#upload-or-design-lesson-plan",
@@ -3966,9 +4046,7 @@
       "definition": {
         "en": "matches if there is an incomplete activity or a succssful activity.  Needed to allow for multiple attemps and a definite conclusion."
       },
-      "zeroOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#system-updates-status-incomplete"
-      }
+      "zeroOrMore": "https://w3id.org/xapi/catch/patterns#system-updates-status-incomplete"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#mentor-scores-activity",
@@ -4083,9 +4161,7 @@
       "definition": {
         "en": "one or more submission of a schedule for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f1-1-03-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f1-1-03-completion",
@@ -4182,9 +4258,7 @@
       "definition": {
         "en": "one or more submission of advocacy event evidence for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f1-1-04-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f1-1-04-completion",
@@ -4263,9 +4337,7 @@
       "definition": {
         "en": "one or more submission of lesson plan 1 for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f1-2-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f1-2-01-completion",
@@ -4331,9 +4403,7 @@
       "definition": {
         "en": "one or more submission of lesson plan 2 for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f1-2-02-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f1-2-02-completion",
@@ -4399,9 +4469,7 @@
       "definition": {
         "en": "one or more submission of lesson plan 3 for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f1-2-03-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f1-2-03-completion",
@@ -4480,9 +4548,7 @@
       "definition": {
         "en": "one or more submission of a lesson plan for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f3-2-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-completion",
@@ -4509,9 +4575,7 @@
       "prefLabel": {
         "en": "complete Two-Way Sheltered Instruction"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#f3-2-01-completion"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#f3-2-01-completion"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-iteration",
@@ -4559,9 +4623,7 @@
       "definition": {
         "en": "one or more submission of a lesson plan and resources for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#m3-2-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#m3-2-01-completion",
@@ -4627,9 +4689,7 @@
       "definition": {
         "en": "one or more submission of a lesson plan and resources for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#m3-3-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#m3-3-01-completion",
@@ -4735,9 +4795,7 @@
       "definition": {
         "en": "providing or uploading a survey and maybe survey results"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-survey-evidence"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#upload-or-provide-survey-evidence"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#submit-survey-maybe-result",
@@ -4749,9 +4807,7 @@
       "definition": {
         "en": "submitting a survey and maybe survey results"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/templates#f2-1-02"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/templates#f2-1-02"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#f2-1-02-completion",
@@ -4818,9 +4874,7 @@
       "definition": {
         "en": "one or more submission of a lesson plan for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#m2-1-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#m2-1-01-completion",
@@ -4860,9 +4914,7 @@
       "prefLabel": {
         "en": "complete Dual Language Education Environment"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#cultural-awareness-completion"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#cultural-awareness-completion"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#upload-or-provide-communication-with-family-evidence",
@@ -4958,9 +5010,7 @@
       "definition": {
         "en": "one or more submission of a lesson plan and resources for scoring"
       },
-      "oneOrMore": {
-        "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-scored"
-      }
+      "oneOrMore": "https://w3id.org/xapi/catch/patterns#m1-2-01-scored"
     },
     {
       "id": "https://w3id.org/xapi/catch/patterns#m1-2-01-completion",
@@ -5104,7 +5154,7 @@
       ]
     },
     {
-      "id": "https://w3id.org/xapi/catch/patterns#community-engagement-completion",
+      "id": "https://w3id.org/xapi/catch/patterns#family-community-engagement-completion",
       "type": "Pattern",
       "inScheme": "https://w3id.org/xapi/catch/v1",
       "prefLabel": {

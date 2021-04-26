@@ -381,25 +381,25 @@
                          (get-statement-fn sref-id))]
         (cond
           (not sref)
-          [{:pred    :statement-ref?
-            :values  statement
-            :rule    {:location stmt-ref-path
-                      :failure  :sref-not-found}}]
+          [{:pred :statement-ref?
+            :vals statement
+            :rule {:location stmt-ref-path
+                   :failure  :sref-not-found}}]
           (not sref-type?)
-          [{:pred    :statement-ref?
-            :values  sref
-            :rule    {:location stmt-ref-path
-                      :failure  :sref-object-type-invalid}}]
+          [{:pred :statement-ref?
+            :vals sref
+            :rule {:location stmt-ref-path
+                   :failure  :sref-object-type-invalid}}]
           (not sref-id)
-          [{:pred    :statement-ref?
-            :values  sref
-            :rule    {:location stmt-ref-path
-                      :failure  :sref-id-missing}}]
+          [{:pred :statement-ref?
+            :vals sref
+            :rule {:location stmt-ref-path
+                   :failure  :sref-id-missing}}]
           (not sref-stmt)
-          [{:pred    :statement-ref?
-            :values  sref-id
-            :rule    {:location stmt-ref-path
-                      :failure  :sref-stmt-not-found}}]
+          [{:pred :statement-ref?
+            :vals sref-id
+            :rule {:location stmt-ref-path
+                   :failure  :sref-stmt-not-found}}]
           ;; TODO: Add additional errors for referencing future statements?
           :else
           (validate-stmt-fn sref-stmt))))))
@@ -448,9 +448,9 @@
           ;; :pred - the predicate that failed, causing this error
           ;; :values - the values that the predicate failed on
           ;; :rule - the Statement Template rule associated with the error
-          {:pred   fail-pred
-           :values values
-           :rule   rule})))))
+          {:pred fail-pred
+           :vals values
+           :rule rule})))))
 
 (defn create-rule-predicate
   "Given `rule`, create a function that returns true or false when

@@ -121,40 +121,42 @@
 (defn error-msg-str
   "Create a pretty error log output when a property or rule is not
    followed."
-  [{:keys [pred rule values] :as _error}]
+  [{:keys [pred rule vals] :as _error}]
   (cond
     ;; Statement Ref Templates
     (= :statement-ref? pred)
     (let [{fail :failure sref :location} rule]
-      (sref-error-str fail sref values))
+      (sref-error-str fail sref vals))
     ;; Determining Properties
     (contains? rule :determining-property)
-    (let [{prop :determining-property vals :prop-vals} rule]
-      (prop-error-str prop vals values))
+    (let [{prop :determining-property pvals :prop-vals} rule]
+      (prop-error-str prop pvals vals))
     ;; Rules
     :else
-    (rule-error-str rule pred values)))
+    (rule-error-str rule pred vals)))
 
 (defn print-errors
   "Print all the errors in `error-vec`, grouped by Statement and
    Template ID."
   [error-vec]
-  (let [errors (->> error-vec
-                    (reduce (fn [acc {:keys [temp stmt] :as err}]
-                              (update
-                               acc
-                               [temp stmt]
-                               (fn [errs] (if err (conj errs err) [err]))))
-                            {})
-                    (mapv (fn [[header errs]] [header (reverse errs)])))]
-    (doseq [[[temp-id stmt-id] errs] errors]
+  ;; Not exactly the most optimized way of doing things, but that's not
+  ;; really a priority when printing
+  (let [error-vec' (->> error-vec
+                        (reduce (fn [acc {:keys [temp stmt] :as err}]
+                                  (update
+                                   acc
+                                   [temp stmt]
+                                   (fn [errs] (if err (conj errs err) [err]))))
+                                {})
+                        (mapv (fn [[header errs]] [header (reverse errs)])))]
+    (doseq [[[temp-id stmt-id] error-subvec] error-vec']
       (print (fmt (str "----- Invalid Statement -----\n"
                        "Template ID:  %s\n"
                        "Statement ID: %s\n"
                        "\n")
-                  (str temp-id)
-                  (str stmt-id)))
-      (doseq [error errs]
+                  temp-id
+                  stmt-id))
+      (doseq [error error-subvec]
         (println (error-msg-str error))))
     (print (fmt (str "-----------------------------\n"
                      "Total errors found: %d\n"

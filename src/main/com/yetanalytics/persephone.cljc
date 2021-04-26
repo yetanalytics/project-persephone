@@ -198,7 +198,7 @@
                  invalid. Always returns nil."
   [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
   (let [stmt (if (string? statement) (json/json->edn statement) statement)
-        {:keys [id validator-fn predicate-fn]} compiled-template]
+        {:keys [validator-fn predicate-fn]} compiled-template]
     (case fn-type
       :predicate
       (predicate-fn stmt)

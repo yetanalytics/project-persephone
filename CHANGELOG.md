@@ -7,7 +7,6 @@
 - Further optimization of Statement validation.
 - Redo directory and namespace organization:
   - Remove `gen` directory and gentest-specific runners
-  - Move `test.check` dep (downstream may need to use `:exclusions`)
   - Remove the word "validate" from `pattern-validate` and `template-validate`
   - Move `fsm` and `fsm-spec` to `pattern` directory
   - Move `errors` to `template` directory

@@ -1,7 +1,10 @@
 (ns com.yetanalytics.persephone-test.pattern-test.fsm-test
+  #_{:clj-kondo/ignore [:unused-namespace]} ; need spec.test ns for macros
   (:require [clojure.test :refer [deftest testing is]]
+            [clojure.test.check]
+            [clojure.test.check.generators]
+            [clojure.test.check.properties :include-macros true]
             [clojure.spec.alpha :as s]
-            #_{:clj-kondo/ignore [:unused-namespace]} ; need ns for macros
             [clojure.spec.test.alpha :as stest]
             [com.yetanalytics.persephone.pattern.fsm-spec :as fs]
             [com.yetanalytics.persephone.pattern.fsm :as fsm])

@@ -1,8 +1,5 @@
 (ns com.yetanalytics.persephone.pattern.fsm-spec
-  (:require #?@(:cljs [[clojure.test.check]
-                       [clojure.test.check.generators]
-                       [clojure.test.check.properties :include-macros true]])
-            [clojure.spec.alpha :as s]
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as sgen]
             [clojure.set :as cset]))
 
@@ -174,11 +171,11 @@
 (defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
 
 (def nfa-common-spec (s/and valid-nfa-keys?
-                     valid-start-state?
-                     valid-accept-states?
-                     valid-transition-src-states?
-                     valid-transition-dest-states-nfa?
-                     valid-transition-symbols-nfa?))
+                            valid-start-state?
+                            valid-accept-states?
+                            valid-transition-src-states?
+                            valid-transition-dest-states-nfa?
+                            valid-transition-symbols-nfa?))
 
 (def nfa-spec
   (s/with-gen
@@ -260,10 +257,10 @@
   (s/valid? :set-dfa/dfa dfa))
 
 (def dfa-common-spec (s/and valid-start-state?
-                     valid-accept-states?
-                     valid-transition-src-states?
-                     valid-transition-dest-states-dfa?
-                     valid-transition-symbols-dfa?))
+                            valid-accept-states?
+                            valid-transition-src-states?
+                            valid-transition-dest-states-dfa?
+                            valid-transition-symbols-dfa?))
 
 (def dfa-gen-fmap
   (partial fsm-overrider

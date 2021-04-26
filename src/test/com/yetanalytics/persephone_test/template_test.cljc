@@ -1,56 +1,8 @@
-(ns com.yetanalytics.persephone-test.template-validation-test
-  (:require [clojure.test :refer [deftest testing is are]]
-            [com.yetanalytics.pathetic :as path]
+(ns com.yetanalytics.persephone-test.template-test
+  (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.utils.json :as json]
-            [com.yetanalytics.persephone.utils.errors :as print-errs]
-            [com.yetanalytics.persephone.template-validation :as tv
-             #?@(:clj [:refer [wrap-pred and-wrapped or-wrapped add-wrapped]]
-                 :cljs [:refer-macros [wrap-pred and-wrapped or-wrapped add-wrapped]])]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Utils Tests
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn is-a? [a x] (= a x))
-(defn is-b? [b x] (= b x))
-
-(def is-zero?
-  (-> (wrap-pred even?)
-      (add-wrapped is-a? 0)
-      (add-wrapped is-b? nil)))
-
-(def is-even?
-  (-> (wrap-pred even?)
-      (add-wrapped is-a? nil)))
-
-(def is-zero-2?
-  (and-wrapped (wrap-pred even?) (wrap-pred zero?)))
-
-(def is-even-2?
-  (or-wrapped (wrap-pred even?) (wrap-pred zero?)))
-
-(deftest macro-test
-  (testing "template validation util macros"
-    (are [expected v]
-         (= expected (is-zero? v))
-      nil 0
-      :even? 1
-      :is-a? 2)
-    (are [expected v]
-         (= expected (is-even? v))
-      nil 0
-      nil 2
-      :even? 1)
-    (are [expected v]
-         (= expected (is-zero-2? v))
-      nil 0
-      :even? 1
-      :zero? 2)
-    (are [expected v]
-         (= expected (is-even-2? v))
-      nil 0
-      :even? 1
-      nil 2)))
+            [com.yetanalytics.persephone.template.errors :as print-errs]
+            [com.yetanalytics.persephone.template :as tv]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
@@ -158,121 +110,6 @@
             :all      ["Activity"]}]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Util function tests
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftest all-matchable?-test
-  (testing "all-matchable? function: return true iff every value is matchable."
-    (is (tv/all-matchable? ["foo" "bar" "stan loona"]))
-    (is (tv/all-matchable? [])) ;; vacuously true
-    (is (not (tv/all-matchable? [nil nil nil])))
-    (is (not (tv/all-matchable? [nil nil "what the pineapple"])))))
-
-(deftest none-matchable?-test
-  (testing "none-matchable? function: return true iff no value is matchable."
-    (is (tv/none-matchable? []))
-    (is (tv/none-matchable? [nil nil nil]))
-    (is (not (tv/none-matchable? ["foo" "bar"])))
-    (is (not (tv/none-matchable? [nil nil "what the pineapple"])))))
-
-(deftest any-matchable?-test
-  (testing "any-matchable? function: return true iff some values are matchable."
-    (is (tv/any-matchable? [nil nil "still good"]))
-    (is (tv/any-matchable? ["foo" "bar" "all good"]))
-    (is (not (tv/any-matchable? [])))
-    (is (not (tv/any-matchable? [nil nil nil])))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Rules predicate tests
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- value-map
-  "Given an array of keys (each corresponding to a level of map
-   nesting), return corresponding values from a vector of maps."
-  [map-vec & ks]
-  (mapv #(get-in % ks) map-vec))
-
-;; $.actor.member[*].name = ["Andrew Downes" "Toby Nichols" "Ena Hills"]
-(def name-values
-  (value-map (get-in ex-statement-3 ["actor" "member"]) "name"))
-
-(deftest some-any-values?-test
-  (testing "some-any-values? fn: values MUST include at least one value that is
-           given by 'any', ie. the collections need to intersect."
-    (is (tv/some-any-values? #{"Andrew Downes" "Toby Nichols"} name-values))
-    (is (tv/some-any-values? #{"Andrew Downes" "Will Hoyt"} name-values))
-    (is (not (tv/some-any-values? #{"Will Hoyt" "Milt Reder"} name-values)))
-    (is (not (tv/some-any-values? #{} name-values)))
-    ;; any-values is undefined if there are no matchable values
-    (is (not (tv/some-any-values? #{} [])))
-    (is (not (tv/some-any-values? #{"Andrew Downes"} [nil])))))
-
-(deftest only-all-values?-test
-  (testing "only-all-values? fn: values MUST all be from the values given by
-           'all'."
-    (is (tv/only-all-values? #{"Andrew Downes" "Toby Nichols" "Ena Hills"}
-                             name-values))
-    ;; Superset is okay
-    (is (tv/only-all-values? #{"Andrew Downes" "Toby Nichols" "Ena Hills" "Will Hoyt"}
-                             name-values))
-    (is (not (tv/only-all-values? #{"Andrew Downes" "Toby Nichols"} name-values)))
-    (is (not (tv/only-all-values? #{} name-values)))))
-
-(deftest no-none-values?-test
-  (testing "no-none-values fn: values MUST NOT be included in the set given
-           by 'none'."
-    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} name-values))
-    (is (not (tv/no-none-values? #{"Andrew Downes"} name-values)))
-    (is (not (tv/no-none-values? #{"Will Hoyt" "Milt Reder" "Ena Hills"}
-                                 name-values)))
-    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} []))
-    (is (tv/no-none-values? #{"Will Hoyt" "Milt Reder"} [nil]))
-    ;; If there is nothing to exclude, we should be okay
-    (is (tv/no-none-values? #{} name-values))
-    (is (tv/no-none-values? #{} []))))
-
-(deftest no-unmatch-vals?-test
-  (testing "no-unmatch-vals? fn: no unmatchable values allowed."
-    (is (tv/no-unmatch-vals? #{"Andrew Downes" "Toby Nichols" "Ena Hills"} []))
-    (is (not (tv/no-unmatch-vals? #{"Andrew Downes"} [nil nil])))
-    (is (not (tv/no-unmatch-vals? #{} [nil nil])))))
-
-;; Predicates for our next tests
-(def included-pred
-  (tv/create-included-pred {:presence "included" :any ["Andrew Downes"]}))
-
-(def excluded-pred
-  (tv/create-excluded-pred {:presence "excluded"}))
-
-(def recommended-pred
-  (tv/create-default-pred {:presence "recommended" :any ["Andrew Downes"]}))
-
-(deftest create-included-pred-test
-  (testing "create-included-pred function: create a predicate when presence is
-           'included'. Values MUST have at least one matchable value (and no
-           unmatchable values) and MUST follow any/all/none reqs."
-    (is (nil? (included-pred name-values)))
-    (is (= :some-any-values? (included-pred ["Will Hoyt"])))
-    (is (= :any-matchable? (included-pred [])))
-    (is (= :all-matchable? (included-pred ["Andrew Downes" nil])))))
-
-(deftest create-excluded-pred-test
-  (testing "create-excluded-pred function: create a predicate when presence is
-           'excluded.' There MUST NOT be any matchable values."
-    (is (nil? (excluded-pred [])))
-    (is (nil? (excluded-pred [nil nil])))
-    (is (= :none-matchable? (excluded-pred name-values)))
-    (is (= :none-matchable? (excluded-pred (conj name-values nil))))))
-
-;; The test for when presence is missing is pretty much the same. 
-(deftest create-recommended-pred-test
-  (testing "create-recommended-pred function: create a predicate when presence
-           is 'recommended'. MUST follow any/all/none reqs."
-    (is (nil? (recommended-pred [])))
-    (is (nil? (recommended-pred name-values)))
-    (is (= :some-any-values? (recommended-pred ["Will Hoyt"])))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -281,38 +118,38 @@
           values evaluated by the JSONPath strings."
     (is (= ["http://foo.org/verb"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.verb.id"))))
+                           (tv/parse-locator "$.verb.id"))))
     (is (= ["Agent"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor.objectType"))))
+                           (tv/parse-locator "$.actor.objectType"))))
     (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor.member[*].name"))))
+                           (tv/parse-locator "$.actor.member[*].name"))))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor.mbox"))))
+                           (tv/parse-locator "$.actor.mbox"))))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor.mbox")
+                           (tv/parse-locator "$.actor.mbox")
                            nil)))
     (is (= ["mailto:email@yetanalytics.io"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor")
-                           (path/parse-paths "$[*].mbox"))))
+                           (tv/parse-locator "$.actor")
+                           (tv/parse-selector "$.mbox"))))
     (is (= [nil]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor")
-                           (path/parse-paths "$[*].mbox_sha1sum"))))
+                           (tv/parse-locator "$.actor")
+                           (tv/parse-selector "$.mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor.mbox | $.actor.mbox_sha1sum"))))
+                           (tv/parse-locator "$.actor.mbox | $.actor.mbox_sha1sum"))))
     (is (= ["mailto:email@yetanalytics.io" nil]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.actor")
-                           (path/parse-paths "$[*].mbox | $[*].mbox_sha1sum"))))
+                           (tv/parse-locator "$.actor")
+                           (tv/parse-selector "$.mbox | $.mbox_sha1sum"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths
+                           (tv/parse-locator
                             "$.object.objectType 
                             | $.context.contextActivities.parent[*].objectType 
                             | $.context.contextActivities.grouping[*].objectType
@@ -320,28 +157,28 @@
                             | $.context.contextActivities.other[*].objectType"))))
     (is (= ["Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity" "Activity"]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.context.contextActivities")
-                           (path/parse-paths
-                            "$[*].parent[*].objectType 
-                           | $[*].grouping[*].objectType
-                           | $[*].category[*].objectType
-                           | $[*].other[*].objectType"))))
+                           (tv/parse-locator "$.context.contextActivities")
+                           (tv/parse-selector
+                            "$.parent[*].objectType 
+                           | $.grouping[*].objectType
+                           | $.category[*].objectType
+                           | $.other[*].objectType"))))
     (is (= 4 (count (tv/find-values
                      ex-statement-0
-                     (path/parse-paths "$.context.contextActivities.parent 
+                     (tv/parse-locator "$.context.contextActivities.parent 
                                 | $.context.contextActivities.grouping
                                 | $.context.contextActivities.category
                                 | $.context.contextActivities.other")))))
     (is (vector? (first (tv/find-values
                          ex-statement-0
-                         (path/parse-paths "$.context.contextActivities.parent 
+                         (tv/parse-locator "$.context.contextActivities.parent 
                                  | $.context.contextActivities.grouping
                                  | $.context.contextActivities.category
                                  | $.context.contextActivities.other")))))
     (is (= [nil nil nil nil]
            (tv/find-values
             ex-statement-0
-            (path/parse-paths "$.context.contextActivities.parent.fi
+            (tv/parse-locator "$.context.contextActivities.parent.fi
                           | $.context.contextActivities.grouping.fy
                           | $.context.contextActivities.category.fo
                           | $.context.contextActivities.other.fum"))))
@@ -351,13 +188,13 @@
              "http://foo.org/ccat1" "http://foo.org/ccat2"
              "http://foo.org/coat1" "http://foo.org/coat2"}
            (set (tv/find-values ex-statement-0
-                                (path/parse-paths "$..type")))))
+                                (tv/parse-locator "$..type")))))
     (is (= [9001]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$.result.score.raw"))))
+                           (tv/parse-locator "$.result.score.raw"))))
     (is (= [9001]
            (tv/find-values ex-statement-0
-                           (path/parse-paths "$..raw"))))))
+                           (tv/parse-locator "$..raw"))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties tests

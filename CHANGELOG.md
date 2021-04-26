@@ -2,9 +2,16 @@
 
 ## 0.6.0 - 2021-04-26
 - Add Statement batch validation versus Patterns.
-- Add support for subregistrations.
+- Add support for sub-registrations.
 - Add support for Statement Ref Templates.
 - Further optimization of Statement validation.
+- Redo directory and namespace organization:
+  - Remove `gen` directory and gentest-specific runners
+  - Move `test.check` dep (downstream may need to use `:exclusions`)
+  - Remove the word "validate" from `pattern-validate` and `template-validate`
+  - Move `fsm` and `fsm-spec` to `pattern` directory
+  - Move `errors` to `template` directory
+  - Separate template predicates into their own `predicate` namespace
 
 ## 0.5.2 - 2021-04-12
 - Fix incorrect Determining Properties logic.

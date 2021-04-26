@@ -1,8 +1,8 @@
-(ns com.yetanalytics.persephone.pattern-validation
+(ns com.yetanalytics.persephone.pattern
   (:require [clojure.walk :as w]
             [clojure.zip  :as zip]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]
-            [com.yetanalytics.persephone.template-validation :as tv]))
+            [com.yetanalytics.persephone.pattern.fsm :as fsm]
+            [com.yetanalytics.persephone.template :as t]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Asserts + Exceptions
@@ -130,7 +130,7 @@
              :else
              (throw-invalid-pattern node)))
      (= "StatementTemplate" type)
-     (fsm/transition-nfa id (tv/create-template-predicate node stmt-ref-opts))
+     (fsm/transition-nfa id (t/create-template-predicate node stmt-ref-opts))
      :else
      node)))
 

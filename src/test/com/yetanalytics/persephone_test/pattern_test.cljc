@@ -1,8 +1,8 @@
-(ns com.yetanalytics.persephone-test.pattern-validation-test
+(ns com.yetanalytics.persephone-test.pattern-test
   (:require [clojure.test :refer [deftest testing is]]
             [clojure.zip :as zip]
-            [com.yetanalytics.persephone.pattern-validation :as pv]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]))
+            [com.yetanalytics.persephone.pattern :as pv]
+            [com.yetanalytics.persephone.pattern.fsm :as fsm]))
 
 (def ex-profile
   {:_context   "https://w3id.org/xapi/profiles/context"

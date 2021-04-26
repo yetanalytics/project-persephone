@@ -1,13 +1,13 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.pan.objects.template           :as pan-template]
-            [com.yetanalytics.persephone.template-validation :as t]
-            [com.yetanalytics.persephone.pattern-validation  :as p]
-            [com.yetanalytics.persephone.utils.fsm    :as fsm]
-            [com.yetanalytics.persephone.utils.json   :as json]
-            [com.yetanalytics.persephone.utils.time   :as time]
-            [com.yetanalytics.persephone.utils.errors :as err-printer]))
+            [com.yetanalytics.pan.objects.template :as pan-template]
+            [com.yetanalytics.persephone.template :as t]
+            [com.yetanalytics.persephone.pattern  :as p]
+            [com.yetanalytics.persephone.utils.json      :as json]
+            [com.yetanalytics.persephone.utils.time      :as time]
+            [com.yetanalytics.persephone.pattern.fsm     :as fsm]
+            [com.yetanalytics.persephone.template.errors :as err-printer]))
 
 (def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
 

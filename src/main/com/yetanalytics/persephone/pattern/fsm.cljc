@@ -1,5 +1,7 @@
-(ns com.yetanalytics.persephone.utils.fsm
-  (:require [clojure.set :as cset]))
+(ns com.yetanalytics.persephone.pattern.fsm
+  (:require [clojure.spec.alpha :as s]
+            [clojure.set        :as cset]
+            [com.yetanalytics.persephone.pattern.fsm-spec :as fs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Finite State Machine Library
@@ -113,11 +115,32 @@
         (update :transitions #(cset/rename-keys % old-to-new-state))
         (update :transitions update-dests))))
 
+(s/fdef alphatize-states-fsm
+  :args (s/cat :fsm (s/or :nfa ::fs/nfa
+                          :dfa (s/or :ints ::fs/dfa
+                                     :sets ::fs/set-dfa)))
+  :ret (s/or :nfa ::fs/nfa :dfa ::fs/dfa)
+  :fn (fn [{:keys [args ret]}]
+        (= (count (:states args))
+           (count (:states ret)))))
+
 (defn alphatize-states-fsm
   "Rename all states in a single FSM."
   [fsm]
   (reset-counter)
   (alphatize-states-fsm* fsm))
+
+(s/fdef alphatize-states
+  :args (s/cat :fsm-coll (s/every (s/or :nfa ::fs/nfa
+                                        :dfa (s/or :ints ::fs/dfa
+                                                   :sets ::fs/set-dfa))
+                                  :min-count 1
+                                  :gen-max 10))
+  :ret (s/every (s/or :nfa ::fs/nfa :dfa ::fs/dfa)
+                :min-count 1)
+  :fn (fn [{:keys [args ret]}]
+        (= (fs/count-states args)
+           (count (:states ret)))))
 
 (defn alphatize-states
   "Rename all states in a collection of FSMs such that no two states share the
@@ -163,6 +186,12 @@
 
 ;;    i    
 ;; x ---> a
+
+(s/fdef transition-nfa
+  :args (s/cat :fn-symbol ::fs/symbol-id :fn ::fs/symbol-pred)
+  :ret (and ::fs/thompsons-nfa
+            (fn [{:keys [states]}] (= 2 (count states)))))
+
 (defn transition-nfa
   "Create an NFA that accepts a single input."
   [fn-symbol f]
@@ -176,6 +205,13 @@
      :transitions {start  {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
+
+(s/fdef concat-nfa
+  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::fs/thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (fs/count-states (:nfa-coll args)) (count (:states ret)))))
+
 (defn concat-nfa
   "Concat a collection of NFAs in sequential order. The function throws an
    exception on empty collections."
@@ -214,6 +250,13 @@
 ;;    + --> s ==> s --v
 ;; -> q               f
 ;;    + --> s ==> s --^
+
+(s/fdef union-nfa
+  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
+  :ret ::fs/thompsons-nfa
+  :fn (fn [{:keys [args ret]}]
+        (= (+ 2 (fs/count-states (:nfa-coll args))) (count (:states ret)))))
+
 (defn union-nfa
   "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
   [nfa-coll]
@@ -241,6 +284,11 @@
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 ;;    +-----------------^
+
+(s/fdef kleene-nfa
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
+
 (defn kleene-nfa
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
    means the NFA can be taken zero or more times."
@@ -263,6 +311,11 @@
 
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
+
+(s/fdef optional-nfa
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
+
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
    means the NFA may or may not be taken."
@@ -285,6 +338,11 @@
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
+
+(s/fdef plus-nfa
+  :args (s/cat :nfa ::fs/thompsons-nfa)
+  :ret ::fs/thompsons-nfa)
+
 (defn plus-nfa
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
    means the NFA can be taken one or more times."
@@ -433,6 +491,10 @@
             ;; Alphatize DFA states
             alphatize-states-fsm)))))
 
+(s/fdef nfa->dfa
+  :args (s/cat :nfa ::fs/nfa)
+  :ret ::fs/dfa)
+
 (defn nfa->dfa
   "Given an NFA with epsilon transitions, perform the powerset construction in
    order to (semi)-determinize it and remove epsilon transitions."
@@ -481,6 +543,13 @@
 ;; For more information about Brzozowski's Algorithm, see:
 ;; https://cs.stackexchange.com/questions/1872/brzozowskis-algorithm-for-dfa-minimization
 ;; https://cs.stackexchange.com/questions/105574/proof-of-brzozowskis-algorithm-for-dfa-minimization
+
+(s/fdef minimize-dfa
+  :args (s/cat :dfa ::fs/dfa)
+  :ret ::fs/dfa
+  :fn (fn [{:keys [args ret]}]
+        (<= (-> ret :states count)
+            (-> args :dfa :states count))))
 
 (defn minimize-dfa
   "Minimize the DFA using Brzozowski's Algorithm, which reverses and

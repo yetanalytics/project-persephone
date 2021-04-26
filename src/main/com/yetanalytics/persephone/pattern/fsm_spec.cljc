@@ -1,17 +1,16 @@
-(ns com.yetanalytics.persephone-test.util-test.fsm-spec
+(ns com.yetanalytics.persephone.pattern.fsm-spec
   (:require #?@(:cljs [[clojure.test.check]
                        [clojure.test.check.generators]
                        [clojure.test.check.properties :include-macros true]])
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as sgen]
-            [clojure.set :as cset]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]))
+            [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Property Predicates
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- count-states [fsm-coll]
+(defn count-states [fsm-coll]
   (reduce (fn [cnt {:keys [states]}] (+ cnt (count states)))
           0
           fsm-coll))
@@ -284,68 +283,3 @@
                    (fn [] (sgen/fmap
                            dfa-gen-fmap
                            (s/gen :set-dfa/dfa-basics)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Function specs
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(s/fdef fsm/alphatize-states-fsm
-  :args (s/cat :fsm (s/or :nfa ::nfa
-                          :dfa (s/or :ints ::dfa
-                                     :sets ::set-dfa)))
-  :ret (s/or :nfa ::nfa :dfa ::dfa)
-  :fn (fn [{:keys [args ret]}]
-        (= (count (:states args))
-           (count (:states ret)))))
-
-(s/fdef fsm/alphatize-states
-  :args (s/cat :fsm-coll (s/every (s/or :nfa ::nfa
-                                        :dfa (s/or :ints ::dfa
-                                                   :sets ::set-dfa))
-                                  :min-count 1
-                                  :gen-max 10))
-  :ret (s/every (s/or :nfa ::nfa :dfa ::dfa)
-                :min-count 1)
-  :fn (fn [{:keys [args ret]}]
-        (= (count-states args)
-           (count (:states ret)))))
-
-(s/fdef fsm/transition-nfa
-  :args (s/cat :fn-symbol ::symbol-id :fn ::symbol-pred)
-  :ret (and ::thompsons-nfa
-            (fn [{:keys [states]}] (= 2 (count states)))))
-
-(s/fdef fsm/concat-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::thompsons-nfa
-  :fn (fn [{:keys [args ret]}]
-        (= (count-states (:nfa-coll args)) (count (:states ret)))))
-
-(s/fdef fsm/union-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::thompsons-nfa
-  :fn (fn [{:keys [args ret]}]
-        (= (+ 2 (count-states (:nfa-coll args))) (count (:states ret)))))
-
-(s/fdef fsm/kleene-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/optional-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/plus-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/nfa->dfa
-  :args (s/cat :nfa ::nfa)
-  :ret ::dfa)
-
-(s/fdef fsm/minimize-dfa
-  :args (s/cat :dfa ::dfa)
-  :ret ::dfa
-  :fn (fn [{:keys [args ret]}]
-        (<= (-> ret :states count)
-            (-> args :dfa :states count))))

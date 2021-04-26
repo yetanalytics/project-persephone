@@ -1,18 +1,10 @@
-(ns com.yetanalytics.persephone.utils.errors
+(ns com.yetanalytics.persephone.template.errors
   (:require [clojure.string :as string]
             #?@(:cljs [[goog.string :as gstring]
                        [goog.string.format]])))
 
 ;; Format function
-
 (def fmt #?(:clj format :cljs gstring/format))
-
-;; Generic error messages
-(def profile-exception-msg
-  "Exception thrown: Cannot process profile.")
-
-(def statement-exception-msg
-  "Exception thrown: Cannot process statement.")
 
 ;; Statement Template error messages
 (def error-msgs-map
@@ -162,9 +154,3 @@
                      "Total errors found: %d\n"
                      "\n")
                 (count error-vec)))))
-
-(defn print-bad-statement
-  "Prints the Statmeent ID if it is rejected by a Pattern."
-  [statement]
-  (let [err-msg (str "Pattern rejected statement " (:id statement))]
-    (println err-msg)))

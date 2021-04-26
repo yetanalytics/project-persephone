@@ -1,8 +1,9 @@
 (ns com.yetanalytics.persephone.pattern
   (:require [clojure.walk :as w]
             [clojure.zip  :as zip]
+            [com.yetanalytics.persephone.utils.maps  :as m]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]
-            [com.yetanalytics.persephone.template :as t]))
+            [com.yetanalytics.persephone.template    :as t]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Asserts + Exceptions
@@ -17,24 +18,11 @@
 ;; Object maps and seqs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO Patterns from external profiles 
-(defn mapify-patterns
-  "Given a profile, turn its Pattern vector into a map between the Pattern IDs
-  and the patterns themselves."
-  [{:keys [patterns]}]
-  (zipmap (mapv :id patterns) patterns))
-
-;; TODO Templates from external profiles
-(defn mapify-templates
-  "Given a profile, turn its Templates vector into a map between the Template
-  IDs and the templates themselves."
-  [{:keys [templates]}]
-  (zipmap (mapv :id templates) templates))
-
+;; TODO Templates and Patterns from external profiles 
 (defn mapify-all
   "Put all Templates and Patterns of a profile into a unified map."
-  [profile]
-  (merge (mapify-patterns profile) (mapify-templates profile)))
+  [{:keys [templates patterns] :as _profile}]
+  (merge (m/mapify-coll templates) (m/mapify-coll patterns)))
 
 (defn primary-patterns
   "Get a sequence of all of the primary Patterns in a Profile."

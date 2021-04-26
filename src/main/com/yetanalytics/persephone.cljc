@@ -5,11 +5,34 @@
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.json      :as json]
+            [com.yetanalytics.persephone.utils.maps      :as maps]
             [com.yetanalytics.persephone.utils.time      :as time]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
             [com.yetanalytics.persephone.template.errors :as err-printer]))
 
 (def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Coercions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- coerce-statement
+  [statement]
+  (if (string? statement)
+    (json/json->edn statement)
+    statement))
+
+(defn- coerce-template
+  [template]
+  (if (string? template)
+    (json/json->edn template :keywordize? true)
+    template))
+
+(defn- coerce-profile
+  [profile]
+  (if (string? profile)
+    (json/json->edn profile :keywordize? true)
+    profile))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Assertions (Project Pan integration)
@@ -100,13 +123,8 @@
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (when validate-profile? (assert-profile profile))
-  (let [profile (if (string? profile)
-                  (json/json->edn profile :keywordize? true)
-                  profile)]
-    (reduce (fn [acc {:keys [id] :as template}]
-              (assoc acc id template))
-            {}
-            (:templates profile))))
+  (let [profile (coerce-profile profile)]
+    (maps/mapify-coll (:templates profile))))
 
 ;; Doesn't exactly conform to stmt batch requirements since in theory,
 ;; a statement ref ID can refer to a FUTURE statement in the batch.
@@ -116,10 +134,7 @@
    Statement IDs and the Statement themselves. Used for Statement
    Ref resolution, particularly in statement batch matching."
   [statement-batch]
-  (reduce (fn [acc statement]
-            (assoc acc (get statement "id") statement))
-          {}
-          statement-batch))
+  (maps/mapify-coll statement-batch :string? true))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -145,9 +160,7 @@
    checks that `template` conforms to the xAPI Profile spec."
   [template & {:keys [statement-ref-fns validate-template?]
                :or   {validate-template? true}}]
-  (let [template (if (string? template)
-                   (json/json->edn template :keywordize? true)
-                   template)]
+  (let [template (coerce-template template)]
     (when validate-template? (assert-template template))
     {:id           (:id template)
      :validator-fn (t/create-template-validator template statement-ref-fns)
@@ -166,9 +179,7 @@
   [profile & {:keys [statement-ref-fns validate-profile?]
               :or   {validate-profile? true}}]
   (when validate-profile? (assert-profile profile))
-  (let [profile (if (string? profile)
-                  (json/json->edn profile :keywordize? true)
-                  profile)]
+  (let [profile (coerce-profile profile)]
     (reduce
      (fn [acc template]
        (conj acc (template->validator template
@@ -197,7 +208,7 @@
      :printer    Prints an error message when the Statement is
                  invalid. Always returns nil."
   [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (if (string? statement) (json/json->edn statement) statement)
+  (let [stmt (coerce-statement statement)
         {:keys [validator-fn predicate-fn]} compiled-template]
     (case fn-type
       :predicate
@@ -238,7 +249,7 @@
                  exception otherwise where the error data can be
                  extracted using `(-> e ex-data :errors)`."
   [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (if (string? statement) (json/json->edn statement) statement)]
+  (let [stmt (coerce-statement statement)]
     (letfn [(valid-stmt?
              [stmt]
              (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
@@ -309,9 +320,7 @@
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [statement-ref-fns validate-profile?]
               :or   {validate-profile? true}}]
-  (let [profile (if (string? profile)
-                  (json/json->edn profile :keywordize? true)
-                  profile)]
+  (let [profile (coerce-profile profile)]
     (when validate-profile? (assert-profile profile))
     (let [prof-id (-> profile latest-version :id)
           add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))
@@ -338,7 +347,7 @@
    category context activities of `statement`."
   [pat-fsm state-info statement]
   (assert-dfa pat-fsm)
-  (let [stmt (if (string? statement) (json/json->edn statement) statement)]
+  (let [stmt (coerce-statement statement)]
     (assert-prof-ref (-> pat-fsm meta :profile-id) stmt)
     (fsm/read-next pat-fsm state-info stmt)))
 
@@ -372,14 +381,10 @@
    extension is invalid."
   [pat-fsm-map state-info-map statement]
   (assert-dfas pat-fsm-map)
-  (let [stmt
-        (if (string? statement) (json/json->edn statement) statement)
-        profile-id
-        (-> pat-fsm-map meta :profile-id)
-        registration
-        (get-in stmt ["context" "registration"] :no-registration)
-        ?subreg-ext
-        (get-in stmt ["context" "extensions" subreg-iri])]
+  (let [stmt         (coerce-statement statement)
+        profile-id   (-> pat-fsm-map meta :profile-id)
+        registration (get-in stmt ["context" "registration"] :no-registration)
+        ?subreg-ext  (get-in stmt ["context" "extensions" subreg-iri])]
     (assert-prof-ref profile-id stmt)
     (assert-subregs profile-id stmt registration ?subreg-ext)
     (letfn [(subreg-pred

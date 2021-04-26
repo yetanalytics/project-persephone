@@ -118,15 +118,24 @@ If the state info map is `nil`, then `match-statement-vs-pattern` will begin at 
 
 For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; important concepts include deterministic and non-deterministic finite automata, Thompson's Algorithm for NFA composition, the powerset construction for NFA to DFA conversion, and Brzozowski's algorithm for DFA minimization.
 
+### Statement Ref Templates
+
+By default, Statement Ref Templates are not supported; however, to allow for such support, `template->validator`, `profile->validator`, and `profile->fsms` take in an optional `:statement-ref-fns` argument. `:statement-ref-fns` needs to be a map consisting of the following:
+- `:get-statement-fn`: A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
+- `:get-template-fn`: A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
+
+This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, the API provides two functions for use with `statement-ref-fns`:
+- `profile->id-template-map`: Takes a Profile and returns a map between Template IDs and Templates.
+- `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements. Intended to be used with `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile`.
+
 ### What about Concepts?
 
 While Concepts are an integral part of most xAPI profiles, this library does not concern itself with them. This library is strictly focused on structural validation using Statement Templates and Patterns and not on any ontological meaning given by Concepts. In other words, this is a syntax library, not a semantics library.
 
 ## TODO
 
-- Deal with profile-external Templates and Patterns (requires a triple store)
-    - Deal with StatementRef properties.
-- Squish bugs (see Issue tracker).
+- Deal with profile-external Templates and Patterns (requires a triple store).
+- Squish any bugs (see Issue tracker).
 
 ## License
 

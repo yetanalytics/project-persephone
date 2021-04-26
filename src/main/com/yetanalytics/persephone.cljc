@@ -401,6 +401,11 @@
               (reduce-kv update-pat-si reg-state-info pat-fsm-map))]
       (update state-info-map (get-reg-key) update-reg-si))))
 
+;; TODO: Add a custom `get-by-registration` function that can get statement
+;; info by `registration`, including when keys are `[registration sub-reg]`
+;; In other words,
+;; `(get-2 registration) => {...}` vs `(get registration) => nil`
+
 (defn- cmp-statements
   "Compare Statements `s1` and `s2` by their timestamp values."
   [s1 s2]

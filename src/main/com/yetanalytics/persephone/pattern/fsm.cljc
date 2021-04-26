@@ -430,30 +430,28 @@
            ;; An empty next-dfa-state value means that the symbol cannot be
            ;; read at the previous state in the NFA, so we avoid adding it so
            ;; it will also fail in the DFA.
-           (if (not-empty next-dfa-state)
-             (-> dfa
-                 (update :states conj next-dfa-state)
-                 (update :accepts
-                         (fn [accepts]
-                           (if (nfa-accept-states? next-dfa-state)
-                             (conj accepts next-dfa-state)
-                             accepts)))
-                 (update :transitions
-                         (fn [transitions]
-                           (if-not (contains? dfa-states next-dfa-state)
-                             (assoc transitions next-dfa-state {})
-                             transitions)))
-                 (update-in
-                  [:transitions prev-dfa-state] merge {symb next-dfa-state}))
-             dfa))
+           (let [next-state (not-empty next-dfa-state)]
+             (cond-> dfa
+               ;; Add new DFA state
+               next-state
+               (update :states conj next-state)
+               ;; Add new DFA state as a transition destination
+               next-state
+               (update-in [:transitions prev-dfa-state] merge {symb next-state})
+               ;; Add new DFA state as a transition source, if needed
+               (and next-state (not (contains? dfa-states next-state)))
+               (update :transitions assoc next-state {})
+               ;; Add new DFA state as an accept state, if needed
+               (and next-state (nfa-accept-states? next-state))
+               (update :accepts conj next-state))))
           (add-state-to-queue
-           [queue dfa next-dfa-state]
+           [queue {dfa-states :states :as _dfa} next-dfa-state]
            ;; Don't add to queue if next-dfa-state is empty (signifying failure)
            ;; or if it's already in the DFA (i.e. it's already visited).
-           (if (and (not-empty next-dfa-state)
-                    (not (contains? (:states dfa) next-dfa-state)))
-             (conj queue next-dfa-state)
-             queue))
+           (cond-> queue
+             (and (not-empty next-dfa-state)
+                  (not (contains? dfa-states next-dfa-state)))
+             (conj next-dfa-state)))
           (add-missing-srcs
            [transitions states]
            (reduce (fn [trans' s]

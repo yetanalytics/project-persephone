@@ -596,49 +596,67 @@
              :values ["http://example.com/xapi/verbs#sent-a-statement"]
              :rule {:location "$.verb.id"
                     :prop-vals ["http://foo.org/verb"]
-                    :determining-property "Verb"}}
+                    :determining-property "Verb"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.object.definition.type"
                     :prop-vals ["http://foo.org/oat"]
-                    :determining-property "objectActivityType"}}
+                    :determining-property "objectActivityType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.context.contextActivities.parent[*].definition.type"
                     :prop-vals ["http://foo.org/cpat1" "http://foo.org/cpat2"]
-                    :determining-property "contextParentActivityType"}}
+                    :determining-property "contextParentActivityType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.context.contextActivities.grouping[*].definition.type"
                     :prop-vals ["http://foo.org/cgat1" "http://foo.org/cgat2"]
-                    :determining-property "contextGroupingActivityType"}}
+                    :determining-property "contextGroupingActivityType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.context.contextActivities.category[*].definition.type"
                     :prop-vals ["http://foo.org/ccat1" "http://foo.org/ccat2"]
-                    :determining-property "contextCategoryActivityType"}}
+                    :determining-property "contextCategoryActivityType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.context.contextActivities.other[*].definition.type"
                     :prop-vals ["http://foo.org/coat1" "http://foo.org/coat2"]
-                    :determining-property "contextOtherActivityType"}}
+                    :determining-property "contextOtherActivityType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.attachments[*].usageType"
                     :prop-vals ["http://foo.org/aut1" "http://foo.org/aut2"]
-                    :determining-property "attachmentUsageType"}}
+                    :determining-property "attachmentUsageType"}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil]
              :rule {:location "$.actor.member[*].name"
                     :presence "included"
                     :any ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
-                    :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}}
+                    :none ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony" "Jeremy Gardner"]}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}
             {:pred :any-matchable?
              :values [nil nil nil nil nil]
              :rule {:location
                     "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
                     :presence "included"
-                    :all ["Activity"]}}]
+                    :all ["Activity"]}
+             :temp (:id ex-template)
+             :stmt (get ex-statement-1 "id")}]
            ((tv/create-template-validator ex-template) ex-statement-1)))))
 
 (deftest create-template-predicate-test-2
@@ -717,10 +735,8 @@
                 "-----------------------------\n"
                 "Total errors found: 9\n\n")
            (with-out-str
-             (print-errs/print-error
-              ((tv/create-template-validator ex-template) ex-statement-1)
-              (:id ex-template)
-              (get ex-statement-1 "id")))))))
+             (print-errs/print-errors
+              ((tv/create-template-validator ex-template) ex-statement-1)))))))
 
 (deftest statement-ref-templates-test
   (let [id-template-map
@@ -830,11 +846,15 @@
         (is (= [{:pred   :statement-ref?
                  :values stmt
                  :rule   {:location "$.object"
-                          :failure  :sref-not-found}}
+                          :failure  :sref-not-found}
+                 :temp "stmt-ref-template-3"
+                 :stmt (get stmt "id")}
                 {:pred   :statement-ref?
                  :values stmt
                  :rule   {:location "$.context.statement"
-                          :failure  :sref-not-found}}]
+                          :failure  :sref-not-found}
+                 :temp "stmt-ref-template-3"
+                 :stmt (get stmt "id")}]
                ((make-validator "stmt-ref-template-3") stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
@@ -844,11 +864,15 @@
         (is (= [{:pred   :statement-ref?
                  :values (get-in stmt ["object"])
                  :rule   {:location "$.object"
-                          :failure  :sref-object-type-invalid}}
+                          :failure  :sref-object-type-invalid}
+                 :temp "stmt-ref-template-3"
+                 :stmt (get stmt "id")}
                 {:pred   :statement-ref?
                  :values (get-in stmt ["context" "statement"])
                  :rule   {:location "$.context.statement"
-                          :failure  :sref-object-type-invalid}}]
+                          :failure  :sref-object-type-invalid}
+                 :temp "stmt-ref-template-3"
+                 :stmt (get stmt "id")}]
                ((make-validator "stmt-ref-template-3") stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
@@ -858,11 +882,15 @@
         (is (= [{:pred   :statement-ref?
                  :values (get-in stmt ["object"])
                  :rule   {:location "$.object"
-                          :failure  :sref-id-missing}}
+                          :failure  :sref-id-missing}
+                 :temp   "stmt-ref-template-3"
+                 :stmt   (get stmt "id")}
                 {:pred   :statement-ref?
                  :values (get-in stmt ["context" "statement"])
                  :rule   {:location "$.context.statement"
-                          :failure  :sref-id-missing}}]
+                          :failure  :sref-id-missing}
+                 :temp   "stmt-ref-template-3"
+                 :stmt   (get stmt "id")}]
                ((make-validator "stmt-ref-template-3") stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
@@ -872,21 +900,29 @@
         (is (= [{:pred   :statement-ref?
                  :values (get-in stmt ["object" "id"])
                  :rule   {:location "$.object"
-                          :failure  :sref-stmt-not-found}}
+                          :failure  :sref-stmt-not-found}
+                 :temp   "stmt-ref-template-3"
+                 :stmt   (get stmt "id")}
                 {:pred   :statement-ref?
                  :values (get-in stmt ["context" "statement" "id"])
                  :rule   {:location "$.context.statement"
-                          :failure  :sref-stmt-not-found}}]
+                          :failure  :sref-stmt-not-found}
+                 :temp   "stmt-ref-template-3"
+                 :stmt   (get stmt "id")}]
                ((make-validator "stmt-ref-template-3") stmt))))
       (is (= [{:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-bar"]
-                        :determining-property "Verb"}}
+                        :determining-property "Verb"}
+               :temp   "stmt-ref-template-5"
+               :stmt   "stmt-4"}
               {:pred   :statement-ref?
                :values (get stmt-map "stmt-4")
                :rule   {:location "$.context.statement"
-                        :failure  :sref-not-found}}]
+                        :failure  :sref-not-found}
+               :temp   "stmt-ref-template-5"
+               :stmt   "stmt-4"}]
              ((make-validator "stmt-ref-template-5")
               (get stmt-map "stmt-4"))))
       (is (= [;; stmt-template-b
@@ -894,28 +930,38 @@
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-2"]
-                        :determining-property "Verb"}}
+                        :determining-property "Verb"}
+               :temp   "stmt-template-b"
+               :stmt   "stmt-4"}
               ;; stmt-ref-template-5 - object
               {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-bar"]
-                        :determining-property "Verb"}}
+                        :determining-property "Verb"}
+               :temp   "stmt-ref-template-5"
+               :stmt   "stmt-4"}
               {:pred   :statement-ref?
                :values (get stmt-map "stmt-4")
                :rule   {:location "$.context.statement"
-                        :failure  :sref-not-found}}
+                        :failure  :sref-not-found}
+               :temp   "stmt-ref-template-5"
+               :stmt   "stmt-4"}
               ;; stmt-ref-template-5 - context
               {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-bar"]
-                        :determining-property "Verb"}}
+                        :determining-property "Verb"}
+               :temp   "stmt-ref-template-5"
+               :stmt   "stmt-3"}
               {:pred   :every-val-present?
                :values ["http://foo.org/verb"]
                :rule   {:location             "$.verb.id"
                         :prop-vals            ["http://foo.org/verb-3"]
-                        :determining-property "Verb"}}]
+                        :determining-property "Verb"}
+               :temp   "stmt-template-c"
+               :stmt   "stmt-4"}]
              ((make-validator "stmt-ref-template-4")
               (assoc-in (get stmt-map "stmt-3")
                         ["context" "statement"]
@@ -924,15 +970,3 @@
     (testing "statement ref template predicate - invalid"
         (is (not ((make-predicate "stmt-ref-template-4")
                   (get stmt-map "stmt-3")))))))
-
-(comment
-  ((tv/create-template-validator
-    {:id "stmt-ref-template-3"
-     :objectStatementRefTemplate
-     ["stmt-template-a"]}
-    :statement-ref-opts {:get-template-fn  (fn [_] {:id   "stmt-template-a"
-                                                    :verb "http://foo.org/verb"})
-                         :get-statement-fn (fn [_] ex-statement-0)})
-   ex-statement-0
-   #_(assoc ex-statement-0 "object" {"id"         "stmt-1"
-                                   "objectType" "StatementRef"})))

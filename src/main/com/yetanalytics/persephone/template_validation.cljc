@@ -400,6 +400,7 @@
             :values  sref-id
             :rule    {:location stmt-ref-path
                       :failure  :sref-stmt-not-found}}]
+          ;; TODO: Add additional errors for referencing future statements?
           :else
           (validate-stmt-fn sref-stmt))))))
 
@@ -503,14 +504,20 @@
    Statement as an argument and returns an nilable seq of error data."
   ([template]
    (create-template-validator template nil))
-  ([template statement-ref-opts]
-   (let [rules      (add-determining-properties template)
-         validators (create-rule-validators template rules statement-ref-opts)]
+  ([template statement-ref-fns]
+   (let [{temp-id :id} template
+         rules         (add-determining-properties template)
+         validators    (create-rule-validators template
+                                               rules
+                                               statement-ref-fns)]
      (fn [statement]
-       (let [errors (->> validators
-                         (map (fn [validator] (validator statement)))
-                         flatten ; concat error colls from different validators
-                         (filter some?))]
+       (let [stmt-id (get statement "id")
+             errors  (->> validators
+                          (map (fn [validator] (validator statement)))
+                          flatten ; concat error colls from different validators
+                          (filter some?)
+                          (map (fn [e] (update e :stmt #(if-not % stmt-id %))))
+                          (map (fn [e] (update e :temp #(if-not % temp-id %)))))]
          (not-empty errors))))))
 
 (defn create-template-predicate

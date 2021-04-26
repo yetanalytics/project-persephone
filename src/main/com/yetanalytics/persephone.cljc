@@ -208,7 +208,7 @@
       (validator-fn stmt)
       :printer
       (when-some [errs (validator-fn stmt)]
-        (err-printer/print-error errs id (get stmt "id")))
+        (err-printer/print-errors errs))
       :assertion
       (when-some [errs (validator-fn stmt)]
         (throw (ex-info "Invalid Statement." {:type   ::invalid-statement

@@ -135,22 +135,31 @@
     :else
     (rule-error-str rule pred values)))
 
-(defn print-error
-  "Prints an error message for all Template validation errors on a
-   Statement."
-  [error-vec tid sid]
-  (print (fmt (str "----- Invalid Statement -----\n"
-                   "Template ID:  %s\n"
-                   "Statement ID: %s\n"
-                   "\n")
-              (str tid)
-              (str sid)))
-  (doseq [error error-vec]
-    (println (error-msg-str error)))
-  (print (fmt (str "-----------------------------\n"
-                   "Total errors found: %d\n"
-                   "\n")
-              (count error-vec))))
+(defn print-errors
+  "Print all the errors in `error-vec`, grouped by Statement and
+   Template ID."
+  [error-vec]
+  (let [errors (->> error-vec
+                    (reduce (fn [acc {:keys [temp stmt] :as err}]
+                              (update
+                               acc
+                               [temp stmt]
+                               (fn [errs] (if err (conj errs err) [err]))))
+                            {})
+                    (mapv (fn [[header errs]] [header (reverse errs)])))]
+    (doseq [[[temp-id stmt-id] errs] errors]
+      (print (fmt (str "----- Invalid Statement -----\n"
+                       "Template ID:  %s\n"
+                       "Statement ID: %s\n"
+                       "\n")
+                  (str temp-id)
+                  (str stmt-id)))
+      (doseq [error errs]
+        (println (error-msg-str error))))
+    (print (fmt (str "-----------------------------\n"
+                     "Total errors found: %d\n"
+                     "\n")
+                (count error-vec)))))
 
 (defn print-bad-statement
   "Prints the Statmeent ID if it is rejected by a Pattern."

@@ -322,36 +322,37 @@
             :primary    true
             :prefLabel  {:en "Pattern 3"}
             :definition {:en "One or more iterations of Pattern 1"}
-            :oneOrMore  {:id         "http://foo.org/p1"
-                         :type       "Pattern"
-                         :inScheme   "https://foo.org/version1"
-                         :primary    true
-                         :prefLabel  {:en "Pattern 1"}
-                         :definition {:en "Alternate of Pattern 2 and Template 1"}
-                         :alternates [{:id         "http://foo.org/p2"
-                                       :type       "Pattern"
-                                       :inScheme   "https://foo.org/version1"
-                                       :primary    false
-                                       :prefLabel  {:en "Pattern 2"}
-                                       :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
-                                       :sequence   [{:id         "http://foo.org/t2"
-                                                     :type       "StatementTemplate"
-                                                     :inScheme   "https://foo.org/version1"
-                                                     :prefLabel  {:en "Template 2"}
-                                                     :definition {:en "Second Statement Template"}
-                                                     :verb       "http://foo.org/verb2"}
-                                                    {:id         "http://foo.org/t3"
-                                                     :type       "StatementTemplate"
-                                                     :inScheme   "https://foo.org/version1"
-                                                     :prefLabel  {:en "Template 3"}
-                                                     :definition {:en "Third Statement Template"}
-                                                     :verb       "http://foo.org/verb3"}]}
-                                      {:id         "http://foo.org/t1"
-                                       :type       "StatementTemplate"
-                                       :inScheme   "https://foo.org/version1"
-                                       :prefLabel  {:en "Template 1"}
-                                       :definition {:en "First Statement Template"}
-                                       :verb       "http://foo.org/verb1"}]}}
+            :oneOrMore
+            {:id         "http://foo.org/p1"
+             :type       "Pattern"
+             :inScheme   "https://foo.org/version1"
+             :primary    true
+             :prefLabel  {:en "Pattern 1"}
+             :definition {:en "Alternate of Pattern 2 and Template 1"}
+             :alternates [{:id         "http://foo.org/p2"
+                           :type       "Pattern"
+                           :inScheme   "https://foo.org/version1"
+                           :primary    false
+                           :prefLabel  {:en "Pattern 2"}
+                           :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
+                           :sequence   [{:id         "http://foo.org/t2"
+                                         :type       "StatementTemplate"
+                                         :inScheme   "https://foo.org/version1"
+                                         :prefLabel  {:en "Template 2"}
+                                         :definition {:en "Second Statement Template"}
+                                         :verb       "http://foo.org/verb2"}
+                                        {:id         "http://foo.org/t3"
+                                         :type       "StatementTemplate"
+                                         :inScheme   "https://foo.org/version1"
+                                         :prefLabel  {:en "Template 3"}
+                                         :definition {:en "Third Statement Template"}
+                                         :verb       "http://foo.org/verb3"}]}
+                          {:id         "http://foo.org/t1"
+                           :type       "StatementTemplate"
+                           :inScheme   "https://foo.org/version1"
+                           :prefLabel  {:en "Template 1"}
+                           :definition {:en "First Statement Template"}
+                           :verb       "http://foo.org/verb1"}]}}
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 2))
                                  (pv/mapify-all ex-profile))))))
 

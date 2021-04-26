@@ -197,62 +197,6 @@
                            (tv/parse-locator "$..raw"))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Determining Properties tests
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftest add-det-properties
-  (testing "add-det-properties function: Add the Determining Properties as 
-           rules."
-    (is (= [{:location             "$.verb.id"
-             :prop-vals            ["http://foo.org/verb"]
-             :determining-property "Verb"}
-            {:location             "$.object.definition.type"
-             :prop-vals            ["http://foo.org/oat"]
-             :determining-property "objectActivityType"}
-            {:location             "$.context.contextActivities.parent[*].definition.type"
-             :prop-vals            ["http://foo.org/cpat1" "http://foo.org/cpat2"]
-             :determining-property "contextParentActivityType"}
-            {:location             "$.context.contextActivities.grouping[*].definition.type"
-             :prop-vals            ["http://foo.org/cgat1" "http://foo.org/cgat2"]
-             :determining-property "contextGroupingActivityType"}
-            {:location             "$.context.contextActivities.category[*].definition.type"
-             :prop-vals            ["http://foo.org/ccat1" "http://foo.org/ccat2"]
-             :determining-property "contextCategoryActivityType"}
-            {:location             "$.context.contextActivities.other[*].definition.type"
-             :prop-vals            ["http://foo.org/coat1" "http://foo.org/coat2"]
-             :determining-property "contextOtherActivityType"}
-            {:location             "$.attachments[*].usageType"
-             :prop-vals            ["http://foo.org/aut1" "http://foo.org/aut2"]
-             :determining-property "attachmentUsageType"}
-            {:location "$.actor.objectType"
-             :presence "included"}
-            {:location "$.actor.member[*].name"
-             :presence "included"
-             :any      ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder"
-                        "Erika Lee" "Boris Boiko"]
-             :none     ["Shelly Blake-Plock" "Brit Keller" "Mike Anthony"
-                        "Jeremy Gardner"]}
-            {:location "$.actor"
-             :selector "$.mbox"
-             :presence "included"}
-            {:location "$.actor"
-             :selector "$.mbox_sha1sum"
-             :presence "excluded"}
-            {:location "$.object.objectType | $.context.contextActivities.parent[*].objectType | $.context.contextActivities.grouping[*].objectType | $.context.contextActivities.category[*].objectType | $.context.contextActivities.other[*].objectType"
-             :presence "included"
-             :all      ["Activity"]}]
-           (tv/add-determining-properties ex-template)))
-    (is (= [{:location             "$.verb.id"
-             :prop-vals            ["http://example.org/verb"]
-             :determining-property "Verb"}]
-           (tv/add-determining-properties
-            {:verb "http://example.org/verb"})))
-    ;; Doesn't work with string keys
-    (is (= []
-           (tv/add-determining-properties
-            {"verb" "http://example.org/verb"})))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validator/Predicate creation tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

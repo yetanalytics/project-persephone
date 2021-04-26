@@ -9,7 +9,9 @@
             [com.yetanalytics.persephone-test.pattern-test.fsm-test
              :refer [check]])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Util tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deftest alphatize-states-test
   (testing "State alphatization"
@@ -77,7 +79,9 @@
               :accepts     #{#{0 1 2 3 4 5}}
               :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}])))))
 
-;; Create building blocks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Building blocks
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- sort-states [fsm]
   (update fsm :states #(apply sorted-set %)))
@@ -91,6 +95,10 @@
 (def a-fsm (sort-states (fsm/transition-nfa "a" is-a?)))
 (def b-fsm (sort-states (fsm/transition-nfa "b" is-b?)))
 (def c-fsm (sort-states (fsm/transition-nfa "c" is-c?)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NFA tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deftest basic-fsm-test
   (testing "FSM that accepts a single input, like \"a\" or \"b\"."
@@ -398,27 +406,30 @@
            (fsm/concat-nfa [(sort-states (fsm/kleene-nfa a-fsm))
                             b-fsm])))))
 
-;; TODO: Write tests for the other FSM combos
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DFA tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftest epsilon-closure-test
-  (testing "Epsilon closure of an NFA state."
-    (is (= #{0}
-           (fsm/epsilon-closure a-fsm 0)))
-    (is (= #{1 2}
-           (fsm/epsilon-closure (fsm/concat-nfa [a-fsm b-fsm]) 1)))
-    (is (= #{0 2 4 6 8}
-           (fsm/epsilon-closure
-            (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
-                            b-fsm])
-            8)))
-    (is (= #{0 2 3 4 5 6 7}
-           (fsm/epsilon-closure
-            (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
-            6)))
-    (is (= #{0 1 2 3 4 5 7}
-           (fsm/epsilon-closure
-            (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
-            1)))))
+(comment ; epsilon-closure has been made private
+  (deftest epsilon-closure-test
+    (testing "Epsilon closure of an NFA state."
+      (is (= #{0}
+             (fsm/epsilon-closure a-fsm 0)))
+      (is (= #{1 2}
+             (fsm/epsilon-closure (fsm/concat-nfa [a-fsm b-fsm]) 1)))
+      (is (= #{0 2 4 6 8}
+             (fsm/epsilon-closure
+              (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
+                              b-fsm])
+              8)))
+      (is (= #{0 2 3 4 5 6 7}
+             (fsm/epsilon-closure
+              (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
+              6)))
+      (is (= #{0 1 2 3 4 5 7}
+             (fsm/epsilon-closure
+              (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
+              1))))))
 
 (deftest powerset-construction-test
   (testing "Constructing a DFA out of an NFA via the powerset construction."
@@ -796,7 +807,7 @@
 
 (deftest fsm-spec-tests
   (testing "NFA specs"
-    (is (s/valid? ::fs/nfa {:type        :nfa
+    (is (s/valid? fs/nfa-spec {:type        :nfa
                             :symbols     {"a" odd?}
                             :states      #{0 1}
                             :start       0
@@ -804,7 +815,7 @@
                             :transitions {0 {"a" #{1}}
                                           1 {}}}))
     ;; Invalid start state
-    (is (not (s/valid? ::fs/nfa {:type        :nfa
+    (is (not (s/valid? fs/nfa-spec {:type        :nfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       2
@@ -812,7 +823,7 @@
                                  :transitions {0 {"a" #{1}}
                                                1 {}}})))
     ;; Invalid accept states
-    (is (not (s/valid? ::fs/nfa {:type        :nfa
+    (is (not (s/valid? fs/nfa-spec {:type        :nfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0
@@ -820,14 +831,14 @@
                                  :transitions {0 {"a" #{1}}
                                                1 {}}})))
     ;; Missing transition src states
-    (is (not (s/valid? ::fs/nfa {:type        :nfa
+    (is (not (s/valid? fs/nfa-spec {:type        :nfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0
                                  :accepts     #{1 2}
                                  :transitions {0 {"a" #{1}}}})))
     ;; Invalid transition dest states
-    (is (not (s/valid? ::fs/nfa {:type        :nfa
+    (is (not (s/valid? fs/nfa-spec {:type        :nfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0
@@ -835,7 +846,7 @@
                                  :transitions {0 {"a" #{1 2}}
                                                1 {}}})))
     ;; Invalid transition symbol
-    (is (not (s/valid? ::fs/nfa {:type        :nfa
+    (is (not (s/valid? fs/nfa-spec {:type        :nfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0
@@ -843,7 +854,7 @@
                                  :transitions {0 {"b" #{1}}
                                                1 {}}}))))
   (testing "DFA specs"
-    (is (s/valid? ::fs/dfa {:type        :dfa
+    (is (s/valid? fs/dfa-spec {:type        :dfa
                             :symbols     {"a" odd?}
                             :states      #{0 1}
                             :start       0
@@ -851,7 +862,7 @@
                             :transitions {0 {"a" 0}
                                           1 {}}}))
     ;; Destinations cannot be sets
-    (is (not (s/valid? ::fs/dfa {:type        :dfa
+    (is (not (s/valid? fs/dfa-spec {:type        :dfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0
@@ -859,7 +870,7 @@
                                  :transitions {0 {"a" #{0}}
                                                1 {}}})))
     ;; Invalid transition dest states
-    (is (not (s/valid? ::fs/dfa {:type        :dfa
+    (is (not (s/valid? fs/dfa-spec {:type        :dfa
                                  :symbols     {"a" odd?}
                                  :states      #{0 1}
                                  :start       0

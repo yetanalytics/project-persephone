@@ -173,25 +173,25 @@
 
 (defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
 
-(def nfa-spec (s/and valid-nfa-keys?
+(def nfa-common-spec (s/and valid-nfa-keys?
                      valid-start-state?
                      valid-accept-states?
                      valid-transition-src-states?
                      valid-transition-dest-states-nfa?
                      valid-transition-symbols-nfa?))
 
-(s/def ::nfa
+(def nfa-spec
   (s/with-gen
-    nfa-spec
+    nfa-common-spec
     (fn [] (sgen/fmap (partial
                        fsm-overrider
                        (partial sample-to-set 0.33)
                        (partial sample-to-set 0.25))
                       (s/gen :nfa/nfa-basics)))))
 
-(s/def ::thompsons-nfa
+(def thompsons-nfa-spec
   (s/with-gen
-    (s/and nfa-spec
+    (s/and nfa-common-spec
            one-accept-state?)
     (fn [] (sgen/fmap (partial
                        fsm-overrider
@@ -259,7 +259,7 @@
 (defn valid-set-dfa-keys? [dfa]
   (s/valid? :set-dfa/dfa dfa))
 
-(def dfa-spec (s/and valid-start-state?
+(def dfa-common-spec (s/and valid-start-state?
                      valid-accept-states?
                      valid-transition-src-states?
                      valid-transition-dest-states-dfa?
@@ -270,16 +270,18 @@
            (partial sample-to-set 0.33)
            (partial sample-one)))
 
-(s/def ::dfa (s/with-gen
-               (s/and valid-dfa-keys?
-                      dfa-spec)
-               (fn [] (sgen/fmap
-                       dfa-gen-fmap
-                       (s/gen :int-dfa/dfa-basics)))))
+(def dfa-spec
+  (s/with-gen
+    (s/and valid-dfa-keys?
+           dfa-common-spec)
+    (fn [] (sgen/fmap
+            dfa-gen-fmap
+            (s/gen :int-dfa/dfa-basics)))))
 
-(s/def ::set-dfa (s/with-gen
-                   (s/and valid-set-dfa-keys?
-                          dfa-spec)
-                   (fn [] (sgen/fmap
-                           dfa-gen-fmap
-                           (s/gen :set-dfa/dfa-basics)))))
+(def set-dfa-spec
+  (s/with-gen
+    (s/and valid-set-dfa-keys?
+           dfa-common-spec)
+    (fn [] (sgen/fmap
+            dfa-gen-fmap
+            (s/gen :set-dfa/dfa-basics)))))

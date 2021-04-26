@@ -75,9 +75,9 @@
 (def counter (atom -1))
 
 (defn- reset-counter
-  "Reset the counter used to name states; an optional starting value may be
-   provided (mainly for debugging). The counter must always be reset before
-   constructing a new NFA."
+  "Reset the counter used to name states; an optional starting value
+   may be provided (mainly for debugging). The counter must always be
+   reset before constructing a new NFA."
   ([] (swap! counter (constantly -1)))
   ([n] (swap! counter (constantly (- n 1)))))
 
@@ -116,10 +116,10 @@
         (update :transitions update-dests))))
 
 (s/fdef alphatize-states-fsm
-  :args (s/cat :fsm (s/or :nfa ::fs/nfa
-                          :dfa (s/or :ints ::fs/dfa
-                                     :sets ::fs/set-dfa)))
-  :ret (s/or :nfa ::fs/nfa :dfa ::fs/dfa)
+  :args (s/cat :fsm (s/or :nfa fs/nfa-spec
+                          :dfa (s/or :ints fs/dfa-spec
+                                     :sets fs/set-dfa-spec)))
+  :ret (s/or :nfa fs/nfa-spec :dfa fs/dfa-spec)
   :fn (fn [{:keys [args ret]}]
         (= (count (:states args))
            (count (:states ret)))))
@@ -131,20 +131,20 @@
   (alphatize-states-fsm* fsm))
 
 (s/fdef alphatize-states
-  :args (s/cat :fsm-coll (s/every (s/or :nfa ::fs/nfa
-                                        :dfa (s/or :ints ::fs/dfa
-                                                   :sets ::fs/set-dfa))
+  :args (s/cat :fsm-coll (s/every (s/or :nfa fs/nfa-spec
+                                        :dfa (s/or :ints fs/dfa-spec
+                                                   :sets fs/set-dfa-spec))
                                   :min-count 1
                                   :gen-max 10))
-  :ret (s/every (s/or :nfa ::fs/nfa :dfa ::fs/dfa)
+  :ret (s/every (s/or :nfa fs/nfa-spec :dfa fs/dfa-spec)
                 :min-count 1)
   :fn (fn [{:keys [args ret]}]
         (= (fs/count-states args)
            (count (:states ret)))))
 
 (defn alphatize-states
-  "Rename all states in a collection of FSMs such that no two states share the
-   same name."
+  "Rename all states in a collection of FSMs such that no two states
+   share the same name."
   [fsm-coll]
   (reset-counter)
   (loop [new-fsm-queue []
@@ -157,8 +157,8 @@
 ;; Epsilon transition appending
 
 (defn- add-epsilon-transitions
-  "Update the transition table to add new epsilon transitions from a collection
-   of sources to a new destination."
+  "Update the transition table to add new epsilon transitions from
+   a collection of sources to a new destination."
   [transitions sources new-dest]
   (reduce (fn [trans src]
             (update-in trans
@@ -189,7 +189,7 @@
 
 (s/fdef transition-nfa
   :args (s/cat :fn-symbol ::fs/symbol-id :fn ::fs/symbol-pred)
-  :ret (and ::fs/thompsons-nfa
+  :ret (and fs/thompsons-nfa-spec
             (fn [{:keys [states]}] (= 2 (count states)))))
 
 (defn transition-nfa
@@ -207,14 +207,14 @@
 ;; -> q ==> s --> s ==> a
 
 (s/fdef concat-nfa
-  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::fs/thompsons-nfa
+  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec :min-count 1 :gen-max 5))
+  :ret fs/thompsons-nfa-spec
   :fn (fn [{:keys [args ret]}]
         (= (fs/count-states (:nfa-coll args)) (count (:states ret)))))
 
 (defn concat-nfa
-  "Concat a collection of NFAs in sequential order. The function throws an
-   exception on empty collections."
+  "Concat a collection of NFAs in sequential order. The function throws
+   an exception on empty collections."
   [nfa-coll]
   (assert-nonempty-fsm-coll nfa-coll "concat-nfa")
   (let [nfa-coll (alphatize-states nfa-coll)]
@@ -252,8 +252,8 @@
 ;;    + --> s ==> s --^
 
 (s/fdef union-nfa
-  :args (s/cat :nfa-coll (s/every ::fs/thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::fs/thompsons-nfa
+  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec :min-count 1 :gen-max 5))
+  :ret fs/thompsons-nfa-spec
   :fn (fn [{:keys [args ret]}]
         (= (+ 2 (fs/count-states (:nfa-coll args))) (count (:states ret)))))
 
@@ -286,12 +286,12 @@
 ;;    +-----------------^
 
 (s/fdef kleene-nfa
-  :args (s/cat :nfa ::fs/thompsons-nfa)
-  :ret ::fs/thompsons-nfa)
+  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :ret fs/thompsons-nfa-spec)
 
 (defn kleene-nfa
-  "Apply the Kleene star operation on an NFA (the \"*\" regex symbol), which
-   means the NFA can be taken zero or more times."
+  "Apply the Kleene star operation on an NFA (the \"*\" regex symbol),
+   which means the NFA can be taken zero or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
   (reset-counter (+ 1 (apply max states)))
   (let [new-start  (new-state)
@@ -313,8 +313,8 @@
 ;; -> q --> s ==> s --> f
 
 (s/fdef optional-nfa
-  :args (s/cat :nfa ::fs/thompsons-nfa)
-  :ret ::fs/thompsons-nfa)
+  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :ret fs/thompsons-nfa-spec)
 
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
@@ -340,12 +340,12 @@
 ;; -> q --> s ==> s --> f
 
 (s/fdef plus-nfa
-  :args (s/cat :nfa ::fs/thompsons-nfa)
-  :ret ::fs/thompsons-nfa)
+  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :ret fs/thompsons-nfa-spec)
 
 (defn plus-nfa
-  "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol), which
-   means the NFA can be taken one or more times."
+  "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol),
+   which means the NFA can be taken one or more times."
   [{:keys [symbols states start accepts transitions] :as _nfa}]
   (reset-counter (+ 1 (apply max states)))
   (let [new-start  (new-state)
@@ -371,8 +371,9 @@
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
      :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
 
-(defn epsilon-closure
-  "Given an NFA and a state, returns the epsilon closure for that state."
+(defn- epsilon-closure
+  "Given an NFA and a state, returns the epsilon closure for that
+   state."
   [{nfa-transitions :transitions :as _nfa} init-state]
   ;; Perform a BFS and keep track of visited states
   (loop [visited-states (transient #{})
@@ -391,21 +392,22 @@
 (defn- nfa->dfa*
   "Performs the following powerset construction algorithm from:
    http://www.cs.nuim.ie/~jpower/Courses/Previous/parsing/node9.html
-   1. Create the start state of the DFA by taking the epsilon closure of the
-      start state of the NFA.
+   1. Create the start state of the DFA by taking the epsilon closure
+      of the start state of the NFA.
    2. Perform the following for the new DFA state:
       For each possible input symbol:
-      a) Apply move to the newly-created state and the input symbol; this
-         will return a set of states.
-      b) Apply the epsilon closure to this set of states, possibly resulting
-         in a new set.
+      a) Apply move to the newly-created state and the input symbol;
+         this will return a set of states.
+      b) Apply the epsilon closure to this set of states, possibly
+         resulting in a new set.
       This set of NFA states will be a single state in the DFA.
-   3. Each time we generate a new DFA state, we must apply step 2 to it. The
-      process is complete when applying step 2 does not yield any new states.
-   4. The accept states of the DFA are those which contain any of the accept
-      states of the NFA.
-   Internally, this performs a tree search that guarentees no unreachable
-   states."
+   3. Each time we generate a new DFA state, we must apply step 2 to
+      it. The process is complete when applying step 2 does not yield
+      any new states.
+   4. The accept states of the DFA are those which contain any of the
+      accept states of the NFA.
+   Internally, this performs a tree search that guarentees no
+   unreachable states."
   [{symbols         :symbols
     nfa-accepts     :accepts
     nfa-transitions :transitions
@@ -492,12 +494,13 @@
             alphatize-states-fsm)))))
 
 (s/fdef nfa->dfa
-  :args (s/cat :nfa ::fs/nfa)
-  :ret ::fs/dfa)
+  :args (s/cat :nfa fs/nfa-spec)
+  :ret fs/dfa-spec)
 
 (defn nfa->dfa
-  "Given an NFA with epsilon transitions, perform the powerset construction in
-   order to (semi)-determinize it and remove epsilon transitions."
+  "Given an NFA with epsilon transitions, perform the powerset
+   construction in order to (semi)-determinize it and remove
+   epsilon transitions."
   [{start :start :as nfa}]
   (nfa->dfa* nfa (epsilon-closure nfa start)))
 
@@ -506,10 +509,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- reverse-transitions
-  "Create a new transition table that reverses the source and destination states
-   for each symbol. Since multiple source-symbol pairs may lead to the same
-   destination state in the original DFA, this produces a NFA, where the new
-   source-symbol pair leads to multiple new destinations."
+  "Create a new transition table that reverses the source and dest
+   states for each symbol. Since multiple source-symbol pairs may lead
+   to the same destination state in the original DFA, this produces a
+   NFA, where the new source-symbol pair leads to multiple new dests."
   [transitions]
   (letfn [(update-dests
             [src new-dests]
@@ -529,8 +532,9 @@
 (defn- reverse-dfa
   "Create a reverse NFA out of a DFA, where
    1. The original start state is an accept state
-   2. The original accept states form a start state (so we represent the start
-      state with the set of accept states, rather than a single state)
+   2. The original accept states form a start state (so we represent
+      the start state with the set of accept states, rather than a
+      single state)
    3. The transitions are reversed."
   [{:keys [symbols states start accepts transitions] :as _dfa}]
   {:type        :nfa
@@ -545,8 +549,8 @@
 ;; https://cs.stackexchange.com/questions/105574/proof-of-brzozowskis-algorithm-for-dfa-minimization
 
 (s/fdef minimize-dfa
-  :args (s/cat :dfa ::fs/dfa)
-  :ret ::fs/dfa
+  :args (s/cat :dfa fs/dfa-spec)
+  :ret fs/dfa-spec
   :fn (fn [{:keys [args ret]}]
         (<= (-> ret :states count)
             (-> args :dfa :states count))))

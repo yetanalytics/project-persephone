@@ -35,12 +35,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining Properties
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; A Statement Template MUST include all Determining Properties.
 ;; All Determining Properties are simply special instances of rules, and can
 ;; be rewritten as such.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn add-determining-properties
+(defn- add-determining-properties
   "Convert Determining Properties into rules and add them to the Template's
   rules. Returns the modified rules vector."
   [{:keys [verb
@@ -91,7 +92,7 @@
     (-> [] build-det-props (into rules))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Statement Ref Template validators
+;; Validator + template defs and utils
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (declare create-template-validator)
@@ -108,6 +109,11 @@
                       {:kind        ::template-not-found
                        :template-id template-id
                        :template-fn get-template-fn})))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validators
+;; A validator returns a seq of errors upon failure, nil otherwise
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- create-statement-ref-validator
   "The arguments are as follows:
@@ -168,6 +174,66 @@
           :else
           (validate-stmt-fn sref-stmt))))))
 
+(defn create-rule-validator
+  "Given `rule`, create a function that will validate new Statements
+   against the rule."
+  [{:keys [location selector] :as rule}]
+  (let [rule-validator (create-rule-pred rule)
+        location-path  (parse-locator location)
+        selector-path  (when selector (parse-selector selector))]
+    (fn [statement]
+      (let [values    (find-values statement location-path selector-path)
+            fail-pred (rule-validator values)]
+        ;; nil indicates success
+        (when-not (nil? fail-pred)
+          ;; :pred - the predicate that failed, causing this error
+          ;; :values - the values that the predicate failed on
+          ;; :rule - the Statement Template rule associated with the error
+          {:pred fail-pred
+           :vals values
+           :rule rule})))))
+
+(defn- create-rule-validators
+  [template rules ?stmt-ref-opts]
+  (let [{?obj-srts :objectStatementRefTemplate
+         ?ctx-srts :contextStatementRefTemplate}
+        template]
+    (cond-> (mapv create-rule-validator rules)
+      (and ?stmt-ref-opts ?obj-srts)
+      (conj (create-statement-ref-validator ?obj-srts
+                                            "$.object"
+                                            ?stmt-ref-opts))
+      (and ?stmt-ref-opts ?ctx-srts)
+      (conj (create-statement-ref-validator ?ctx-srts
+                                            "$.context.statement"
+                                            ?stmt-ref-opts)))))
+
+(defn create-template-validator
+  "Given `template`, return a validator function that takes a
+   Statement as an argument and returns an nilable seq of error data."
+  ([template]
+   (create-template-validator template nil))
+  ([template statement-ref-fns]
+   (let [{temp-id :id} template
+         rules         (add-determining-properties template)
+         validators    (create-rule-validators template
+                                               rules
+                                               statement-ref-fns)]
+     (fn [statement]
+       (let [stmt-id (get statement "id")
+             errors  (->> validators
+                          (map (fn [validator] (validator statement)))
+                          flatten ; concat error colls from different validators
+                          (filter some?)
+                          (map (fn [e] (update e :stmt #(if-not % stmt-id %))))
+                          (map (fn [e] (update e :temp #(if-not % temp-id %)))))]
+         (not-empty errors))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Predicates
+;; A predicate returns true on success, false on failure
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn- create-statement-ref-predicate
   "Same arguments as `create-statement-ref-validator`.
    
@@ -191,31 +257,6 @@
            (when-some [sref-stmt (get-statement-fn sref-id)]
              (valid-sref-stmt? sref-stmt))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Validators and predicates
-;; Validators return an error map on failure and nil otherwise.
-;; Predicates return a boolean value.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn create-rule-validator
-  "Given `rule`, create a function that will validate new Statements
-   against the rule."
-  [{:keys [location selector] :as rule}]
-  (let [rule-validator (create-rule-pred rule)
-        location-path  (parse-locator location)
-        selector-path  (when selector (parse-selector selector))]
-    (fn [statement]
-      (let [values    (find-values statement location-path selector-path)
-            fail-pred (rule-validator values)]
-        ;; nil indicates success
-        (when-not (nil? fail-pred)
-          ;; :pred - the predicate that failed, causing this error
-          ;; :values - the values that the predicate failed on
-          ;; :rule - the Statement Template rule associated with the error
-          {:pred fail-pred
-           :vals values
-           :rule rule})))))
-
 (defn create-rule-predicate
   "Given `rule`, create a function that returns true or false when
    validating Statements against it."
@@ -228,21 +269,6 @@
             fail-pred (rule-validator values)]
         ;; nil indicates success
         (nil? fail-pred)))))
-
-(defn- create-rule-validators
-  [template rules ?stmt-ref-opts]
-  (let [{?obj-srts :objectStatementRefTemplate
-         ?ctx-srts :contextStatementRefTemplate}
-        template]
-    (cond-> (mapv create-rule-validator rules)
-      (and ?stmt-ref-opts ?obj-srts)
-      (conj (create-statement-ref-validator ?obj-srts
-                                            "$.object"
-                                            ?stmt-ref-opts))
-      (and ?stmt-ref-opts ?ctx-srts)
-      (conj (create-statement-ref-validator ?ctx-srts
-                                            "$.context.statement"
-                                            ?stmt-ref-opts)))))
 
 (defn- create-rule-predicates
   [template rules ?stmt-ref-opts]
@@ -258,31 +284,6 @@
       (conj (create-statement-ref-predicate ?ctx-srts
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bringing it all together
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn create-template-validator
-  "Given `template`, return a validator function that takes a
-   Statement as an argument and returns an nilable seq of error data."
-  ([template]
-   (create-template-validator template nil))
-  ([template statement-ref-fns]
-   (let [{temp-id :id} template
-         rules         (add-determining-properties template)
-         validators    (create-rule-validators template
-                                               rules
-                                               statement-ref-fns)]
-     (fn [statement]
-       (let [stmt-id (get statement "id")
-             errors  (->> validators
-                          (map (fn [validator] (validator statement)))
-                          flatten ; concat error colls from different validators
-                          (filter some?)
-                          (map (fn [e] (update e :stmt #(if-not % stmt-id %))))
-                          (map (fn [e] (update e :temp #(if-not % temp-id %)))))]
-         (not-empty errors))))))
 
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes

@@ -11,14 +11,8 @@
        (.readFileSync fs path "utf8"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Will Profile
+;; Definitions + Basic test
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def will-profile (slurp "test-resources/sample_profiles/will-catch.json"))
-
-(comment (deftest compile-profile-test
-           (testing "compile-profile using Will's CATCH profile"
-             (is (some? (p/profile->fsms will-profile))))))
 
 (def ex-template
   {:id
@@ -87,7 +81,8 @@
      "name"       "Will Hoyt"
      "mbox"       "mailto:will@yetanalytics.com"}
     "contextActivities"
-    {"parent"   [{"objectType" "Activity"
+    {"category" [{"id" "https://w3id.org/xapi/cmi5/v1.0"}] ; For cmi5 tests
+     "parent"   [{"objectType" "Activity"
                   "id"         "https://example.com/competency/clojure-skill"
                   "definition" {"name"        {"en" "Skill in the Clojure Language"}
                                 "description" {"en" "This person is skilled in Clojure."}
@@ -145,6 +140,8 @@
 ;; - typical-sessions = typical-session*
 ;; - pattern = satisfieds typical-sessions
 
+;; Statment Template tests
+
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
@@ -173,23 +170,25 @@
       (update "result" dissoc "success")
       (update "result" dissoc "completion")))
 
-(def completed-stmt
+(def complete-stmt
   (-> ex-statement
       (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/completed")
       (update "result" dissoc "score")
       (update "result" dissoc "success")
       (assoc-in ["result" "completion"] true)
       (assoc-in ["result" "duration"] "PT4H35M59.14S")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def passed-stmt
   (-> ex-statement
       (assoc-in ["verb" "id"] "http://adlnet.gov/expapi/verbs/passed")
       (update "result" dissoc "completion")
       (assoc-in ["result" "duration"] "PT4H35M59.14S")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def failed-stmt
   (-> ex-statement
@@ -197,8 +196,9 @@
       (assoc-in ["result" "success"] false)
       (update "result" dissoc "completion")
       (assoc-in ["result" "duration"] "P8W")
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def abandoned-stmt
   (-> ex-statement
@@ -214,8 +214,9 @@
       (update "result" dissoc "score")
       (assoc-in ["result" "extensions" "https://w3id.org/xapi/cmi5/result/extensions/reason"]
                 {"en-US" "Prerequisites not met."})
-      (assoc-in ["context" "contextActivities" "category"]
-                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}])))
+      (update-in ["context" "contextActivities" "category"]
+                 conj
+                 {"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"})))
 
 (def terminated-stmt
   (-> ex-statement
@@ -250,7 +251,7 @@
     (is (p/validate-statement-vs-template cmi-tmpl-0 ex-statement))
     (is (p/validate-statement-vs-template cmi-tmpl-1 launched-stmt))
     (is (p/validate-statement-vs-template cmi-tmpl-2 initialized-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-3 completed-stmt))
+    (is (p/validate-statement-vs-template cmi-tmpl-3 complete-stmt))
     (is (p/validate-statement-vs-template cmi-tmpl-4 passed-stmt))
     (is (p/validate-statement-vs-template cmi-tmpl-5 failed-stmt))
     (is (p/validate-statement-vs-template cmi-tmpl-6 abandoned-stmt))
@@ -288,12 +289,13 @@
                 cmi-tmpl-1
                 ex-statement
                 :fn-type :result)))
-    (is (= {:pred   :every-val-present?
-            :values ["https://example.com/scores"]
-            :rule
-            {:location "$.verb.id"
-             :prop-vals ["http://adlnet.gov/expapi/verbs/launched"]
-             :determining-property "Verb"}}
+    (is (= {:pred :every-val-present?
+            :vals ["https://example.com/scores"]
+            :rule {:location             "$.verb.id"
+                   :prop-vals            ["http://adlnet.gov/expapi/verbs/launched"]
+                   :determining-property "Verb"}
+            :temp "https://w3id.org/xapi/cmi5#launched"
+            :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
            (first (p/validate-statement-vs-template
                    cmi-tmpl-1
                    ex-statement
@@ -372,9 +374,12 @@
                 (p/profile->validator cmi-profile)
                 {}
                 :fn-type :result))))
-    (is (= {:pred   :any-matchable?
-            :values [nil]
-            :rule   {:location "$.id" :presence "included"}}
+    (is (= {:pred :any-matchable?
+            :vals [nil]
+            :rule {:location "$.id"
+                   :presence "included"}
+            :temp "https://w3id.org/xapi/cmi5#generalrestrictions"
+            :stmt nil}
            (-> (p/validate-statement-vs-profile
                 (p/profile->validator cmi-profile)
                 {}
@@ -391,10 +396,10 @@
                  :fn-type :result)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
 
+;; Pattern tests
+
 (def cmi-fsm-map (p/profile->fsms cmi-profile))
-
 (def cmi-fsm (get cmi-fsm-map "https://w3id.org/xapi/cmi5#toplevel"))
-
 (def match-cmi (partial p/match-statement-vs-pattern cmi-fsm))
 
 (deftest pattern-validation-tests
@@ -405,9 +410,9 @@
     ;; Does not satifiy all rules in the 'satisfied' Template - rejected
     (is (empty? (:states
                  (match-cmi nil (assoc-in
-                               ex-statement
-                               ["verb" "id"]
-                               "http://adlnet.gov/expapi/verbs/satisfied")))))
+                                 ex-statement
+                                 ["verb" "id"]
+                                 "http://adlnet.gov/expapi/verbs/satisfied")))))
     ;; Forgot initialized-stmt - rejected
     (is (empty? (-> nil
                     (match-cmi satisfied-stmt)
@@ -439,13 +444,13 @@
                         (match-cmi launched-stmt)
                         (match-cmi initialized-stmt)
                         (match-cmi passed-stmt)
-                        (match-cmi completed-stmt)
+                        (match-cmi complete-stmt)
                         (match-cmi terminated-stmt))))
     ;; Completed, then failed (oof!)
     (is (:accepted? (-> nil
                         (match-cmi launched-stmt)
                         (match-cmi initialized-stmt)
-                        (match-cmi completed-stmt)
+                        (match-cmi complete-stmt)
                         (match-cmi failed-stmt)
                         (match-cmi abandoned-stmt))))
     ;; Just straight up failed
@@ -466,18 +471,40 @@
                         (match-cmi satisfied-stmt)
                         (match-cmi launched-stmt)
                         (match-cmi initialized-stmt)
-                        (match-cmi completed-stmt)
+                        (match-cmi complete-stmt)
                         (match-cmi satisfied-stmt)
                         (match-cmi passed-stmt)
                         (match-cmi terminated-stmt))))))
 
 (def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
 
+(def registration-2 "c816c015-e07f-46de-aaa5-47abd9a57e06")
+(def registration-3 "c4605182-13bc-47f2-8ccf-3a4d6342926d")
+(def sub-reg-1 "7cfef0b6-aea3-45fb-802a-246f1d6d18a3")
+(def sub-reg-2 "793c1aec-20e5-4c34-bf74-eae2370e8084")
+(def sub-reg-3 "ed0cdb5a-1728-42c5-8fc0-20fc89c5a1c9")
+
 (def satisfied-stmt-2
-  (assoc-in satisfied-stmt ["context" "registration"] "registration-2"))
+  (assoc-in satisfied-stmt ["context" "registration"] registration-2))
+
+(def satisfied-stmt-3
+  (-> satisfied-stmt
+      (assoc-in ["context" "registration"] registration-3)
+      (assoc-in ["context" "extensions" p/subreg-iri]
+                [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
+                  "subregistration" sub-reg-1}])))
+
+(def satisfied-stmt-4
+  (-> satisfied-stmt
+      (assoc-in ["context" "registration"] registration-3)
+      (assoc-in ["context" "extensions" p/subreg-iri]
+                [{"profile"         "https://example.org/profile"
+                  "subregistration" sub-reg-3}
+                 {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
+                  "subregistration" sub-reg-2}])))
 
 (deftest match-statement-vs-profile-test
-  (testing "the match-statement-vs-profile function"
+  (testing "the match-statement-vs-profile function w/ registrations."
     (is (= 2 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
@@ -485,17 +512,17 @@
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 :no-registration
+                 (get :no-registration)
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 (get "registration-2")
+                 (get registration-2)
                  count)))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
                         (match-cmi-2 satisfied-stmt-2)
-                        (get "registration-2")
+                        (get registration-2)
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
@@ -508,11 +535,11 @@
                         (match-cmi-2 satisfied-stmt)
                         (match-cmi-2 launched-stmt)
                         (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 completed-stmt)
+                        (match-cmi-2 complete-stmt)
                         (match-cmi-2 satisfied-stmt)
                         (match-cmi-2 passed-stmt)
                         (match-cmi-2 terminated-stmt)
-                        :no-registration
+                        (get :no-registration)
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))
     (is (:accepted? (-> {}
                         (match-cmi-2 satisfied-stmt)
@@ -525,5 +552,439 @@
                         (match-cmi-2 satisfied-stmt-2)
                         (match-cmi-2 abandoned-stmt)
                         (match-cmi-2 satisfied-stmt-2)
-                        (get "registration-2")
+                        (get registration-2)
+                        (get "https://w3id.org/xapi/cmi5#toplevel")))))
+  (testing "the match-statement-vs-profile function w/ sub-registrations."
+    (is (= 4 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 count)))
+    (is (= 1 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get [registration-3 sub-reg-1])
+                 count)))
+    (is (= 1 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get [registration-3 sub-reg-2])
+                 count)))
+    (is (= 0 (-> {}
+                 (match-cmi-2 satisfied-stmt)
+                 (match-cmi-2 satisfied-stmt-2)
+                 (match-cmi-2 satisfied-stmt-3)
+                 (match-cmi-2 satisfied-stmt-4)
+                 (get registration-3)
+                 count)))
+    (is (:accepted? (-> {}
+                        (match-cmi-2 satisfied-stmt-3)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 launched-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 initialized-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 failed-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (match-cmi-2 abandoned-stmt)
+                        (match-cmi-2 satisfied-stmt-4)
+                        (get [registration-3 sub-reg-2])
                         (get "https://w3id.org/xapi/cmi5#toplevel"))))))
+
+(defn- match-cmi-ex
+  [statement]
+  (try (match-cmi {} statement)
+       (catch #?(:clj Exception :cljs js/Error) e
+         (-> e ex-data :kind))))
+
+(defn- match-cmi-2-ex
+  [statement]
+  (try (match-cmi-2 {} statement)
+       (catch #?(:clj Exception :cljs js/Error) e
+         (-> e ex-data :kind))))
+
+(deftest pattern-exceptions-test
+  (testing "match-statement-vs-pattern exceptions"
+    (is (= ::p/missing-profile-reference
+           (match-cmi-ex (assoc-in satisfied-stmt
+                                   ["context" "contextActivities" "category"]
+                                   [])))))
+  (testing "match-statement-vs-profile exceptions"
+    (is (= ::p/missing-profile-reference
+           (match-cmi-2-ex (assoc-in satisfied-stmt
+                                     ["context" "contextActivities" "category"]
+                                     []))))
+    (is (= ::p/invalid-subreg-nonconformant
+           (match-cmi-2-ex (assoc-in satisfied-stmt-3
+                                     ["context" "extensions" p/subreg-iri]
+                                     []))))
+    (is (= ::p/invalid-subreg-no-registration
+           (match-cmi-2-ex (update satisfied-stmt-3
+                                   "context"
+                                   dissoc
+                                   "registration"))))))
+
+(defn- create-statement-batch
+  [statement-coll]
+  (loop [stmt-coll  statement-coll
+         stmt-coll' []
+         idx        10] ; keep two digits
+    (if-let [stmt (first stmt-coll)]
+      (let [ts    (str "2019-08-10T12:" idx ":00+00:00") ; increment seconds
+            stmt' (assoc stmt "timestamp" ts)]
+        (recur (rest stmt-coll)
+               (conj stmt-coll' stmt')
+               (inc idx)))
+      stmt-coll')))
+
+(def ^:private statement-batch
+  (create-statement-batch [satisfied-stmt
+                           launched-stmt
+                           initialized-stmt
+                           failed-stmt
+                           satisfied-stmt
+                           abandoned-stmt
+                           waived-stmt
+                           satisfied-stmt
+                           launched-stmt
+                           initialized-stmt
+                           complete-stmt
+                           satisfied-stmt
+                           passed-stmt
+                           terminated-stmt]))
+
+(deftest statement-batch-test
+  (testing "match-statement-batch-vs-pattern function"
+    (is (:accepted? (p/match-statement-batch-vs-pattern
+                     cmi-fsm
+                     nil
+                     statement-batch)))
+    (is (:accepted? (p/match-statement-batch-vs-pattern
+                     cmi-fsm
+                     nil
+                     (shuffle statement-batch)))))
+  (testing "match-statement-batch-vs-profile function"
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             statement-batch)
+                            [:no-registration
+                             "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             (shuffle statement-batch))
+                            [:no-registration
+                             "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
+                             cmi-fsm-map
+                             {}
+                             (create-statement-batch [satisfied-stmt-3
+                                                      satisfied-stmt-4
+                                                      launched-stmt
+                                                      satisfied-stmt-4
+                                                      initialized-stmt
+                                                      satisfied-stmt-4
+                                                      failed-stmt
+                                                      satisfied-stmt-4
+                                                      abandoned-stmt
+                                                      satisfied-stmt-4]))
+                            [[registration-3 sub-reg-2]
+                             "https://w3id.org/xapi/cmi5#toplevel"])))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; CATCH Profile
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def catch-profile (slurp "test-resources/sample_profiles/catch.json"))
+
+(def statement-basics
+  {"id"        "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+   "timestamp" "2019-08-09T12:17:00+00:00"
+   "actor"     {"objectType" "Agent"
+                "name"       "Will Hoyt"
+                "mbox"       "mailto:will@yetanalytics.com"}
+   "verb"      {"id"      "https://example.com/basic-verb"
+                "display" {"en-US" "Scores"}}
+   "object"    {"objectType" "Activity"
+                "id"         "https://foo.org/some-activity#code"
+                "definition" {"name" {"en-US" "Some Activity"}
+                              "type" "https://foo.org/some-activity"}}
+   "context"   {"contextActivities"
+                {"category" [{"objectType" "Activity"
+                              "id"         "https://w3id.org/xapi/catch/v1"}]
+                 "parent"   [{"objectType" "Activity"
+                              "id"         "https://w3id.org/xapi/catch/activities/competency/dle-research-goals-models-benifits"
+                              "definition" {"type" "https://w3id.org/xapi/catch/activitytypes/competency"}}]
+                 "grouping" [{"objectType" "Activity"
+                              "id"         "https://w3id.org/xapi/catch/activities/domain/planning-and-preparation"
+                              "definition" {"type" "https://w3id.org/xapi/catch/activitytypes/domain"}}]}}})
+
+;; Statement Template tests
+
+(def presented-advocacy-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "presented-advocacy-stmt")
+      (assoc-in ["verb"] {"id" "https://w3id.org/xapi/catch/verbs/presented"
+                          "display" {"en-US" "Presented"}})
+      (assoc-in ["object"]
+                {"objectType" "Activity"
+                 "id" "https://w3id.org/xapi/catch/activitytypes/advocacy-event#1"
+                 "definition" {"name" {"en-US" "Advocacy Event 1"}
+                               "type" "https://w3id.org/xapi/catch/activitytypes/advocacy-event"}})
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/catch/context-extensions/advocacy-event"]
+                "Some metadata")))
+
+(def attended-advocacy-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "attended-advocacy-stmt")
+      (assoc-in ["verb"] {"id" "http://adlnet.gov/expapi/verbs/attended"
+                          "display" {"en-US" "Attended"}})
+      (assoc-in ["object"]
+                {"objectType" "Activity"
+                 "id" "https://w3id.org/xapi/catch/activitytypes/advocacy-event#1"
+                 "definition" {"name" {"en-US" "Advocacy Event 1"}
+                               "type" "https://w3id.org/xapi/catch/activitytypes/advocacy-event"}})
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/catch/context-extensions/advocacy-event"]
+                "Some metadata")))
+
+(def test-stmt-1
+  (-> statement-basics
+      (assoc-in ["id"] "test-stmt-1")
+      (assoc-in ["verb"]
+                {"objectType" "Verb"
+                 "id" "https://w3id.org/xapi/catch/verbs/provided"
+                 "display" {"en-US" "Provided"}})
+      (assoc-in ["object"]
+                {"objectType" "Activity"
+                 "id" "foo"
+                 "definition" {"name" "Some file name"
+                               "type" "https://w3id.org/xapi/catch/activitytypes/evidence"}})
+      (assoc-in ["context" "extensions" "https://w3id.org/xapi/catch/context-extensions/advocacy-event"]
+                "Insert meta-data here")
+      (assoc-in ["context" "platform"] "Some platform")
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "presented-advocacy-stmt"})))
+
+(def test-stmt-2
+  (-> test-stmt-1
+      (assoc-in ["id"] "test-stmt-2")
+      (assoc-in ["context" "statement" "id"] "attended-advocacy-stmt")))
+
+(def test-stmt-3
+  (-> test-stmt-1
+      (assoc-in ["id"] "test-stmt-3")
+      (assoc-in ["context" "statement" "id"] "unknown-stmt")))
+
+(def catch-stmt-batch
+  [presented-advocacy-stmt
+   attended-advocacy-stmt
+   test-stmt-1
+   test-stmt-2
+   test-stmt-3])
+
+(def catch-id-temp-map (p/profile->id-template-map catch-profile))
+(def catch-id-stmt-map (p/statement-batch->id-statement-map catch-stmt-batch))
+(def catch-compiled-profile
+  (p/profile->validator catch-profile
+                        :statement-ref-fns {:get-statement-fn catch-id-stmt-map
+                                            :get-template-fn  catch-id-temp-map}
+                        :validate-profile? false))
+
+(def evidence-advocacy-provide-irl
+  "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
+
+(deftest statement-ref-test
+  (testing "validation of Statements with (Context) Statement Refs"
+    (is (p/validate-statement-vs-template
+         (some (fn [{id :id :as temp}]
+                 (when (= id evidence-advocacy-provide-irl)
+                   temp))
+               catch-compiled-profile)
+         test-stmt-1))
+    (is (p/validate-statement-vs-template
+         (some (fn [{id :id :as temp}]
+                 (when (= id evidence-advocacy-provide-irl)
+                   temp))
+               catch-compiled-profile)
+         test-stmt-2))
+    (is (not (p/validate-statement-vs-template
+              (some (fn [{id :id :as temp}]
+                      (when (= id evidence-advocacy-provide-irl)
+                        temp))
+                    catch-compiled-profile)
+              test-stmt-3)))
+    (is (= (str "----- Invalid Statement -----\n"
+                "Template ID:  https://w3id.org/xapi/catch/templates#evidence-advocacy-provide\n"
+                "Statement ID: test-stmt-3\n"
+                "\n"
+                "Cannot find Statement given by the id in the Context Statement Ref:\n"
+                "unknown-stmt\n"
+                "-----------------------------\n"
+                "Total errors found: 1\n"
+                "\n")
+           (with-out-str
+             (p/validate-statement-vs-template
+              (some (fn [{id :id :as temp}]
+                      (when (= id "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
+                        temp))
+                    catch-compiled-profile)
+              test-stmt-3
+              :fn-type :printer))))
+    (is (p/validate-statement-vs-profile catch-compiled-profile
+                                         test-stmt-1))
+    (is (p/validate-statement-vs-profile catch-compiled-profile
+                                         test-stmt-2))
+    (is (not (p/validate-statement-vs-profile catch-compiled-profile
+                                              test-stmt-3)))))
+
+;; Pattern tests
+
+(comment
+  ;; For pattern https://w3id.org/xapi/catch/patterns#f1-1-01-completion
+  "https://w3id.org/xapi/catch/templates#professional-development-event"
+  "https://w3id.org/xapi/catch/templates#wrote-reflection"
+  "https://w3id.org/xapi/catch/templates#f1-1-01"
+  "https://w3id.org/xapi/catch/templates#system-notification-submission"
+  "https://w3id.org/xapi/catch/templates#system-notification-progression"
+  "https://w3id.org/xapi/catch/templates#system-notification-completion"
+  "https://w3id.org/xapi/catch/templates#activity-completion")
+
+(def prof-dev-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "prof-dev-stmt")
+      (assoc-in ["verb"]
+                {"objectType" "Verb"
+                 "id" "http://adlnet.gov/expapi/verbs/attended"
+                 "display" {"en-US" "Attended"}})
+      (assoc-in ["object"]
+                {"id"
+                 "https://w3id.org/xapi/catch/activitytypes/professional-development#1"
+                 "definition"
+                 {"name" "Professional Development 1"
+                  "type" "https://w3id.org/xapi/catch/activitytypes/professional-development"}})
+      (assoc-in ["result" "duration"]
+                "PT4H35M59.14S")
+      (assoc-in ["context" "platform"]
+                "Some Platform")))
+
+(def reflection-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "reflection-stmt")
+      (assoc-in ["verb"]
+                {"id" "https://w3id.org/xapi/catch/verbs/reflected"})
+      (assoc-in ["result" "response"]
+                "Some Reflection Response")
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "prof-dev-stmt"})))
+
+(def checkin-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "main-stmt")
+      (assoc-in ["verb"]
+                {"objectType" "Verb"
+                 "id" "https://w3id.org/xapi/catch/verbs/submitted"})
+      (assoc-in ["object"]
+                {"objectType" "Activity"
+                 "id" "https://w3id.org/xapi/catch/activitytypes/check-in#1"
+                 "definition"
+                 {"name" {"en-US" "Check-In"}
+                  "type" "https://w3id.org/xapi/catch/activitytypes/check-in"}})
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "prof-dev-stmt"})))
+
+(def notify-submission-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "notify-submission-stmt")
+      (assoc-in ["verb"]
+                {"id" "https://w3id.org/xapi/catch/verbs/notified"
+                 "display" {"en-US" "Notified"}})
+      (assoc-in ["object"]
+                {"objectType" "Agent"
+                 "name"       "Will Hoyt"
+                 "mbox"       "mailto:will@yetanalytics.com"})
+      (assoc-in ["result" "success"] true)
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "main-stmt"})))
+
+(def notify-progression-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "notify-progression-stmt")
+      (assoc-in ["verb"]
+                {"id" "https://w3id.org/xapi/catch/verbs/notified"})
+      (assoc-in ["object"]
+                {"objectType" "Agent"
+                 "name"       "Will Hoyt"
+                 "mbox"       "mailto:will@yetanalytics.com"})
+      (assoc-in ["result" "score" "raw"] 1)
+      (assoc-in ["result" "score" "min"] 0)
+      (assoc-in ["result" "score" "max"] 1)
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "notify-submission-stmt"})))
+
+(def notify-completion-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "notify-progression-stmt")
+      (assoc-in ["verb"]
+                {"id" "https://w3id.org/xapi/catch/verbs/notified"})
+      (assoc-in ["object"]
+                {"objectType" "Agent"
+                 "name"       "Will Hoyt"
+                 "mbox"       "mailto:will@yetanalytics.com"})
+      (assoc-in ["result" "completion"] true)
+      (assoc-in ["context" "statement"]
+                {"objectType" "StatementRef"
+                 "id" "notify-submission-stmt"})))
+
+(def checkin-complete-stmt
+  (-> statement-basics
+      (assoc-in ["id"] "completed-stmt")
+      (assoc-in ["verb"]
+                {"objectType" "Verb"
+                 "id" "http://adlnet.gov/expapi/verbs/completed"
+                 "display" {"en-US" "Completed"}})
+      (assoc-in ["object"]
+                {"objectType" "Activity"
+                 "id" "https://w3id.org/xapi/catch/activitytypes/check-in#1"
+                 "definition"
+                 {"name" {"en-US" "Reflection"}
+                  "description" {"en-US" "Some reflection"}
+                  "type" "https://w3id.org/xapi/catch/activitytypes/check-in"}})))
+
+(def catch-stmt-batch-2
+  [prof-dev-stmt
+   reflection-stmt
+   checkin-stmt
+   notify-submission-stmt
+   notify-progression-stmt
+   notify-completion-stmt
+   checkin-complete-stmt])
+
+(def catch-id-stmt-map-2
+  (p/statement-batch->id-statement-map catch-stmt-batch-2))
+
+(def catch-fsm
+  (p/profile->fsms catch-profile
+                   :statement-ref-fns {:get-statement-fn catch-id-stmt-map-2
+                                       :get-template-fn  catch-id-temp-map}
+                   :validate-profile? false))
+
+(deftest statement-ref-pattern-test
+  (testing "patterns with Statement Refs"
+    (is (-> (p/match-statement-batch-vs-profile
+             catch-fsm
+             {}
+             catch-stmt-batch-2)
+            (get :no-registration)
+            (get "https://w3id.org/xapi/catch/patterns#f1-1-01-completion")
+            :accepted?))))

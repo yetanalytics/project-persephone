@@ -1,12 +1,8 @@
-(ns com.yetanalytics.persephone.template-validation
-  (:require [clojure.set :as cset]
-            [clojure.string :as string]
-            [com.yetanalytics.persephone.utils.json :as json])
+(ns com.yetanalytics.persephone.template.predicates
+  (:require [clojure.set :as cset])
   #?(:cljs (:require-macros
-            [com.yetanalytics.persephone.template-validation
+            [com.yetanalytics.persephone.template.predicates
              :refer [wrap-pred and-wrapped or-wrapped add-wrapped]])))
-
-;; TODO StatementRefTemplate predicates
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Predicate macros
@@ -223,7 +219,7 @@
                          (contains? rule :none)))
                 (#{"included" "excluded" "recommended"} (:presence rule)))
     (throw (ex-info "Invalid rule."
-                    {:type ::invalid-rule-syntax
+                    {:kind ::invalid-rule-syntax
                      :rule rule}))))
 
 (defn create-rule-pred
@@ -239,128 +235,3 @@
       "excluded"    (create-excluded-pred rule)
       "recommended" (create-default-pred rule)
       nil           (create-default-pred rule))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; JSONPath 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn find-values
-  "Given a Statement `stmt`, a parsed location JSONPath `loc-path`,
-   and an optional selector JSONPath `select-path`, return a vector
-   of the selected values. Unmatchable values are returned as nils."
-  ([stmt loc-path]
-   (find-values stmt loc-path nil))
-  ([stmt loc-path select-path]
-   (let [locations (json/get-jsonpath-values stmt loc-path)]
-     (if-not select-path
-       locations ;; No selector - return locations
-       (json/get-jsonpath-values locations select-path)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Determining Properties
-;; A Statement Template MUST include all Determining Properties.
-;; All Determining Properties are simply special instances of rules, and can
-;; be rewritten as such.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn add-determining-properties
-  "Convert Determining Properties into rules and add them to the Template's
-  rules. Returns the modified rules vector."
-  [{:keys [verb
-           objectActivityType
-           contextGroupingActivityType
-           contextParentActivityType
-           contextOtherActivityType
-           contextCategoryActivityType
-           attachmentUsageType
-           rules]}]
-  (letfn [(build-det-props [accum]
-            (cond-> accum
-              verb
-              (conj {:location  "$.verb.id"
-                     :prop-vals [verb]
-                     :determining-property "Verb"})
-              objectActivityType
-              (conj {:location  "$.object.definition.type"
-                     :prop-vals [objectActivityType]
-                     :determining-property "objectActivityType"})
-              contextParentActivityType
-              (conj {:location
-                     "$.context.contextActivities.parent[*].definition.type"
-                     :prop-vals contextParentActivityType
-                     :determining-property "contextParentActivityType"})
-              contextGroupingActivityType
-              (conj {:location
-                     "$.context.contextActivities.grouping[*].definition.type"
-                     :prop-vals contextGroupingActivityType
-                     :determining-property "contextGroupingActivityType"})
-              contextCategoryActivityType
-              (conj {:location
-                     "$.context.contextActivities.category[*].definition.type"
-                     :prop-vals contextCategoryActivityType
-                     :determining-property "contextCategoryActivityType"})
-              contextOtherActivityType
-              (conj {:location
-                     "$.context.contextActivities.other[*].definition.type"
-                     :prop-vals contextOtherActivityType
-                     :determining-property "contextOtherActivityType"})
-              attachmentUsageType
-              (conj {:location  "$.attachments[*].usageType"
-                     :prop-vals attachmentUsageType
-                     :determining-property "attachmentUsageType"})))]
-    ;; refactor makes the process more clear, via seperation of concerns
-    ;; - build rule config from template definition
-    ;; - aggregate all rules together into a single coll
-    (-> [] build-det-props (into rules))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bringing it all together
-;; A Statement MUST follow all the rules in the Statement Template.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn create-rule-validator
-  "Given `rule`, create a function that will validate new Statements
-   against the rule."
-  [{:keys [location selector] :as rule}]
-  (let [rule-spec     (create-rule-pred rule)
-        location-path (json/parse-jsonpath location)
-        ;; Locations values will be a JSON array, so we can query it using the
-        ;; selector by adding a wildcard at the beginning.
-        selector-path (when selector
-                        (-> selector
-                            (string/replace #"(\$)" "$1[*]")
-                            json/parse-jsonpath))]
-    (fn [statement]
-      (let [values    (find-values statement location-path selector-path)
-            fail-pred (rule-spec values)]
-        ;; nil indicates success
-        (when-not (nil? fail-pred)
-          ;; :pred - the predicate that failed, causing this error
-          ;; :values - the values that the predicate failed on
-          ;; :rule - the Statement Template rule associated with the error
-          {:pred   fail-pred
-           :values values
-           :rule   rule})))))
-
-(defn create-template-validator
-  "Given `template`, return a validator function that takes a
-   Statement as an argument and returns an nilable seq of error data."
-  [template]
-  (let [rules' (add-determining-properties template)
-        preds  (mapv create-rule-validator rules')]
-    (fn [statement]
-      (let [errors (->> preds
-                        (map (fn [f] (f statement)))
-                        (filter some?))]
-        (when (not-empty errors) errors)))))
-
-(defn create-template-predicate
-  "Like `create-template-validator`, but returns a predicate that takes
-   a Statement as an argument and returns a boolean."
-  [template]
-  (let [rules' (add-determining-properties template)
-        preds  (mapv create-rule-validator rules')]
-    (fn [statement]
-      (->> preds
-           (map (fn [f] (f statement)))
-           (every? nil?)))))

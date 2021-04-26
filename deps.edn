@@ -1,8 +1,8 @@
 {:paths ["src/main"]
- :deps {org.clojure/clojure           {:mvn/version "1.10.2"}
-        org.clojure/clojurescript     {:mvn/version "1.10.764"
-                                       :exclusions  [org.clojure/data.json]}
-        org.clojure/data.json         {:mvn/version "1.0.0"} ; clj only
+ :deps {org.clojure/clojure       {:mvn/version "1.10.2"}
+        org.clojure/clojurescript {:mvn/version "1.10.764"
+                                   :exclusions  [org.clojure/data.json]}
+        org.clojure/data.json     {:mvn/version "1.0.0"} ; clj only
         com.yetanalytics/xapi-schema ; Latest commit: 3/26/21
         {:git/url    "git@github.com:yetanalytics/xapi-schema.git"
          :sha        "77f78d1713e50e7b8610f58b5137695b0fccddaa"
@@ -51,13 +51,6 @@
   :runner-cljs
   {:main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/test"
-                 "-c" "build.test.edn"]}
-  :runner-gen-clj
-  {:main-opts  ["-m" "cognitect.test-runner"
-                "-d" "src/gen"]}
-  :runner-gen-cljs
-  {:main-opts   ["-m" "cljs-test-runner.main"
-                 "-d" "src/gen"
                  "-c" "build.test.edn"]}
   :runner-coverage
   {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}

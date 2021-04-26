@@ -1,17 +1,13 @@
-(ns com.yetanalytics.persephone-test.util-test.fsm-spec
-  (:require #?@(:cljs [[clojure.test.check]
-                       [clojure.test.check.generators]
-                       [clojure.test.check.properties :include-macros true]])
-            [clojure.spec.alpha :as s]
+(ns com.yetanalytics.persephone.pattern.fsm-spec
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as sgen]
-            [clojure.set :as cset]
-            [com.yetanalytics.persephone.utils.fsm :as fsm]))
+            [clojure.set :as cset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM Property Predicates
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- count-states [fsm-coll]
+(defn count-states [fsm-coll]
   (reduce (fn [cnt {:keys [states]}] (+ cnt (count states)))
           0
           fsm-coll))
@@ -174,25 +170,25 @@
 
 (defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
 
-(def nfa-spec (s/and valid-nfa-keys?
-                     valid-start-state?
-                     valid-accept-states?
-                     valid-transition-src-states?
-                     valid-transition-dest-states-nfa?
-                     valid-transition-symbols-nfa?))
+(def nfa-common-spec (s/and valid-nfa-keys?
+                            valid-start-state?
+                            valid-accept-states?
+                            valid-transition-src-states?
+                            valid-transition-dest-states-nfa?
+                            valid-transition-symbols-nfa?))
 
-(s/def ::nfa
+(def nfa-spec
   (s/with-gen
-    nfa-spec
+    nfa-common-spec
     (fn [] (sgen/fmap (partial
                        fsm-overrider
                        (partial sample-to-set 0.33)
                        (partial sample-to-set 0.25))
                       (s/gen :nfa/nfa-basics)))))
 
-(s/def ::thompsons-nfa
+(def thompsons-nfa-spec
   (s/with-gen
-    (s/and nfa-spec
+    (s/and nfa-common-spec
            one-accept-state?)
     (fn [] (sgen/fmap (partial
                        fsm-overrider
@@ -260,92 +256,29 @@
 (defn valid-set-dfa-keys? [dfa]
   (s/valid? :set-dfa/dfa dfa))
 
-(def dfa-spec (s/and valid-start-state?
-                     valid-accept-states?
-                     valid-transition-src-states?
-                     valid-transition-dest-states-dfa?
-                     valid-transition-symbols-dfa?))
+(def dfa-common-spec (s/and valid-start-state?
+                            valid-accept-states?
+                            valid-transition-src-states?
+                            valid-transition-dest-states-dfa?
+                            valid-transition-symbols-dfa?))
 
 (def dfa-gen-fmap
   (partial fsm-overrider
            (partial sample-to-set 0.33)
            (partial sample-one)))
 
-(s/def ::dfa (s/with-gen
-               (s/and valid-dfa-keys?
-                      dfa-spec)
-               (fn [] (sgen/fmap
-                       dfa-gen-fmap
-                       (s/gen :int-dfa/dfa-basics)))))
+(def dfa-spec
+  (s/with-gen
+    (s/and valid-dfa-keys?
+           dfa-common-spec)
+    (fn [] (sgen/fmap
+            dfa-gen-fmap
+            (s/gen :int-dfa/dfa-basics)))))
 
-(s/def ::set-dfa (s/with-gen
-                   (s/and valid-set-dfa-keys?
-                          dfa-spec)
-                   (fn [] (sgen/fmap
-                           dfa-gen-fmap
-                           (s/gen :set-dfa/dfa-basics)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Function specs
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(s/fdef fsm/alphatize-states-fsm
-  :args (s/cat :fsm (s/or :nfa ::nfa
-                          :dfa (s/or :ints ::dfa
-                                     :sets ::set-dfa)))
-  :ret (s/or :nfa ::nfa :dfa ::dfa)
-  :fn (fn [{:keys [args ret]}]
-        (= (count (:states args))
-           (count (:states ret)))))
-
-(s/fdef fsm/alphatize-states
-  :args (s/cat :fsm-coll (s/every (s/or :nfa ::nfa
-                                        :dfa (s/or :ints ::dfa
-                                                   :sets ::set-dfa))
-                                  :min-count 1
-                                  :gen-max 10))
-  :ret (s/every (s/or :nfa ::nfa :dfa ::dfa)
-                :min-count 1)
-  :fn (fn [{:keys [args ret]}]
-        (= (count-states args)
-           (count (:states ret)))))
-
-(s/fdef fsm/transition-nfa
-  :args (s/cat :fn-symbol ::symbol-id :fn ::symbol-pred)
-  :ret (and ::thompsons-nfa
-            (fn [{:keys [states]}] (= 2 (count states)))))
-
-(s/fdef fsm/concat-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::thompsons-nfa
-  :fn (fn [{:keys [args ret]}]
-        (= (count-states (:nfa-coll args)) (count (:states ret)))))
-
-(s/fdef fsm/union-nfa
-  :args (s/cat :nfa-coll (s/every ::thompsons-nfa :min-count 1 :gen-max 5))
-  :ret ::thompsons-nfa
-  :fn (fn [{:keys [args ret]}]
-        (= (+ 2 (count-states (:nfa-coll args))) (count (:states ret)))))
-
-(s/fdef fsm/kleene-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/optional-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/plus-nfa
-  :args (s/cat :nfa ::thompsons-nfa)
-  :ret ::thompsons-nfa)
-
-(s/fdef fsm/nfa->dfa
-  :args (s/cat :nfa ::nfa)
-  :ret ::dfa)
-
-(s/fdef fsm/minimize-dfa
-  :args (s/cat :dfa ::dfa)
-  :ret ::dfa
-  :fn (fn [{:keys [args ret]}]
-        (<= (-> ret :states count)
-            (-> args :dfa :states count))))
+(def set-dfa-spec
+  (s/with-gen
+    (s/and valid-set-dfa-keys?
+           dfa-common-spec)
+    (fn [] (sgen/fmap
+            dfa-gen-fmap
+            (s/gen :set-dfa/dfa-basics)))))

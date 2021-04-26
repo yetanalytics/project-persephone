@@ -67,13 +67,6 @@
                     {:kind    ::invalid-dfa
                      :pattern pattern-fsm}))))
 
-(defn- assert-dfas
-  [profile-fsm-m]
-  (when-not (every? #(= :dfa (:type %)) (vals profile-fsm-m))
-    (throw (ex-info "Compiled ID-pattern map is invalid!"
-                    {:kind    ::invalid-dfas
-                     :pattern profile-fsm-m}))))
-
 (defn- assert-prof-ref
   [profile-id statement]
   (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
@@ -380,7 +373,6 @@
    `statement` category context activites or if the sub-registration
    extension is invalid."
   [pat-fsm-map state-info-map statement]
-  (assert-dfas pat-fsm-map)
   (let [stmt         (coerce-statement statement)
         profile-id   (-> pat-fsm-map meta :profile-id)
         registration (get-in stmt ["context" "registration"] :no-registration)
@@ -398,6 +390,7 @@
                 registration))
             (update-pat-si
               [reg-state-info pat-id pat-fsm]
+              (assert-dfa pat-fsm)
               (let [pat-state-info  (get reg-state-info pat-id)
                     pat-state-info' (fsm/read-next pat-fsm
                                                    pat-state-info

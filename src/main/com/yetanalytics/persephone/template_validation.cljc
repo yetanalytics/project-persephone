@@ -6,8 +6,6 @@
             [com.yetanalytics.persephone.template-validation
              :refer [wrap-pred and-wrapped or-wrapped add-wrapped]])))
 
-;; TODO StatementRefTemplate predicates
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Predicate macros
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -340,7 +338,7 @@
   (let [{:keys [get-template-fn]} statement-ref-opts]
     (if-some [template (get-template-fn template-id)]
       (create-from-temp-fn template statement-ref-opts)
-      (throw (ex-info "Template not found!"
+      (throw (ex-info (str "Template not found: " template-id)
                       {:kind        ::template-not-found
                        :template-id template-id
                        :template-fn get-template-fn})))))

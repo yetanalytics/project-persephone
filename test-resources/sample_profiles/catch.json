@@ -1702,7 +1702,7 @@
         "https://w3id.org/xapi/catch/activitytypes/domain"
       ],
       "contextStatementRefTemplate": [
-        "https://w3id.org/xapi/catch/templates/professional-development/event"
+        "https://w3id.org/xapi/catch/templates#professional-development-event"
       ],
       "verb": "https://w3id.org/xapi/catch/verbs/submitted",
       "id": "https://w3id.org/xapi/catch/templates#f1-1-01",

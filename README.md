@@ -1,5 +1,7 @@
 # project-persephone
 
+[![CI](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml/badge.svg)](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml)
+
 _"Only Persephone, daughter of Zeus and wife of Hades, could travel between the Underworld and the world of the living. Project Persephone is the liaison between our physical world and the world of the Semantic Web."_
 
 A Clojure library for validating xAPI Statements against xAPI Profiles. 

@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone.pattern
-  (:require [clojure.walk :as w]
+  (:require [clojure.set  :as cset]
+            [clojure.walk :as w]
             [clojure.zip  :as zip]
             [com.yetanalytics.persephone.utils.maps  :as m]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]
@@ -105,18 +106,19 @@
    (cond
      (= "Pattern" type)
      (let [{:keys [sequence alternates optional zeroOrMore oneOrMore]} node]
-       (cond (some? sequence)
-             (fsm/concat-nfa sequence)
-             (some? alternates)
-             (fsm/union-nfa alternates)
-             (some? optional)
-             (fsm/optional-nfa optional)
-             (some? zeroOrMore)
-             (fsm/kleene-nfa zeroOrMore)
-             (some? oneOrMore)
-             (fsm/plus-nfa oneOrMore)
-             :else
-             (throw-invalid-pattern node)))
+       (cond
+         (some? sequence)
+         (fsm/concat-nfa sequence)
+         (some? alternates)
+         (fsm/union-nfa alternates)
+         (some? optional)
+         (fsm/optional-nfa optional)
+         (some? zeroOrMore)
+         (fsm/kleene-nfa zeroOrMore)
+         (some? oneOrMore)
+         (fsm/plus-nfa oneOrMore)
+         :else
+         (throw-invalid-pattern node)))
      (= "StatementTemplate" type)
      (fsm/transition-nfa id (t/create-template-predicate node stmt-ref-opts))
      :else
@@ -132,6 +134,53 @@
         (w/postwalk (fn [node] (pattern->fsm node stmt-ref-opts)))
         fsm/nfa->dfa
         fsm/minimize-dfa)))
+
+(defn- pattern->path-map
+  [{:keys [type id] :as node}]
+  (cond
+    (= "Pattern" type)
+    (if-some [paths-coll (or (-> node :sequence)
+                            (-> node :alternates))]
+      (->> paths-coll
+           (apply concat)
+           (map #(conj % id)))
+      (if-some [paths (or (-> node :optional)
+                         (-> node :zeroOrMore)
+                         (-> node :oneOrMore))]
+        (map #(conj % id) paths)
+        (throw-invalid-pattern node)))
+    (= "StatementTemplate" type)
+    [[id]]
+    :else
+    node))
+
+(defn pattern-tree->path-map
+  [pattern-tree]
+  (->> pattern-tree
+       (w/postwalk pattern->path-map)
+       (reduce (fn [m [st & rst]]
+                 (update m
+                         st
+                         (fn [coll v] (if coll (conj coll v) #{v}))
+                         (vec rst)))
+               {})))
+
+(comment
+  (pattern-tree->path-map
+   {:type "StatementTemplate"
+    :id   "http://example.org/statement-1"})
+  (pattern-tree->path-map
+   {:type "Pattern"
+    :id   "http://example.org/pattern-1"
+    :sequence [{:type "StatementTemplate"
+                :id   "http://example.org/statement-1"}
+               {:type "StatementTemplate"
+                :id   "http://example.org/statement-2"}
+               {:type "Pattern"
+                :id   "http://example.org/pattern-2"
+                :zeroOrMore {:type "StatementTemplate"
+                             :id   "http://example.org/statement-1"}}]})
+  )
 
 (defn profile->fsms
   "Given a Profile, returns a map between primary Pattern IDs and

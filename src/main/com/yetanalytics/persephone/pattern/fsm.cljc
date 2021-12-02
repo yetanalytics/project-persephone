@@ -371,7 +371,13 @@
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
      :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
 
-(defn- epsilon-closure
+;; Public for testing purposes
+
+(s/fdef epsilon-closure
+  :args (s/cat :nfa fs/nfa-spec :init-state :nfa/state)
+  :ret :nfa/states)
+
+(defn epsilon-closure
   "Given an NFA and a state, returns the epsilon closure for that
    state."
   [{nfa-transitions :transitions :as _nfa} init-state]

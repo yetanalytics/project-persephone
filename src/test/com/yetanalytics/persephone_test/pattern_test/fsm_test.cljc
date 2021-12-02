@@ -413,26 +413,25 @@
 ;; DFA tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(comment ; epsilon-closure has been made private
-  (deftest epsilon-closure-test
-    (testing "Epsilon closure of an NFA state."
-      (is (= #{0}
-             (fsm/epsilon-closure a-fsm 0)))
-      (is (= #{1 2}
-             (fsm/epsilon-closure (fsm/concat-nfa [a-fsm b-fsm]) 1)))
-      (is (= #{0 2 4 6 8}
-             (fsm/epsilon-closure
-              (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
-                              b-fsm])
-              8)))
-      (is (= #{0 2 3 4 5 6 7}
-             (fsm/epsilon-closure
-              (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
-              6)))
-      (is (= #{0 1 2 3 4 5 7}
-             (fsm/epsilon-closure
-              (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
-              1))))))
+(deftest epsilon-closure-test
+  (testing "Epsilon closure of an NFA state."
+    (is (= #{0}
+           (fsm/epsilon-closure a-fsm 0)))
+    (is (= #{1 2}
+           (fsm/epsilon-closure (fsm/concat-nfa [a-fsm b-fsm]) 1)))
+    (is (= #{0 2 4 6 8}
+           (fsm/epsilon-closure
+            (fsm/union-nfa [(fsm/union-nfa [a-fsm b-fsm])
+                            b-fsm])
+            8)))
+    (is (= #{0 2 3 4 5 6 7}
+           (fsm/epsilon-closure
+            (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
+            6)))
+    (is (= #{0 1 2 3 4 5 7}
+           (fsm/epsilon-closure
+            (-> a-fsm fsm/kleene-nfa fsm/kleene-nfa fsm/kleene-nfa)
+            1)))))
 
 (deftest powerset-construction-test
   (testing "Constructing a DFA out of an NFA via the powerset construction."
@@ -906,6 +905,7 @@
     (check `fsm/kleene-nfa #?(:clj 100 :cljs 50))
     (check `fsm/optional-nfa #?(:clj 100 :cljs 50))
     (check `fsm/plus-nfa #?(:clj 100 :cljs 50))
+    (check `fsm/epsilon-closure #?(:clj 100 :cljs 50))
     (check `fsm/nfa->dfa #?(:clj 200 :cljs 100))
     (check `fsm/minimize-dfa #?(:clj 500 :cljs 250))))
 

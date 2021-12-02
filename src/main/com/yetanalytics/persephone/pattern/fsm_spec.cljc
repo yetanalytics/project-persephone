@@ -288,8 +288,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/def ::accepted? boolean?)
+(s/def ::visited (s/coll-of ::symbol-id))
 
 (def state-info-spec
   (s/every (s/keys :req-un [:int-dfa/state
-                            ::accepted?])
+                            ::accepted?
+                            ::visited])
            :kind set?))

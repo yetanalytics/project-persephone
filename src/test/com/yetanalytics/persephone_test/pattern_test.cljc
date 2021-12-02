@@ -327,7 +327,8 @@
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
     (is (= #{{:state     (-> template-1-fsm :accepts first)
-              :accepted? true}}
+              :accepted? true
+              :visited   ["http://foo.org/t1"]}}
            (fsm/read-next template-1-fsm
                           nil
                           {"verb" {"id" "http://foo.org/verb1"}})))

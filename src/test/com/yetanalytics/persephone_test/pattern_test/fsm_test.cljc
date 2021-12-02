@@ -756,20 +756,23 @@
 (deftest read-next-test
   (testing "The read-next function."
     (is (= #{{:state     #?(:clj 0 :cljs 1)
-              :accepted? true}}
+              :accepted? true
+              :visited   ["a"]}}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
     (is (= #{}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
     (is (= #{}
            (-> a-fsm
                fsm/nfa->dfa
-               (fsm/read-next #{{:state #?(:clj 0 :cljs 1)
-                                 :accepted? true}}
+               (fsm/read-next #{{:state     #?(:clj 0 :cljs 1)
+                                 :accepted? true
+                                 :visited   []}}
                               "a"))))
     (is (= #{{:state     #?(:clj 0 :cljs 2)
-              :accepted? true}}
-           (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
-                 read-nxt  (partial fsm/read-next dfa)]
+              :accepted? true
+              :visited   ["a" "b"]}}
+           (let [dfa      (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
+                 read-nxt (partial fsm/read-next dfa)]
              (-> nil (read-nxt "a") (read-nxt "b"))))))
   (testing "The read-next function on edge cases"
     (is (= #{}
@@ -777,7 +780,8 @@
     (is (= #{}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next
                                    #{{:state     #?(:clj 0 :cljs 1)
-                                      :accepted? true}}
+                                      :accepted? true
+                                      :visited   []}}
                                    nil)))))
   (testing "The read-next function when multiple transitions can be accepted"
     (let [num-fsm {:type :dfa
@@ -793,13 +797,13 @@
                                  5 {}
                                  6 {}}}
           read-nxt (partial fsm/read-next num-fsm)]
-      (is (= #{{:state 1 :accepted? false}
-               {:state 2 :accepted? false}}
+      (is (= #{{:state 1 :accepted? false :visited ["even"]}
+               {:state 2 :accepted? false :visited ["lt10"]}}
              (-> nil (read-nxt 2))))
-      (is (= #{{:state 3 :accepted? true}
-               {:state 4 :accepted? true}
-               {:state 5 :accepted? true}
-               {:state 6 :accepted? true}}
+      (is (= #{{:state 3 :accepted? true :visited ["even" "even"]}
+               {:state 4 :accepted? true :visited ["even" "lt10"]}
+               {:state 5 :accepted? true :visited ["lt10" "even"]}
+               {:state 6 :accepted? true :visited ["lt10" "lt10"]}}
              (-> nil (read-nxt 2) (read-nxt 4))))
       (is (= #{}
              (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))

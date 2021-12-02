@@ -579,18 +579,17 @@
   "Like read-next, except it takes in the state directly, rather than
    state info. Returns a set of destination states.
    The read-next function is more useful for threading."
-  [{:keys [symbols accepts transitions] :as _dfa} state input]
+  [{:keys [symbols accepts transitions] :as _dfa} state visited input]
   (if-let [trans (-> transitions (get state))]
-    (let [dests (reduce-kv (fn [acc symb dest]
-                             (let [pred (get symbols symb)]
-                               (if (pred input) (conj acc dest) acc)))
-                           []
-                           trans)]
-      (reduce (fn [acc dst]
-                (conj acc {:state dst
-                           :accepted? (contains? accepts dst)}))
-              #{}
-              dests))
+    (reduce-kv (fn [acc symb dest]
+                 (let [pred (get symbols symb)]
+                   (if (pred input)
+                     (conj acc {:state     dest
+                                :accepted? (contains? accepts dest)
+                                :visited   (conj visited symb)})
+                     acc)))
+               #{}
+               trans)
     (let [err-msg "State not found in the finite state machine"]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
@@ -617,8 +616,11 @@
    always considered rejected)."
   [{start-state :start :as dfa} state-info input]
   (let [states (if (nil? state-info)
-                 [start-state]
-                 (map :state state-info))]
+                 #{{:state     start-state
+                    :accepted? false
+                    :visited   []}}
+                 state-info)]
     (->> states
-         (map (fn [state] (read-next* dfa state input)))
+         (map (fn [{:keys [state visited]}]
+                (read-next* dfa state visited input)))
          (apply cset/union))))

@@ -56,7 +56,7 @@
             (per/match-statement-vs-profile tc3-dfas state-info next-stmt)
             is-rejected?
             (reduce-kv (fn [acc _ pat-si]
-                         (and acc (empty? (:states pat-si))))
+                         (and acc (empty? pat-si)))
                        true
                        (get state-info' registration))]
         (if is-rejected?

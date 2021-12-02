@@ -149,3 +149,13 @@
                  (assoc acc pat-id pat-fsm)))
              {}
              pattern-seq))))
+
+(defn pattern-accepts?
+  "Given `state-info` `#{{:state 0 :accepted? true} ...}`, return `true` if
+   at least one state counts as an accept state."
+  [state-info]
+  (->> state-info
+       (map :accepted?)
+       (filter true?)
+       not-empty
+       boolean))

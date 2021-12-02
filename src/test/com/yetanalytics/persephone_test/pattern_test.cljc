@@ -326,13 +326,12 @@
 
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
-    (is (= {:states    #{(-> template-1-fsm :accepts first)}
-            :accepted? true}
+    (is (= #{{:state     (-> template-1-fsm :accepts first)
+              :accepted? true}}
            (fsm/read-next template-1-fsm
                           nil
                           {"verb" {"id" "http://foo.org/verb1"}})))
-    (is (= {:states    #{}
-            :accepted? false}
+    (is (= #{}
            (fsm/read-next template-1-fsm
                           nil
                           {"verb" {"id" "http://foo.org/verb9"}})))))
@@ -340,38 +339,35 @@
 (deftest mechanize-pattern-test-1
   (testing "mechanize-pattern function on pattern #1"
     (let [read-nxt (partial fsm/read-next pattern-1-fsm)]
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              :accepted?))
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb2"}})
-              (read-nxt {"verb" {"id" "http://foo.org/verb3"}})
-              :accepted?))
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb9"}})
-              :state
-              nil?))
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              :state
-              nil?)))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt {"verb" {"id" "http://foo.org/verb2"}})
+                      (read-nxt {"verb" {"id" "http://foo.org/verb3"}}))))
+      (is (= #{}
+             (-> nil
+                 (read-nxt {"verb" {"id" "http://foo.org/verb9"}}))))
+      (is (= #{}
+             (-> nil
+                 (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+                 (read-nxt {"verb" {"id" "http://foo.org/verb1"}})))))))
 
 (deftest mechanize-pattern-test-2
   (testing "mechanize-pattern function on pattern #2"
     (let [read-nxt (partial fsm/read-next pattern-2-fsm)]
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              :accepted?))
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              :accepted?))
-      (is (-> nil
-              (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-              (read-nxt {"verb" {"id" "http://foo.org/verb9"}})
-              :state
-              nil?)))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+                      (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
+      (is (= #{}
+             (-> nil
+                 (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+                 (read-nxt {"verb" {"id" "http://foo.org/verb9"}})))))))
 
 (deftest profile-to-fsm-test
   (testing "profile-to-fsm function"
@@ -390,19 +386,19 @@
       (is (every? #(= (-> % keys set)
                       #{:type :symbols :states :start :accepts :transitions})
                   (vals (pv/profile->fsms ex-profile))))
-      (is (-> nil
-              (read-nxt-1 stmt-1)
-              :accepted?))
-      (is (-> nil
-              (read-nxt-1 stmt-2)
-              (read-nxt-1 stmt-3)
-              :accepted?))
-      (is (-> nil
-              (read-nxt-2 stmt-1)
-              :accepted?))
-      (is (-> nil
-              (read-nxt-2 stmt-1)
-              (read-nxt-2 stmt-1)
-              (read-nxt-2 stmt-1)
-              (read-nxt-2 stmt-1)
-              :accepted?)))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt-1 stmt-1))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt-1 stmt-2)
+                      (read-nxt-1 stmt-3))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt-2 stmt-1))))
+      (is (every? :accepted?
+                  (-> nil
+                      (read-nxt-2 stmt-1)
+                      (read-nxt-2 stmt-1)
+                      (read-nxt-2 stmt-1)
+                      (read-nxt-2 stmt-1)))))))

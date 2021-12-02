@@ -749,35 +749,35 @@
                                    1 {"a" 1}}})
            (-> a-fsm fsm/plus-nfa fsm/nfa->dfa fsm/minimize-dfa)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Input reading tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (deftest read-next-test
   (testing "The read-next function."
-    (is (= {:states    #?(:clj #{0} :cljs #{1})
-            :accepted? true}
+    (is (= #{{:state     #?(:clj 0 :cljs 1)
+              :accepted? true}}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
-    (is (= {:states      #{}
-            :accepted?   false}
+    (is (= #{}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
-    (is (= {:states    #{}
-            :accepted? false}
+    (is (= #{}
            (-> a-fsm
                fsm/nfa->dfa
-               (fsm/read-next {:states #?(:clj #{0} :cljs #{1})
-                               :accepted? true}
+               (fsm/read-next #{{:state #?(:clj 0 :cljs 1)
+                                 :accepted? true}}
                               "a"))))
-    (is (= {:states    #?(:clj #{0} :cljs #{2})
-            :accepted? true}
+    (is (= #{{:state     #?(:clj 0 :cljs 2)
+              :accepted? true}}
            (let [dfa (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
                  read-nxt  (partial fsm/read-next dfa)]
              (-> nil (read-nxt "a") (read-nxt "b"))))))
   (testing "The read-next function on edge cases"
-    (is (= {:states #{} :accepted? false}
+    (is (= #{}
+           (-> a-fsm fsm/nfa->dfa (fsm/read-next #{} "a"))))
+    (is (= #{}
            (-> a-fsm fsm/nfa->dfa (fsm/read-next
-                                   {:states #{} :accepted? false}
-                                   "a"))))
-    (is (= {:states #{} :accepted? false}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next
-                                   {:states #?(:clj #{0} :cljs #{1})
-                                    :accepted? true}
+                                   #{{:state     #?(:clj 0 :cljs 1)
+                                      :accepted? true}}
                                    nil)))))
   (testing "The read-next function when multiple transitions can be accepted"
     (let [num-fsm {:type :dfa
@@ -793,14 +793,15 @@
                                  5 {}
                                  6 {}}}
           read-nxt (partial fsm/read-next num-fsm)]
-      (is (= {:states    #{1 2}
-              :accepted? false}
+      (is (= #{{:state 1 :accepted? false}
+               {:state 2 :accepted? false}}
              (-> nil (read-nxt 2))))
-      (is (= {:states    #{3 4 5 6}
-              :accepted? true}
+      (is (= #{{:state 3 :accepted? true}
+               {:state 4 :accepted? true}
+               {:state 5 :accepted? true}
+               {:state 6 :accepted? true}}
              (-> nil (read-nxt 2) (read-nxt 4))))
-      (is (= {:states    #{}
-              :accepted? false}
+      (is (= #{}
              (-> nil (read-nxt 2) (read-nxt 4) (read-nxt 6)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

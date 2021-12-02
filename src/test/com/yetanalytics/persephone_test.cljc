@@ -427,54 +427,59 @@
                              (match-cmi failed-stmt)
                              (match-cmi satisfied-stmt)))))
     ;; Just a bunch of satisfieds
-    (is (:accepted? (-> nil
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt))))
+    (is (every? :accepted?
+                (-> nil
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi satisfied-stmt))))
     ;; Waive, then pass
-    (is (:accepted? (-> nil
-                        (match-cmi waived-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi passed-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi terminated-stmt))))
+    (is (every? :accepted?
+                (-> nil
+                    (match-cmi waived-stmt)
+                    (match-cmi launched-stmt)
+                    (match-cmi initialized-stmt)
+                    (match-cmi passed-stmt)
+                    (match-cmi complete-stmt)
+                    (match-cmi terminated-stmt))))
     ;; Completed, then failed (oof!)
-    (is (:accepted? (-> nil
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi abandoned-stmt))))
+    (is (every? :accepted?
+                (-> nil
+                    (match-cmi launched-stmt)
+                    (match-cmi initialized-stmt)
+                    (match-cmi complete-stmt)
+                    (match-cmi failed-stmt)
+                    (match-cmi abandoned-stmt))))
     ;; Just straight up failed
-    (is (:accepted? (-> nil
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi abandoned-stmt))))
+    (is (every? :accepted?
+                (-> nil
+                    (match-cmi launched-stmt)
+                    (match-cmi initialized-stmt)
+                    (match-cmi failed-stmt)
+                    (match-cmi abandoned-stmt))))
     ;; Failed, then waived, then finally passed (yay!)
-    (is (:accepted? (-> nil
-                        (match-cmi satisfied-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi abandoned-stmt)
-                        (match-cmi waived-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi passed-stmt)
-                        (match-cmi terminated-stmt))))))
+    (is (every? :accepted?
+                (-> nil
+                    (match-cmi satisfied-stmt)
+                    (match-cmi launched-stmt)
+                    (match-cmi initialized-stmt)
+                    (match-cmi failed-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi abandoned-stmt)
+                    (match-cmi waived-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi launched-stmt)
+                    (match-cmi initialized-stmt)
+                    (match-cmi complete-stmt)
+                    (match-cmi satisfied-stmt)
+                    (match-cmi passed-stmt)
+                    (match-cmi terminated-stmt))))))
 
 (def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
 
@@ -519,41 +524,44 @@
                  (match-cmi-2 satisfied-stmt-2)
                  (get registration-2)
                  count)))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (get registration-2)
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 waived-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 complete-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 passed-stmt)
-                        (match-cmi-2 terminated-stmt)
-                        (get :no-registration)
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (get registration-2)
-                        (get "https://w3id.org/xapi/cmi5#toplevel")))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (get registration-2)
+                    (get "https://w3id.org/xapi/cmi5#toplevel"))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 waived-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 complete-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 passed-stmt)
+                    (match-cmi-2 terminated-stmt)
+                    (get :no-registration)
+                    (get "https://w3id.org/xapi/cmi5#toplevel"))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (get registration-2)
+                    (get "https://w3id.org/xapi/cmi5#toplevel")))))
   (testing "the match-statement-vs-profile function w/ sub-registrations."
     (is (= 4 (-> {}
                  (match-cmi-2 satisfied-stmt)
@@ -582,19 +590,20 @@
                  (match-cmi-2 satisfied-stmt-4)
                  (get registration-3)
                  count)))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt-3)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (get [registration-3 sub-reg-2])
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt-3)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (get [registration-3 sub-reg-2])
+                    (get "https://w3id.org/xapi/cmi5#toplevel"))))))
 
 (defn- match-cmi-ex
   [statement]
@@ -660,42 +669,47 @@
 
 (deftest statement-batch-test
   (testing "match-statement-batch-vs-pattern function"
-    (is (:accepted? (p/match-statement-batch-vs-pattern
-                     cmi-fsm
-                     nil
-                     statement-batch)))
-    (is (:accepted? (p/match-statement-batch-vs-pattern
-                     cmi-fsm
-                     nil
-                     (shuffle statement-batch)))))
+    (is (every? :accepted?
+                (p/match-statement-batch-vs-pattern
+                 cmi-fsm
+                 nil
+                 statement-batch)))
+    (is (every? :accepted?
+                (p/match-statement-batch-vs-pattern
+                 cmi-fsm
+                 nil
+                 (shuffle statement-batch)))))
   (testing "match-statement-batch-vs-profile function"
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             statement-batch)
-                            [:no-registration
-                             "https://w3id.org/xapi/cmi5#toplevel"])))
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             (shuffle statement-batch))
-                            [:no-registration
-                             "https://w3id.org/xapi/cmi5#toplevel"])))
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             (create-statement-batch [satisfied-stmt-3
-                                                      satisfied-stmt-4
-                                                      launched-stmt
-                                                      satisfied-stmt-4
-                                                      initialized-stmt
-                                                      satisfied-stmt-4
-                                                      failed-stmt
-                                                      satisfied-stmt-4
-                                                      abandoned-stmt
-                                                      satisfied-stmt-4]))
-                            [[registration-3 sub-reg-2]
-                             "https://w3id.org/xapi/cmi5#toplevel"])))))
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch-vs-profile
+                         cmi-fsm-map
+                         {}
+                         statement-batch)
+                        [:no-registration
+                         "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch-vs-profile
+                         cmi-fsm-map
+                         {}
+                         (shuffle statement-batch))
+                        [:no-registration
+                         "https://w3id.org/xapi/cmi5#toplevel"])))
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch-vs-profile
+                         cmi-fsm-map
+                         {}
+                         (create-statement-batch [satisfied-stmt-3
+                                                  satisfied-stmt-4
+                                                  launched-stmt
+                                                  satisfied-stmt-4
+                                                  initialized-stmt
+                                                  satisfied-stmt-4
+                                                  failed-stmt
+                                                  satisfied-stmt-4
+                                                  abandoned-stmt
+                                                  satisfied-stmt-4]))
+                        [[registration-3 sub-reg-2]
+                         "https://w3id.org/xapi/cmi5#toplevel"])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CATCH Profile
@@ -981,10 +995,10 @@
 
 (deftest statement-ref-pattern-test
   (testing "patterns with Statement Refs"
-    (is (-> (p/match-statement-batch-vs-profile
-             catch-fsm
-             {}
-             catch-stmt-batch-2)
-            (get :no-registration)
-            (get "https://w3id.org/xapi/catch/patterns#f1-1-01-completion")
-            :accepted?))))
+    (is (every? :accepted?
+                (-> (p/match-statement-batch-vs-profile
+                     catch-fsm
+                     {}
+                     catch-stmt-batch-2)
+                    (get :no-registration)
+                    (get "https://w3id.org/xapi/catch/patterns#f1-1-01-completion"))))))

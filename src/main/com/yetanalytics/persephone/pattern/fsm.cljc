@@ -581,15 +581,16 @@
    The read-next function is more useful for threading."
   [{:keys [symbols accepts transitions] :as _dfa} state input]
   (if-let [trans (-> transitions (get state))]
-    (let [dests
-          (->> trans
-               (filterv (fn [[symb _]] (let [pred? (get symbols symb)]
-                                         (pred? input))))
-               (mapv (fn [[_ dest]] dest)))]
-      {:states    (set dests)
-       :accepted? (-> (filterv (partial contains? accepts) dests)
-                      not-empty
-                      boolean)})
+    (let [dests (reduce-kv (fn [acc symb dest]
+                             (let [pred (get symbols symb)]
+                               (if (pred input) (conj acc dest) acc)))
+                           []
+                           trans)]
+      (reduce (fn [acc dst]
+                (conj acc {:state dst
+                           :accepted? (contains? accepts dst)}))
+              #{}
+              dests))
     (let [err-msg "State not found in the finite state machine"]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
@@ -598,6 +599,7 @@
   "Given a compiled FSM, the current state info, and an input, let
    the FSM read that input; this function returns update state info.
    The state info has the following fields:
+     
      :states      The set of next states arrived at in the FSM
                   after reading the input. If :states is empty,
                   then the input sequence has been rejected.
@@ -607,12 +609,10 @@
    If :states is empty, read-next will return state-info without
    calling the FSM, and sets :states to the empty set (as nil is
    always considered rejected)."
-  [{start :start :as dfa} state-info input]
-  (let [states (if (nil? state-info) #{start} (:states state-info))]
-    (reduce (fn [{:keys [states accepted?] :as acc}
-                 {m-states :states m-accepted? :accepted?}]
-              (-> acc
-                  (assoc :states (cset/union states m-states))
-                  (assoc :accepted? (or accepted? m-accepted?))))
-            {:states #{} :accepted? false}
-            (map #(read-next* dfa % input) states))))
+  [{start-state :start :as dfa} state-info input]
+  (let [states (if (nil? state-info)
+                 [start-state]
+                 (map :state state-info))]
+    (->> states
+         (map (fn [state] (read-next* dfa state input)))
+         (apply cset/union))))

@@ -595,6 +595,12 @@
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
 
+(s/fdef read-next
+  :args (s/cat :dfa fs/dfa-spec
+               :state-info (s/nilable fs/state-info-spec)
+               :input any?)
+  :ret fs/state-info-spec)
+
 (defn read-next
   "Given a compiled FSM, the current state info, and an input, let
    the FSM read that input; this function returns update state info.

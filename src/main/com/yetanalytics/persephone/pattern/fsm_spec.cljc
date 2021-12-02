@@ -282,3 +282,14 @@
     (fn [] (sgen/fmap
             dfa-gen-fmap
             (s/gen :set-dfa/dfa-basics)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; State Info Specs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def ::accepted? boolean?)
+
+(def state-info-spec
+  (s/every (s/keys :req-un [:int-dfa/state
+                            ::accepted?])
+           :kind set?))

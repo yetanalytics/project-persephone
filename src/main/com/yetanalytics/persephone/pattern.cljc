@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.pattern
-  (:require [clojure.set  :as cset]
-            [clojure.walk :as w]
+  (:require [clojure.walk :as w]
             [clojure.zip  :as zip]
             [com.yetanalytics.persephone.utils.maps  :as m]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]
@@ -145,8 +144,8 @@
            (apply concat)
            (map #(conj % id)))
       (if-some [paths (or (-> node :optional)
-                         (-> node :zeroOrMore)
-                         (-> node :oneOrMore))]
+                          (-> node :zeroOrMore)
+                          (-> node :oneOrMore))]
         (map #(conj % id) paths)
         (throw-invalid-pattern node)))
     (= "StatementTemplate" type)

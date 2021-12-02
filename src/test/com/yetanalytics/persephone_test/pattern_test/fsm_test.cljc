@@ -784,11 +784,11 @@
                                       :visited   []}}
                                    nil)))))
   (testing "The read-next function when multiple transitions can be accepted"
-    (let [num-fsm {:type :dfa
-                   :symbols {"even" even? "lt10" (fn [x] (< x 10))}
-                   :states #{0 1 2 3 4 5 6}
-                   :start 0
-                   :accepts #{3 4 5 6}
+    (let [num-fsm {:type        :dfa
+                   :symbols     {"even" even? "lt10" (fn [x] (< x 10))}
+                   :states      #{0 1 2 3 4 5 6}
+                   :start       0
+                   :accepts     #{3 4 5 6}
                    :transitions {0 {"even" 1 "lt10" 2}
                                  1 {"even" 3 "lt10" 4}
                                  2 {"even" 5 "lt10" 6}
@@ -815,75 +815,75 @@
 (deftest fsm-spec-tests
   (testing "NFA specs"
     (is (s/valid? fs/nfa-spec {:type        :nfa
-                            :symbols     {"a" odd?}
-                            :states      #{0 1}
-                            :start       0
-                            :accepts     #{1}
-                            :transitions {0 {"a" #{1}}
-                                          1 {}}}))
+                               :symbols     {"a" odd?}
+                               :states      #{0 1}
+                               :start       0
+                               :accepts     #{1}
+                               :transitions {0 {"a" #{1}}
+                                             1 {}}}))
     ;; Invalid start state
     (is (not (s/valid? fs/nfa-spec {:type        :nfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       2
-                                 :accepts     #{1}
-                                 :transitions {0 {"a" #{1}}
-                                               1 {}}})))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       2
+                                    :accepts     #{1}
+                                    :transitions {0 {"a" #{1}}
+                                                  1 {}}})))
     ;; Invalid accept states
     (is (not (s/valid? fs/nfa-spec {:type        :nfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{1 2}
-                                 :transitions {0 {"a" #{1}}
-                                               1 {}}})))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{1 2}
+                                    :transitions {0 {"a" #{1}}
+                                                  1 {}}})))
     ;; Missing transition src states
     (is (not (s/valid? fs/nfa-spec {:type        :nfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{1 2}
-                                 :transitions {0 {"a" #{1}}}})))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{1 2}
+                                    :transitions {0 {"a" #{1}}}})))
     ;; Invalid transition dest states
     (is (not (s/valid? fs/nfa-spec {:type        :nfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{1}
-                                 :transitions {0 {"a" #{1 2}}
-                                               1 {}}})))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{1}
+                                    :transitions {0 {"a" #{1 2}}
+                                                  1 {}}})))
     ;; Invalid transition symbol
     (is (not (s/valid? fs/nfa-spec {:type        :nfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{1}
-                                 :transitions {0 {"b" #{1}}
-                                               1 {}}}))))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{1}
+                                    :transitions {0 {"b" #{1}}
+                                                  1 {}}}))))
   (testing "DFA specs"
     (is (s/valid? fs/dfa-spec {:type        :dfa
-                            :symbols     {"a" odd?}
-                            :states      #{0 1}
-                            :start       0
-                            :accepts     #{0}
-                            :transitions {0 {"a" 0}
-                                          1 {}}}))
+                               :symbols     {"a" odd?}
+                               :states      #{0 1}
+                               :start       0
+                               :accepts     #{0}
+                               :transitions {0 {"a" 0}
+                                             1 {}}}))
     ;; Destinations cannot be sets
     (is (not (s/valid? fs/dfa-spec {:type        :dfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{0}
-                                 :transitions {0 {"a" #{0}}
-                                               1 {}}})))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{0}
+                                    :transitions {0 {"a" #{0}}
+                                                  1 {}}})))
     ;; Invalid transition dest states
     (is (not (s/valid? fs/dfa-spec {:type        :dfa
-                                 :symbols     {"a" odd?}
-                                 :states      #{0 1}
-                                 :start       0
-                                 :accepts     #{0}
-                                 :transitions {0 {"a" 0}
-                                               1 {"a" 2}}})))))
+                                    :symbols     {"a" odd?}
+                                    :states      #{0 1}
+                                    :start       0
+                                    :accepts     #{0}
+                                    :transitions {0 {"a" 0}
+                                                  1 {"a" 2}}})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generative tests

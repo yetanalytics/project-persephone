@@ -605,35 +605,23 @@
                     (get [registration-3 sub-reg-2])
                     (get "https://w3id.org/xapi/cmi5#toplevel"))))))
 
-(defn- match-cmi-ex
-  [statement]
-  (try (match-cmi {} statement)
-       (catch #?(:clj Exception :cljs js/Error) e
-         (-> e ex-data :kind))))
-
-(defn- match-cmi-2-ex
-  [statement]
-  (try (match-cmi-2 {} statement)
-       (catch #?(:clj Exception :cljs js/Error) e
-         (-> e ex-data :kind))))
-
 (deftest pattern-exceptions-test
   (testing "match-statement-vs-pattern exceptions"
     (is (= ::p/missing-profile-reference
-           (match-cmi-ex (assoc-in satisfied-stmt
+           (match-cmi {} (assoc-in satisfied-stmt
                                    ["context" "contextActivities" "category"]
                                    [])))))
   (testing "match-statement-vs-profile exceptions"
     (is (= ::p/missing-profile-reference
-           (match-cmi-2-ex (assoc-in satisfied-stmt
+           (match-cmi-2 {} (assoc-in satisfied-stmt
                                      ["context" "contextActivities" "category"]
                                      []))))
     (is (= ::p/invalid-subreg-nonconformant
-           (match-cmi-2-ex (assoc-in satisfied-stmt-3
+           (match-cmi-2 {} (assoc-in satisfied-stmt-3
                                      ["context" "extensions" p/subreg-iri]
                                      []))))
     (is (= ::p/invalid-subreg-no-registration
-           (match-cmi-2-ex (update satisfied-stmt-3
+           (match-cmi-2 {} (update satisfied-stmt-3
                                    "context"
                                    dissoc
                                    "registration"))))))

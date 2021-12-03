@@ -30,7 +30,7 @@
   (->> profile :patterns (filter #(-> % :primary true?))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Object maps -> tree data structure -> FSM
+;; Object maps -> tree data structure
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn create-zipper
@@ -95,7 +95,11 @@
       (let [new-loc (update-children pattern-loc objects-map)]
         (recur (zip/next new-loc))))))
 
-(defn pattern->fsm
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pattern tree -> FSM
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- pattern->fsm
   "Given a Pattern (e.g. as a node in a Pattern tree), return the
    corresponding FSM. The FSM built at this node is a composition of
    FSMs built from the child nodes."
@@ -133,6 +137,10 @@
         (w/postwalk (fn [node] (pattern->fsm node stmt-ref-opts)))
         fsm/nfa->dfa
         fsm/minimize-dfa)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pattern tree -> ID-to-path map
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- pattern->path-map
   [{:keys [type id] :as node}]
@@ -180,6 +188,10 @@
                 :zeroOrMore {:type "StatementTemplate"
                              :id   "http://example.org/statement-1"}}]})
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Putting it all together
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn profile->fsms
   "Given a Profile, returns a map between primary Pattern IDs and

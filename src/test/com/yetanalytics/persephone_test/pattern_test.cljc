@@ -308,7 +308,7 @@
                                  (pv/mapify-all ex-profile))))))
 
 (def template-1-fsm
-  (-> ex-profile :templates (get 0) pv/pattern->fsm fsm/nfa->dfa))
+  (-> ex-profile :templates (get 0) pv/pattern-tree->fsm))
 
 (def pattern-1-fsm
   (-> ex-profile

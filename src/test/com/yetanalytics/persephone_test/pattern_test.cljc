@@ -4,6 +4,10 @@
             [com.yetanalytics.persephone.pattern :as pv]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test fixtures
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def ex-profile
   {:_context   "https://w3id.org/xapi/profiles/context"
    :id         "http://foo.org/sample-profile"
@@ -72,6 +76,10 @@
                  :definition {:en "One or more iterations of Pattern 1"}
                  :oneOrMore  "http://foo.org/p1"}]})
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Helper tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (deftest mapify-all-test
   (testing "mapify-all function: make a id-object map of Templates and Patterns
            given a Profile."
@@ -136,6 +144,10 @@
               :definition {:en "One or more iterations of Pattern 1"}
               :oneOrMore  "http://foo.org/p1"})
            (pv/primary-patterns ex-profile)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pattern tree tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deftest create-zipper-test
   (testing "create-zipper function"
@@ -307,39 +319,43 @@
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 2))
                                  (pv/mapify-all ex-profile))))))
 
-(def template-1-fsm
-  (-> ex-profile :templates (get 0) pv/pattern-tree->fsm))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tree -> DFA tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def pattern-1-fsm
+(def template-1-dfa
+  (-> ex-profile :templates (get 0) pv/pattern-tree->dfa))
+
+(def pattern-1-dfa
   (-> ex-profile
       :patterns
       (get 0)
       (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->fsm))
+      pv/pattern-tree->dfa))
 
-(def pattern-2-fsm
+(def pattern-2-dfa
   (-> ex-profile
       :patterns
       (get 2)
       (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->fsm))
+      pv/pattern-tree->dfa))
 
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
-    (is (= #{{:state     (-> template-1-fsm :accepts first)
+    (is (= #{{:state     (-> template-1-dfa :accepts first)
               :accepted? true
               :visited   ["http://foo.org/t1"]}}
-           (fsm/read-next template-1-fsm
+           (fsm/read-next template-1-dfa
                           nil
                           {"verb" {"id" "http://foo.org/verb1"}})))
     (is (= #{}
-           (fsm/read-next template-1-fsm
+           (fsm/read-next template-1-dfa
                           nil
                           {"verb" {"id" "http://foo.org/verb9"}})))))
 
-(deftest mechanize-pattern-test-1
-  (testing "mechanize-pattern function on pattern #1"
-    (let [read-nxt (partial fsm/read-next pattern-1-fsm)]
+(deftest pattern-dfa-test
+  (testing "pattern-tree->dfa function on pattern #1"
+    (let [read-nxt (partial fsm/read-next pattern-1-dfa)]
       (is (every? :accepted?
                   (-> nil
                       (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
@@ -353,11 +369,22 @@
       (is (= #{}
              (-> nil
                  (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
-                 (read-nxt {"verb" {"id" "http://foo.org/verb1"}})))))))
-
-(deftest mechanize-pattern-test-2
-  (testing "mechanize-pattern function on pattern #2"
-    (let [read-nxt (partial fsm/read-next pattern-2-fsm)]
+                 (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
+      (testing ":visited value"
+        (is (= ["http://foo.org/t1"]
+               (-> nil
+                   (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
+                   first
+                   :visited)))
+        (is (= ["http://foo.org/t2"
+                "http://foo.org/t3"]
+               (-> nil
+                   (read-nxt {"verb" {"id" "http://foo.org/verb2"}})
+                   (read-nxt {"verb" {"id" "http://foo.org/verb3"}})
+                   first
+                   :visited))))))
+  (testing "pattern-tree->dfa function on pattern #2"
+    (let [read-nxt (partial fsm/read-next pattern-2-dfa)]
       (is (every? :accepted?
                   (-> nil
                       (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
@@ -369,6 +396,50 @@
              (-> nil
                  (read-nxt {"verb" {"id" "http://foo.org/verb1"}})
                  (read-nxt {"verb" {"id" "http://foo.org/verb9"}})))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tree -> NFA tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def pattern-1-nfa
+  (-> ex-profile
+      :patterns
+      (get 0)
+      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
+      pv/pattern-tree->nfa))
+
+(def pattern-2-nfa
+  (-> ex-profile
+      :patterns
+      (get 2)
+      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
+      pv/pattern-tree->nfa))
+
+(deftest pattern-nfa-test
+  (testing "pattern-tree->nfa function"
+    (let [read-nxt (partial fsm/read-next pattern-1-nfa)]
+      (is (= '({:accepted? true
+                :visited   ["http://foo.org/t1"]})
+             (->> (-> nil
+                      (read-nxt "http://foo.org/t1"))
+                  #_(filter :accepted?)
+                  #_(map #(dissoc % :state)))))
+      (is (= '({:accepted? true
+                :visited   ["http://foo.org/t2"
+                            "http://foo.org/t3"]})
+             (->> (-> nil
+                      (read-nxt "http://foo.org/t2")
+                      (read-nxt "http://foo.org/t3"))
+                  (filter :accepted?)
+                  (map #(dissoc % :state)))))))
+  #_(testing "read-visited-templates function"
+    (let [read-ids (partial pv/read-visited-templates pattern-1-nfa)]
+      (is (= []
+             (read-ids ["http://foo.org/t1"]))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; FSM compilation and matching tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deftest profile-to-fsm-test
   (testing "profile-to-fsm function"

@@ -489,7 +489,7 @@
            (fsm/nfa->dfa (fsm/concat-nfa [a-fsm b-fsm]))))
     (is (= #?(:clj {:type        :dfa
                     :symbols    {"a" is-a?
-                                  "b" is-b?}
+                                 "b" is-b?}
                     :states      #{0 1 2}
                     :start       2
                     :accepts     #{0 1}
@@ -771,7 +771,71 @@
 ;; Input reading tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftest read-next-test
+(deftest nfa-read-next-test
+  (testing "The read-next function"
+    (is (= #{{:state     1
+              :accepted? true
+              :visited   ["a"]}}
+           (-> a-fsm (fsm/read-next nil "a"))))
+    (testing "when there are only epsilon transitions"
+      (let [epsilon-nfa {:type        :nfa
+                         :symbols     {}
+                         :states      #{0 1 2}
+                         :start       0
+                         :accepts     #{1 2}
+                         :transitions {0 {:epsilon #{1 2}}
+                                       1 {:epsilon #{1}}
+                                       2 {:epsilon #{0}}}}]
+        (is (= #{}
+               (fsm/read-next epsilon-nfa nil "a")))))
+    (testing "when there are epsilon and regular transitions"
+      (let [epsilon-nfa {:type        :nfa
+                         :symbols     {"even" even?}
+                         :states      #{0 1 2 3 4 5}
+                         :start       0
+                         :accepts     #{3 4 5}
+                         :transitions {0 {"even"   #{1}
+                                          :epsilon #{2}}
+                                       1 {"even"   #{2}
+                                          :epsilon #{3}}
+                                       2 {"even"   #{4}
+                                          :epsilon #{5}}
+                                       3 {"even"   #{3}}
+                                       4 {"even"   #{4}}
+                                       5 {:epsilon #{5}}}}
+            eps-nfa-read (partial fsm/read-next epsilon-nfa)]
+        (is (= #{{:state     1
+                  :accepted? false
+                  :visited   ["even"]}
+                 {:state     4
+                  :accepted? true
+                  :visited   ["even"]}}
+               (-> nil
+                   (eps-nfa-read 0))))
+        (is (= #{{:state     2
+                  :accepted? false
+                  :visited   ["even" "even"]}
+                 {:state     3
+                  :accepted? true
+                  :visited   ["even" "even"]}
+                 {:state     4
+                  :accepted? true
+                  :visited   ["even" "even"]}}
+               (-> nil
+                   (eps-nfa-read 0)
+                   (eps-nfa-read 0))))
+        (is (= #{{:state     3
+                  :accepted? true
+                  :visited   ["even" "even" "even"]}
+                 {:state     4
+                  :accepted? true
+                  :visited   ["even" "even" "even"]}}
+               (-> nil
+                   (eps-nfa-read 0)
+                   (eps-nfa-read 0)
+                   (eps-nfa-read 0))))))))
+
+(deftest dfa-read-next-test
   (testing "The read-next function."
     (is (= #{{:state     #?(:clj 0 :cljs 1)
               :accepted? true

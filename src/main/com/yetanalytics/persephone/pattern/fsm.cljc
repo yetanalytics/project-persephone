@@ -586,22 +586,28 @@
    Runs the epsilon closure first before reading the input; `:epsilon`
    is therefore not recorded as a visited transition."
   [{:keys [symbols accepts transitions] :as nfa} input state visited]
-  (for [state (epsilon-closure nfa state)
-        :let  [trans (get transitions state)]
-        symb  (keys trans)
-        dest  (get trans symb)
-        :let  [state-info {:state     dest
-                           :accepted? (contains? accepts dest)
-                           :visited   (conj visited symb)}]
-        :when (and (not= :epsilon symb)
-                   ((get symbols symb) input))]
-    state-info))
+  (if-let [trans (get transitions state)]
+    (for [symb  (keys trans)
+          dest  (get trans symb)
+          :let  [eps-closure (epsilon-closure nfa dest)
+                 visited     (conj visited symb)]
+          :when (and (not= :epsilon symb)
+                     ((get symbols symb) input))
+          state eps-closure
+          :let  [state-info {:state     state
+                             :accepted? (contains? accepts state)
+                             :visited   visited}]]
+      state-info)
+    (let [err-msg (str "State not found in the finite state machine: "
+                       (pr-str state))]
+      (throw #?(:clj (Exception. err-msg)
+                :cljs (js/Error. err-msg))))))
 
 (defn- read-next-dfa
   "Like `read-next` for DFAs, except it takes in the state directly, rather
    than state info. Returns a set of state info maps."
   [{:keys [symbols accepts transitions] :as _dfa} input state visited]
-  (if-let [trans (-> transitions (get state))]
+  (if-let [trans (get transitions state)]
     (reduce-kv (fn [acc symb dest]
                  (if (and (not= :epsilon symb)
                           ((get symbols symb) input))
@@ -615,14 +621,6 @@
                        (pr-str state))]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
-
-(defn- init-state
-  [{start-state :start :as _fsm} state-info]
-  (if (nil? state-info)
-    #{{:state     start-state
-       :accepted? false
-       :visited   []}}
-    state-info))
 
 (s/fdef read-next
   :args (s/cat :dfa fs/dfa-spec
@@ -650,13 +648,31 @@
 
 (defmethod read-next :nfa
   [nfa state-info input]
-  (->> (init-state nfa state-info)
-       (map (fn [{s :state v :visited}] (read-next-nfa nfa input s v)))
-       (map set)
-       (apply cset/union)))
+  (let [{:keys
+         [start
+          accepts]} nfa
+        state-info  (if (nil? state-info)
+                      (map (fn [s]
+                             {:state s
+                              :accepted? (contains? accepts s)
+                              :visited   []})
+                           (epsilon-closure nfa start))
+                      state-info)]
+    (->> state-info
+         (map (fn [{s :state v :visited}] (read-next-nfa nfa input s v)))
+         (map set)
+         (apply cset/union))))
 
 (defmethod read-next :dfa
   [dfa state-info input]
-  (->> (init-state dfa state-info)
-       (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
-       (apply cset/union)))
+  (let [{:keys
+         [start
+          accepts]} dfa
+        state-info  (if (nil? state-info)
+                      #{{:state     start
+                         :accepted? (contains? accepts start)
+                         :visited   []}}
+                      state-info)]
+    (->> state-info
+         (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
+         (apply cset/union))))

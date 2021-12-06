@@ -807,6 +807,9 @@
         (is (= #{{:state     1
                   :accepted? false
                   :visited   ["even"]}
+                 {:state     3
+                  :accepted? true
+                  :visited   ["even"]}
                  {:state     4
                   :accepted? true
                   :visited   ["even"]}}
@@ -819,6 +822,9 @@
                   :accepted? true
                   :visited   ["even" "even"]}
                  {:state     4
+                  :accepted? true
+                  :visited   ["even" "even"]}
+                 {:state     5
                   :accepted? true
                   :visited   ["even" "even"]}}
                (-> nil

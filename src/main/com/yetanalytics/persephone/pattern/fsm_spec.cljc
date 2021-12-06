@@ -295,3 +295,13 @@
                             ::accepted?
                             ::visited])
            :kind set?))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; FSM Metadata Specs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def :meta/states
+  (s/every-kv (s/or :nfa :nfa/state :dfa :int-dfa/state) any?))
+
+(def fsm-metadata-spec
+  (s/keys :opt-un [:meta/states]))

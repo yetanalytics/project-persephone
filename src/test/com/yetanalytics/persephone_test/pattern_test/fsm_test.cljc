@@ -23,7 +23,7 @@
              :states      #{0 1}
              :start       0
              :accepts     #{1}
-             :transitions {0 {"b" #{1}} 1 {}}}
+             :transitions {0 {"a" #{1}} 1 {}}}
             {:type        :nfa
              :symbols     {"b" even?}
              :states      #{2 3}
@@ -36,7 +36,7 @@
               :states      #{0 1}
               :start       0
               :accepts     #{1}
-              :transitions {0 {"b" #{1}} 1 {}}}
+              :transitions {0 {"a" #{1}} 1 {}}}
              {:type        :nfa
               :symbols     {"b" even?}
               :states      #{0 1}
@@ -80,7 +80,25 @@
               :states      #{#{0 1 2 3 4 5} #{6 7 8 9 10}}
               :start       #{0 1 2 3 4 5}
               :accepts     #{#{0 1 2 3 4 5}}
-              :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}])))))
+              :transitions {#{0 1 2 3 4 5} {"a" #{0 1 2 3 4 5}}}}]))))
+  (testing "State metadata alphatization"
+    (is (= [{:states {0 :foo 1 :bar}}
+            {:states {2 :foo 3 :bar}}]
+           (mapv meta (fsm/alphatize-states
+                       [(-> {:type        :nfa
+                             :symbols     {"a" odd?}
+                             :states      #{0 1}
+                             :start       0
+                             :accepts     #{1}
+                             :transitions {0 {"a" #{1}} 1 {}}}
+                            (with-meta {:states {0 :foo 1 :bar}}))
+                        (-> {:type        :nfa
+                             :symbols     {"b" even?}
+                             :states      #{0 1}
+                             :start       0
+                             :accepts     #{1}
+                             :transitions {0 {"b" #{1}} 1 {}}}
+                            (with-meta {:states {0 :foo 1 :bar}}))]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Building blocks

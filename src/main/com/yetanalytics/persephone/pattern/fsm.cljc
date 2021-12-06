@@ -95,6 +95,9 @@
         old-to-new-state-set
         (fn [states]
           (->> states (mapv old-to-new-state) (into #{})))
+        update-state-keys
+        (fn [m]
+          (cset/rename-keys m old-to-new-state))
         update-dests
         (fn [transitions]
           (reduce-kv
@@ -112,8 +115,9 @@
         (update :states old-to-new-state-set)
         (update :start old-to-new-state)
         (update :accepts old-to-new-state-set)
-        (update :transitions #(cset/rename-keys % old-to-new-state))
-        (update :transitions update-dests))))
+        (update :transitions update-state-keys)
+        (update :transitions update-dests)
+        (vary-meta update :states update-state-keys))))
 
 (s/fdef alphatize-states-fsm
   :args (s/cat :fsm (s/or :nfa fs/nfa-spec
@@ -125,7 +129,8 @@
            (count (:states ret)))))
 
 (defn alphatize-states-fsm
-  "Rename all states in a single FSM."
+  "Rename all states in a single FSM. Renames all map keys for the `:states`
+   metadata value if provided."
   [fsm]
   (reset-counter)
   (alphatize-states-fsm* fsm))
@@ -144,7 +149,8 @@
 
 (defn alphatize-states
   "Rename all states in a collection of FSMs such that no two states
-   share the same name."
+   share the same name. Renames all map keys for the `:states` metadata
+   value if provided."
   [fsm-coll]
   (reset-counter)
   (loop [new-fsm-queue []
@@ -202,7 +208,7 @@
      :states      #{start accept}
      :start       start
      :accepts     #{accept}
-     :transitions {start  {fn-symbol #{accept}} accept {}}}))
+     :transitions {start {fn-symbol #{accept}} accept {}}}))
 
 ;; -> q ==> s --> s ==> a
 

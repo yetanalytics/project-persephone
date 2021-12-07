@@ -523,25 +523,28 @@
                            "https://w3id.org/xapi/cmi5#failed"
                            "https://w3id.org/xapi/cmi5#terminated"]
                           :patterns
-                          [["https://w3id.org/xapi/cmi5#terminated"
-                            "https://w3id.org/xapi/cmi5#terminatedorabandoned"
-                            "https://w3id.org/xapi/cmi5#completionmaybefailedsession"
-                            "https://w3id.org/xapi/cmi5#typicalsession"
-                            "https://w3id.org/xapi/cmi5#typicalsessions"
-                            "https://w3id.org/xapi/cmi5#toplevel"]
-                           ["https://w3id.org/xapi/cmi5#terminated"
-                            "https://w3id.org/xapi/cmi5#terminatedorabandoned"
-                            "https://w3id.org/xapi/cmi5#failedsession"
-                            "https://w3id.org/xapi/cmi5#typicalsession"
-                            "https://w3id.org/xapi/cmi5#typicalsessions"
-                            "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
-           (meta (-> nil
-                     (match-cmi satisfied-stmt)
-                     (match-cmi launched-stmt)
-                     (match-cmi initialized-stmt)
-                     (match-cmi failed-stmt)
-                     (match-cmi terminated-stmt)
-                     (match-cmi complete-stmt)))))))
+                          #{["https://w3id.org/xapi/cmi5#terminated"
+                             "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                             "https://w3id.org/xapi/cmi5#completionmaybefailedsession"
+                             "https://w3id.org/xapi/cmi5#typicalsession"
+                             "https://w3id.org/xapi/cmi5#typicalsessions"
+                             "https://w3id.org/xapi/cmi5#toplevel"]
+                            ["https://w3id.org/xapi/cmi5#terminated"
+                             "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                             "https://w3id.org/xapi/cmi5#failedsession"
+                             "https://w3id.org/xapi/cmi5#typicalsession"
+                             "https://w3id.org/xapi/cmi5#typicalsessions"
+                             "https://w3id.org/xapi/cmi5#toplevel"]}}]}}
+           (-> nil
+               (match-cmi satisfied-stmt)
+               (match-cmi launched-stmt)
+               (match-cmi initialized-stmt)
+               (match-cmi failed-stmt)
+               (match-cmi terminated-stmt)
+               (match-cmi complete-stmt)
+               meta
+               (update-in [:failure :traces] vec)
+               (update-in [:failure :traces 0 :patterns] set))))))
 
 (def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
 

@@ -230,7 +230,8 @@
                (let [pat-tree (grow-pattern-tree pattern temp-pat-map)
                      pat-dfa  (pattern-tree->dfa pat-tree statement-ref-fns)
                      pat-nfa  (pattern-tree->nfa pat-tree)]
-                 (assoc acc pat-id {:dfa pat-dfa
+                 (assoc acc pat-id {:id  pat-id
+                                    :dfa pat-dfa
                                     :nfa pat-nfa})))
              {}
              pattern-seq))))

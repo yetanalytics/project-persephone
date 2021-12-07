@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest testing is]]
             [clojure.zip :as zip]
             [com.yetanalytics.persephone.pattern :as pv]
-            [com.yetanalytics.persephone.pattern.fsm :as fsm]))
+            [com.yetanalytics.persephone.pattern.fsm :as fsm]
+            [com.yetanalytics.persephone.pattern.errors :as err]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test fixtures
@@ -498,3 +499,50 @@
                       (read-nxt-2 stmt-1)
                       (read-nxt-2 stmt-1)
                       (read-nxt-2 stmt-1)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Error Message Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(deftest err-msg-test
+  (testing "Error messages"
+    (is (= (str "----- Pattern Match Failure -----\n"
+                "Primary Pattern ID: http://example.org/p1\n"
+                "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
+                "\n"
+                "Statement Templates visited:\n"
+                "  http://example.org/t3\n"
+                "  http://example.org/t2\n"
+                "Pattern paths:\n"
+                "  http://example.org/p3\n"
+                "  http://example.org/p1\n"
+                "  OR\n"
+                "  http://example.org/p2\n"
+                "  http://example.org/p1\n"
+                "\n"
+                "OR\n"
+                "\n"
+                "Statement Templates visited:\n"
+                "  http://example.org/t1\n"
+                "Pattern path:\n"
+                "  http://example.org/p1")
+           (err/error-msg-str
+            {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+             :pattern   "http://example.org/p1"
+             :traces    [{:templates ["http://example.org/t3"
+                                      "http://example.org/t2"]
+                          :patterns  [["http://example.org/p3"
+                                       "http://example.org/p1"]
+                                      ["http://example.org/p2"
+                                       "http://example.org/p1"]]}
+                         {:templates ["http://example.org/t1"]
+                          :patterns  [["http://example.org/p1"]]}]})))
+    (is (= (str "----- Pattern Match Failure -----\n"
+                "Primary Pattern ID: http://example.org/p1\n"
+                "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
+                "\n"
+                "Pattern cannot match any statements.")
+           (err/error-msg-str
+            {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+             :pattern   "http://example.org/p1"
+             :traces    nil})))))

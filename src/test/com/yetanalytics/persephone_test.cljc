@@ -404,21 +404,21 @@
 
 (deftest pattern-validation-tests
   (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
-    (is (empty? (:states (match-cmi nil ex-statement))))
+    (is (empty? (match-cmi nil ex-statement)))
     ;; Accepted by 'satisfied' Template
-    (is (not (:rejected? (match-cmi nil satisfied-stmt))))
+    (is (-> (match-cmi nil satisfied-stmt)
+            first
+            :accepted?))
     ;; Does not satifiy all rules in the 'satisfied' Template - rejected
-    (is (empty? (:states
-                 (match-cmi nil (assoc-in
-                                 ex-statement
-                                 ["verb" "id"]
-                                 "http://adlnet.gov/expapi/verbs/satisfied")))))
+    (is (empty? (match-cmi nil (assoc-in
+                                ex-statement
+                                ["verb" "id"]
+                                "http://adlnet.gov/expapi/verbs/satisfied"))))
     ;; Forgot initialized-stmt - rejected
     (is (empty? (-> nil
                     (match-cmi satisfied-stmt)
                     (match-cmi launched-stmt)
-                    (match-cmi failed-stmt)
-                    :states)))
+                    (match-cmi failed-stmt))))
     ;; Session not completed yet
     (is (not (:accepted? (-> nil
                              (match-cmi satisfied-stmt)
@@ -479,7 +479,69 @@
                     (match-cmi complete-stmt)
                     (match-cmi satisfied-stmt)
                     (match-cmi passed-stmt)
-                    (match-cmi terminated-stmt))))))
+                    (match-cmi terminated-stmt)))))
+  (testing "Error message output associated with the cmi5 Profile"
+    (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+                      :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+                      :traces    nil}}
+           (meta (match-cmi nil ex-statement))))
+    ;; The first failure happens on the "completion-no-success" pattern.
+    ;; The second failure happens either on the "completion-maybe-failed"
+    ;; or the "failed" pattern.
+    (is (= {:failure
+            {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+             :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+             :traces    [{:templates
+                          ["https://w3id.org/xapi/cmi5#satisfied"
+                           "https://w3id.org/xapi/cmi5#launched"
+                           "https://w3id.org/xapi/cmi5#initialized"
+                           "https://w3id.org/xapi/cmi5#completed"
+                           "https://w3id.org/xapi/cmi5#satisfied"
+                           "https://w3id.org/xapi/cmi5#terminated"]
+                          :patterns
+                          [["https://w3id.org/xapi/cmi5#terminated"
+                            "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                            "https://w3id.org/xapi/cmi5#completionnosuccesssession"
+                            "https://w3id.org/xapi/cmi5#typicalsession"
+                            "https://w3id.org/xapi/cmi5#typicalsessions"
+                            "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
+           (meta (-> nil
+                     (match-cmi satisfied-stmt)
+                     (match-cmi launched-stmt)
+                     (match-cmi initialized-stmt)
+                     (match-cmi complete-stmt)
+                     (match-cmi satisfied-stmt)
+                     (match-cmi terminated-stmt)
+                     (match-cmi failed-stmt)))))
+    (is (= {:failure
+            {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+             :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+             :traces    [{:templates
+                          ["https://w3id.org/xapi/cmi5#satisfied"
+                           "https://w3id.org/xapi/cmi5#launched"
+                           "https://w3id.org/xapi/cmi5#initialized"
+                           "https://w3id.org/xapi/cmi5#failed"
+                           "https://w3id.org/xapi/cmi5#terminated"]
+                          :patterns
+                          [["https://w3id.org/xapi/cmi5#terminated"
+                            "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                            "https://w3id.org/xapi/cmi5#completionmaybefailedsession"
+                            "https://w3id.org/xapi/cmi5#typicalsession"
+                            "https://w3id.org/xapi/cmi5#typicalsessions"
+                            "https://w3id.org/xapi/cmi5#toplevel"]
+                           ["https://w3id.org/xapi/cmi5#terminated"
+                            "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                            "https://w3id.org/xapi/cmi5#failedsession"
+                            "https://w3id.org/xapi/cmi5#typicalsession"
+                            "https://w3id.org/xapi/cmi5#typicalsessions"
+                            "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
+           (meta (-> nil
+                     (match-cmi satisfied-stmt)
+                     (match-cmi launched-stmt)
+                     (match-cmi initialized-stmt)
+                     (match-cmi failed-stmt)
+                     (match-cmi terminated-stmt)
+                     (match-cmi complete-stmt)))))))
 
 (def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
 

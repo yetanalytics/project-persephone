@@ -322,15 +322,23 @@
                  fsm-map))))
 
 (defn- match-statement-vs-pattern*
-  [{pat-dfa :dfa pat-nfa :nfa} state-info statement]
+  [{pat-id :id pat-dfa :dfa pat-nfa :nfa} state-info statement]
   (let [new-st-info (fsm/read-next pat-dfa state-info statement)]
     (if (empty? new-st-info)
       (if-some [old-meta (-> state-info meta :failure-info)]
         (with-meta new-st-info {:failure-info old-meta})
-        (let [temp-ids (:visited state-info)
-              paths    (p/read-visited-templates pat-nfa temp-ids)]
-          (with-meta new-st-info {:failure-info {:visited temp-ids
-                                                 :paths   paths}})))
+        (let [fail-info
+              (->> state-info
+                   (map :visited)
+                   (map (fn [temp-ids]
+                          (let [ptraces (p/read-visited-templates pat-nfa
+                                                                  temp-ids)]
+                            {:templates temp-ids
+                             :patterns  ptraces})))
+                   not-empty)]
+          (with-meta new-st-info {:failure {:statement (get statement "id")
+                                            :pattern   pat-id
+                                            :traces    fail-info}})))
       new-st-info)))
 
 (defn match-statement-vs-pattern

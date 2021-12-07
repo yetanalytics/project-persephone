@@ -25,9 +25,12 @@
                (map template-visit-str trace-coll)))
 
 (defn error-msg-str
-  [{statement-id   :statement
-    pattern-id     :pattern
-    trace-coll     :traces}]
+  "Given an pattern match failure map, create a pretty error message
+   detailing the statement ID, primary pattern ID, and the traces
+   containing visited templates and pattern paths."
+  [{statement-id :statement
+    pattern-id   :pattern
+    trace-coll   :traces}]
   (fmt (str "----- Pattern Match Failure -----\n"
             "Primary Pattern ID: %s\n"
             "Statement ID:       %s\n"
@@ -38,25 +41,3 @@
        (if (not-empty trace-coll)
          (trace-str trace-coll)
          "Pattern cannot match any statements.")))
-
-(comment
-  (println (pattern-path-str
-            ["http://example.org/p2"
-             "http://example.org/p1"]))
-  (print (error-msg-str {:statement "http://example.org/statement-1"
-                         :pattern "http://example.org/p0"
-                         :fail-info
-                         [{:templates ["http://example.org/t3"
-                                       "http://example.org/t2"]
-                           :patterns [["http://example.org/p2"
-                                       "http://example.org/p1"]
-                                      ["http://example.org/p4"
-                                       "http://example.org/p3"]]}
-                          {:templates ["http://example.org/t40"
-                                       "http://example.org/t30"
-                                       "http://example.org/t20"]
-                           :patterns [["http://example.org/p20"
-                                       "http://example.org/p10"]
-                                      ["http://example.org/p40"
-                                       "http://example.org/p30"]]}]}))
-  )

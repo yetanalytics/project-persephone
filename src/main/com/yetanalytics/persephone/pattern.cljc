@@ -149,11 +149,11 @@
            ?zom-nfa :zeroOrMore
            ?oom-nfa :oneOrMore} node
           new-nfa (cond
-                    ?seq-nfas (fsm/concat-nfa ?seq-nfas)
-                    ?alt-nfas (fsm/union-nfa ?alt-nfas)
-                    ?opt-nfa  (fsm/optional-nfa ?opt-nfa)
-                    ?zom-nfa  (fsm/kleene-nfa ?zom-nfa)
-                    ?oom-nfa  (fsm/plus-nfa ?oom-nfa))
+                    ?seq-nfas (fsm/concat-nfa ?seq-nfas true)
+                    ?alt-nfas (fsm/union-nfa ?alt-nfas true)
+                    ?opt-nfa  (fsm/optional-nfa ?opt-nfa true)
+                    ?zom-nfa  (fsm/kleene-nfa ?zom-nfa true)
+                    ?oom-nfa  (fsm/plus-nfa ?oom-nfa true))
           meta-fn (fn [states-m]
                     (reduce-kv (fn [m k v]
                                  (assoc m k (update v :path conj id)))
@@ -162,7 +162,7 @@
       (vary-meta new-nfa update :states meta-fn))
     (= "StatementTemplate" type)
     (let [pred   (fn [input] (= id input))
-          nfa    (fsm/transition-nfa id pred)
+          nfa    (fsm/transition-nfa id pred true)
           states (:states nfa)]
       (with-meta nfa {:states (reduce (fn [acc s] (assoc acc s {:path [id]}))
                                       {}
@@ -185,6 +185,10 @@
    during the original matching process. If `template-ids` is empty or
    represents an invalid input sequence, return an empty seq."
   [nfa template-ids]
+  ;; This function takes advantage of the fact that due to the way our
+  ;; NFAs are constructed, the final epsilon closure will contain the
+  ;; state with all the relevant pattern path info (e.g. in a union
+  ;; of transitions, the pentultimate states will include the template ID).
   (let [nfa-metadata (meta nfa)]
     (if (not-empty template-ids)
       (loop [tokens  template-ids

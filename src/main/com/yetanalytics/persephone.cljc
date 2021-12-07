@@ -322,6 +322,9 @@
                  fsm-map))))
 
 (defn- match-statement-vs-pattern*
+  "Match `statement` against the pattern DFA, and upon failure (i.e.
+   `fsm/read-next` returns `#{}`), append printable failure metadata
+   to the return value."
   [{pat-id :id pat-dfa :dfa pat-nfa :nfa} state-info statement]
   (let [new-st-info (fsm/read-next pat-dfa state-info statement)]
     (if (empty? new-st-info)

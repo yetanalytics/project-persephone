@@ -301,15 +301,23 @@
 (defn profile->fsms
   "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
    returns a map between primary Pattern IDs and their corresponding
-   Pattern FSMs. Returns `{}` if there are no primary Patterns in
-   `profile`. The ID of `profile` is saved as metadata for both the
-   return value and each individual FSM.
+   Pattern FSM maps. Returns `{}` if there are no primary Patterns in
+   `profile`. Each map has three values:
    
-   :statement-ref-fns takes the key-value pairs described in
-   `template->validator`.
+     `:id`  The pattern ID.
+     `:dfa` The DFA used for general pattern matching.
+     `:nfa` The NFA with pattern metadata used for reconstructing the
+            pattern path.
+   
+   The ID of `profile` is saved as metadata for both the
+   return value and each individual FSM.
 
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
+   The following are optional arguments:
+
+     :statement-ref-fns takes the key-value pairs described in
+     `template->validator`.
+     :validate-profile? is default true. If true, `profile->validator`
+     checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [statement-ref-fns validate-profile?]
               :or   {validate-profile? true}}]
   (let [profile (coerce-profile profile)]
@@ -446,12 +454,17 @@
         t2 (get s2 "timestamp")]
     (time/compare-timestamps t1 t2)))
 
+;; TODO: Profile + registration validation?
 (defn match-statement-batch-vs-pattern
   "Like `match-statement-vs-pattern`, but takes a collection of
    Statements instead of a singleton Statement. Automatically
    orders Statements by timestamp value, which should be present.
    Returns an error keyword if any statement in the batch has missing
-   Profile ID."
+   Profile ID.
+
+   NOTE: This function treats all statements in the batch as having
+   the same profile and registration info, even if they actually
+   do not."
   [pat-fsm state-info statement-coll]
   (loop [stmt-coll (sort cmp-statements statement-coll)
          st-info   state-info]

@@ -17,7 +17,7 @@ The `persephone` namespace contains functions that perform two main tasks. The f
 To compile a Statement Template or Profile for use with these functions, the `template->validator` and `profile->validator` functions are used, respectively.
 
 The other task is to validate streams/collections of Statements against
-Patterns, which are compiled into finite-state machines (FSMs). That is accomplished by the following functions:
+Patterns, which are compiled into so-called _finite-state machines (FSMs)_. That is accomplished by the following functions:
 
 - `match-statement-vs-pattern`: Taking a compiled Pattern, a map containing the current FSM state info, and a Statement, matches the Statement against that Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns) and returns updated state info.
 
@@ -54,7 +54,7 @@ following:
 
 - `:printer` - Prints an error message when the Statement is invalid. Always returns `nil`.
 
-`validation-statement-vs-profile` takes an addition option for `:fn-type`:
+`validation-statement-vs-profile` takes an additional option for `:fn-type`:
 
 - `:templates` - Returns a vector of the IDs of the Statement Templates the Statement is valid for.
 
@@ -90,35 +90,46 @@ The above error message indicates that the Statement's Verb property has an inco
 
 ### Validation on Pattern
 
-Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `profile->fsms`, each Pattern is implemented as a finite state machine (FSM), which is mathematically equivalent to regular expressions.
+Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `profile->fsms`, each Pattern is returned as a map with `:id`, `:dfa`, and `:nfa` values; the latter two different FSMs:
+- `:dfa` is a (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
+- `:nfa` is a non-deterministic NFA with pattern metadata associated with each of its states. It is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
+
+(NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.)
 
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
 
-- `sequence`: The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
+- `sequence` - The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
 
-- `alternates`: The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (`|` in a regex string).
+- `alternates` - The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (`|` in a regex string).
 
-- `zeroOrMore`: The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (`\*` in a regex string).
+- `zeroOrMore` - The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (`\*` in a regex string).
 
-- `oneOrMore`: The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
+- `oneOrMore` - The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
 
-- `optional`: The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.
+- `optional` - The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.
 
-Using `match-statement-vs-profile`, a compiled Profile can read a stream of Statements, where each call to `match-statement-vs-profile` returns a map between Statement registration values and a map representing the current state info for each registration. In turn, each per-registration state info data is a map from Pattern IDs to per-Pattern state info. Each per-Pattern state info map has the following fields:
+Using `match-statement-vs-pattern`, a single Pattern from a compiled Profile returns state info data, represented as a set of maps containing the following values:
 
-- `:states` - The states that the FSM aer currently at. If `:states` is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern.
+- `:state` - The state that the FSM is currently at.
 
 - `:accepted?` - Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
 
-That per-Pattern state info map is the return value for `match-statement-vs-pattern`, which is designed to be used with single Patterns instead of a whole Profile.
+- `:visited` - A vector of template IDs that records the templates that were previously matched against.
 
-If the state info map is `nil`, then `match-statement-vs-pattern` will begin at the start state of the FSM. If `:states` is empty, then  `match-statement-vs-pattern` will return the same map, since it cannot read any more states; otherwise, it returns an updated map with a new `:state` value.
+If the state info is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern. An input sequence is considered accepted if _any one_ of the `:accepted?` values in the set is `true`.
 
-`match-statement-vs-profile` attempts to match the Statement against each compiled Pattern in the Pattern map. If a sequence of Statements with different registrations is passed to `match-statement-vs-profile`, then each set of same-registration Patterns is treated as its own stream, hence the need for a mapping between registrations and state info.
+Using `match-statement-vs-profile`, a compiled Profile can read a stream of Statements, where each call to `match-statement-vs-profile` returns a map between Statement registration values and a map representing the current state info for each registration. In turn, each per-registration state info data is a map from Pattern IDs to per-Pattern state info.
+
+If the state info is `nil`, then both match functions will begin at the start state of the FSM.
 
 `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile` are batch validation versions of their singleton counterparts. Before validation, both functions automatically sort the Statement batches by timestamp values, which should be present, or else calling these functions could lead to undefined behavior.
 
-For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; important concepts include deterministic and non-deterministic finite automata, Thompson's Algorithm for NFA composition, the powerset construction for NFA to DFA conversion, and Brzozowski's algorithm for DFA minimization.
+For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; useful articles include:
+- [Deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
+- [Nondeterministic finite automaton](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)
+- [Thompson's construction](https://en.wikipedia.org/wiki/Thompson%27s_construction) (for NFA composition)
+- [Powerset construction](https://en.wikipedia.org/wiki/Powerset_construction) (for NFA to DFA conversion)
+- [DFA Minimization](https://en.wikipedia.org/wiki/DFA_minimization) (includes discussion of Brzozowski's algorithm, the algorithm used by this library.)
 
 ### Statement Ref Templates
 

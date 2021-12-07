@@ -200,7 +200,7 @@
             ;; Invalid token sequence - abort
             (= #{} sinfo)
             '()
-            
+
             ;; Last token - return
             (empty? rst)
             (let [sinfo* (fsm/read-next nfa sinfo fst)]
@@ -211,7 +211,7 @@
                    (filter (fn [path] (= fst (first path))))
                    distinct
                    (map vec)))
-            
+
             ;; More tokens- continue
             :else
             (recur rst

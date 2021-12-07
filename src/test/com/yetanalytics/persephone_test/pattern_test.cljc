@@ -225,18 +225,10 @@
   (-> ex-profile :templates (get 0) pv/pattern-tree->dfa))
 
 (def pattern-1-dfa
-  (-> ex-profile
-      :patterns
-      (get 0)
-      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->dfa))
+  (pv/pattern-tree->dfa pattern-tree-1))
 
 (def pattern-2-dfa
-  (-> ex-profile
-      :patterns
-      (get 2)
-      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->dfa))
+  (pv/pattern-tree->dfa pattern-tree-2))
 
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
@@ -300,18 +292,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def pattern-1-nfa
-  (-> ex-profile
-      :patterns
-      (get 0)
-      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->nfa))
+  (pv/pattern-tree->nfa pattern-tree-1))
 
 (def pattern-2-nfa
-  (-> ex-profile
-      :patterns
-      (get 2)
-      (pv/grow-pattern-tree (pv/mapify-all ex-profile))
-      pv/pattern-tree->nfa))
+  (pv/pattern-tree->nfa pattern-tree-2))
 
 (deftest pattern-nfa-test
   (testing "pattern-tree->nfa function"

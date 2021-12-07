@@ -321,6 +321,18 @@
                  (add-pid {})
                  fsm-map))))
 
+(defn- match-statement-vs-pattern*
+  [{pat-dfa :dfa pat-nfa :nfa} state-info statement]
+  (let [new-st-info (fsm/read-next pat-dfa state-info statement)]
+    (if (empty? new-st-info)
+      (if-some [old-meta (-> state-info meta :failure-info)]
+        (with-meta new-st-info {:failure-info old-meta})
+        (let [temp-ids (:visited state-info)
+              paths    (p/read-visited-templates pat-nfa temp-ids)]
+          (with-meta new-st-info {:failure-info {:visited temp-ids
+                                                 :paths   paths}})))
+      new-st-info)))
+
 (defn match-statement-vs-pattern
   "Takes `pat-fsms`, `state-info`, and `statement`, where `pat-fsms`
    is one value in the map returned by `profile->fsms`. Uses `(:dfa pat-fsm)`
@@ -341,11 +353,10 @@
   [pat-fsms state-info statement]
   (assert-dfa (:dfa pat-fsms))
   (let [statement  (coerce-statement statement)
-        profile-id (-> pat-fsms meta :profile-id)
-        pat-dfa    (:dfa pat-fsms)]
+        profile-id (-> pat-fsms meta :profile-id)]
     (if-some [err-kw (validate-profile-ref profile-id statement)]
       err-kw
-      (fsm/read-next pat-dfa state-info statement))))
+      (match-statement-vs-pattern* pat-fsms state-info statement))))
 
 (defn match-statement-vs-profile
   "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
@@ -402,11 +413,11 @@
                   registration))
               (update-pat-si
                 [reg-state-info pat-id pat-fsm]
-                (let [pat-state-info  (get reg-state-info pat-id)
-                      pat-state-info' (fsm/read-next (:dfa pat-fsm)
-                                                     pat-state-info
-                                                     stmt)]
-                  (assoc reg-state-info pat-id pat-state-info')))
+                (let [pat-st-info  (get reg-state-info pat-id)
+                      pat-st-info' (match-statement-vs-pattern* pat-fsm
+                                                                pat-st-info
+                                                                stmt) ]
+                  (assoc reg-state-info pat-id pat-st-info')))
               (update-reg-si
                 [reg-state-info]
                 (reduce-kv update-pat-si reg-state-info pat-fsm-map))]

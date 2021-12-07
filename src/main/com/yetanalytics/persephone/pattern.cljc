@@ -155,17 +155,15 @@
                     ?zom-nfa  (fsm/kleene-nfa ?zom-nfa)
                     ?oom-nfa  (fsm/plus-nfa ?oom-nfa))
           meta-fn (fn [states-m]
-                    (->> states-m
-                         (reduce-kv (fn [m k v]
-                                      (assoc m k (update v :path conj id)))
-                                    {})))]
-      ;; #dbg
+                    (reduce-kv (fn [m k v]
+                                 (assoc m k (update v :path conj id)))
+                               {}
+                               states-m))]
       (vary-meta new-nfa update :states meta-fn))
     (= "StatementTemplate" type)
     (let [pred   (fn [input] (= id input))
           nfa    (fsm/transition-nfa id pred)
           states (:states nfa)]
-      ;; #dbg
       (with-meta nfa {:states (reduce (fn [acc s] (assoc acc s {:path [id]}))
                                       {}
                                       states)}))
@@ -184,24 +182,36 @@
 (defn read-visited-templates
   "Given `nfa` returned by `pattern-tree->nfa`, read in the `template-ids`
    sequence and return the path of Patterns and Templates that was taken
-   during the original matching process."
+   during the original matching process. If `template-ids` is empty or
+   represents an invalid input sequence, return an empty seq."
   [nfa template-ids]
   (let [nfa-metadata (meta nfa)]
-    (loop [tokens  template-ids
-           sinfo   nil]
-      (let [[fst & rst] tokens]
-        (if (empty? rst)
-          ;; Last token - return
-          (let [sinfo* (fsm/read-next nfa sinfo fst)]
-            ;; #dbg
-            (->> sinfo*
-                 (map :state)
-                 (map (fn [s] (get-in nfa-metadata [:states s :path])))
-                 concat
-                 set))
-          ;; More tokens - continue
-          (recur rst
-                 (fsm/read-next nfa sinfo fst)))))))
+    (if (not-empty template-ids)
+      (loop [tokens  template-ids
+             sinfo   nil]
+        (let [[fst & rst] tokens]
+          (cond
+            ;; Invalid token sequence - abort
+            (= #{} sinfo)
+            '()
+            
+            ;; Last token - return
+            (empty? rst)
+            (let [sinfo* (fsm/read-next nfa sinfo fst)]
+              (->> sinfo*
+                   (map :state)
+                   (map (fn [s] (get-in nfa-metadata [:states s :path])))
+                   concat
+                   (filter (fn [path] (= fst (first path))))
+                   distinct
+                   (map vec)))
+            
+            ;; More tokens- continue
+            :else
+            (recur rst
+                   (fsm/read-next nfa sinfo fst)))))
+      ;; Empty `template-ids` - no patterns were matched against
+      '())))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Putting it all together

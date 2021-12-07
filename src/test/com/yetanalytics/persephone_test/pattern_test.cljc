@@ -422,8 +422,8 @@
                 :visited   ["http://foo.org/t1"]})
              (->> (-> nil
                       (read-nxt "http://foo.org/t1"))
-                  #_(filter :accepted?)
-                  #_(map #(dissoc % :state)))))
+                  (filter :accepted?)
+                  (map #(dissoc % :state)))))
       (is (= '({:accepted? true
                 :visited   ["http://foo.org/t2"
                             "http://foo.org/t3"]})
@@ -432,10 +432,34 @@
                       (read-nxt "http://foo.org/t3"))
                   (filter :accepted?)
                   (map #(dissoc % :state)))))))
-  #_(testing "read-visited-templates function"
-    (let [read-ids (partial pv/read-visited-templates pattern-1-nfa)]
-      (is (= []
-             (read-ids ["http://foo.org/t1"]))))))
+  (testing "read-visited-templates function"
+    (testing "on pattern 1"
+      (let [read-ids (partial pv/read-visited-templates pattern-1-nfa)]
+        (is (= '()
+               (read-ids [])))
+        (is (= '(["http://foo.org/t1" "http://foo.org/p1"])
+               (read-ids ["http://foo.org/t1"])))
+        (is (= '(["http://foo.org/t2" "http://foo.org/p2" "http://foo.org/p1"])
+               (read-ids ["http://foo.org/t2"])))
+        (is (= '(["http://foo.org/t3" "http://foo.org/p2" "http://foo.org/p1"])
+               (read-ids ["http://foo.org/t2" "http://foo.org/t3"])))))
+    (testing "on pattern 2"
+      (let [read-ids (partial pv/read-visited-templates pattern-2-nfa)]
+        (is (= '()
+               (read-ids [])))
+        (is (= '(["http://foo.org/t1" "http://foo.org/p1" "http://foo.org/p3"])
+               (read-ids ["http://foo.org/t1"])))
+        (is (= '(["http://foo.org/t1" "http://foo.org/p1" "http://foo.org/p3"])
+               (read-ids ["http://foo.org/t1" "http://foo.org/t1"])))
+        (is (= '(["http://foo.org/t2" "http://foo.org/p2" "http://foo.org/p1" "http://foo.org/p3"])
+               (read-ids ["http://foo.org/t1" "http://foo.org/t2"])))
+        (is (= '(["http://foo.org/t3" "http://foo.org/p2" "http://foo.org/p1" "http://foo.org/p3"])
+               (read-ids ["http://foo.org/t1" "http://foo.org/t2" "http://foo.org/t3"])))
+        ;; Pathological case - invalid token sequences
+        (is (= '()
+               (read-ids ["http://foo.org/t1" "http://foo.org/t3"])))
+        (is (= '()
+               (read-ids ["http://foo.org/t9"])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FSM compilation and matching tests

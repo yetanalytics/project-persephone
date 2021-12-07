@@ -701,13 +701,13 @@
    the FSM read that input; this function returns update state info.
    The state info has the following fields:
      
-     :state       The set of next states arrived at in the FSM
-                  after reading the input. If :states is empty,
-                  then the input sequence has been rejected.
-     :transition  The ID of the transition that led to the current
-                  state.
-     :accepted?   True if the FSM as arrived at an accept state
-                  after reading the input; false otherwise.
+     :state     The set of next states arrived at in the FSM
+                after reading the input. If :states is empty,
+                then the input sequence has been rejected.
+     :visited   The IDs of the transitions that led to the current
+                state.
+     :accepted? True if the FSM as arrived at an accept state
+                after reading the input; false otherwise.
    If the state info is nil, the function starts at the start state.
    If :states is empty, read-next will return state-info without
    calling the FSM, and sets :states to the empty set (as nil is

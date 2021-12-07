@@ -336,8 +336,8 @@
   [{pat-id :id pat-dfa :dfa pat-nfa :nfa} state-info statement]
   (let [new-st-info (fsm/read-next pat-dfa state-info statement)]
     (if (empty? new-st-info)
-      (if-some [old-meta (-> state-info meta :failure-info)]
-        (with-meta new-st-info {:failure-info old-meta})
+      (if-some [old-meta (meta state-info)]
+        (with-meta new-st-info old-meta)
         (let [fail-info
               (->> state-info
                    (map :visited)

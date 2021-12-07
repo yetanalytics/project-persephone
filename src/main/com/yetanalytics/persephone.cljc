@@ -322,9 +322,9 @@
                  fsm-map))))
 
 (defn match-statement-vs-pattern
-  "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is
-   one value in the map returned by `profile->fsms`. Uses `pat-fsm` to
-   validate `statement` and returns a new state info map.
+  "Takes `pat-fsms`, `state-info`, and `statement`, where `pat-fsms`
+   is one value in the map returned by `profile->fsms`. Uses `(:dfa pat-fsm)`
+   to validate `statement` and returns a new state info map.
    
    `state-info` is a nilable set of maps map with the following fields:
 
@@ -338,13 +338,14 @@
    If the profile ID is not included in the category context activities of
    `statement`, that means `statement` cannot match the compiled pattern,
    so the keyword `::missing-profile-reference` is returned."
-  [pat-fsm state-info statement]
-  (assert-dfa pat-fsm)
+  [pat-fsms state-info statement]
+  (assert-dfa (:dfa pat-fsms))
   (let [statement  (coerce-statement statement)
-        profile-id (-> pat-fsm meta :profile-id)]
+        profile-id (-> pat-fsms meta :profile-id)
+        pat-dfa    (:dfa pat-fsms)]
     (if-some [err-kw (validate-profile-ref profile-id statement)]
       err-kw
-      (fsm/read-next pat-fsm state-info statement))))
+      (fsm/read-next pat-dfa state-info statement))))
 
 (defn match-statement-vs-profile
   "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
@@ -382,7 +383,7 @@
      `::invalid-subreg-no-registration`
      `::invalid-subreg-nonconformant`"
   [pat-fsm-map state-info-map statement]
-  (map assert-dfa (vals pat-fsm-map))
+  (dorun (map assert-dfa (->> pat-fsm-map vals (map :dfa))))
   (let [stmt         (coerce-statement statement)
         profile-id   (-> pat-fsm-map meta :profile-id)
         registration (get-in stmt ["context" "registration"] :no-registration)
@@ -402,7 +403,7 @@
               (update-pat-si
                 [reg-state-info pat-id pat-fsm]
                 (let [pat-state-info  (get reg-state-info pat-id)
-                      pat-state-info' (fsm/read-next pat-fsm
+                      pat-state-info' (fsm/read-next (:dfa pat-fsm)
                                                      pat-state-info
                                                      stmt)]
                   (assoc reg-state-info pat-id pat-state-info')))

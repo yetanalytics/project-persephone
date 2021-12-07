@@ -227,9 +227,10 @@
    (let [temp-pat-map (mapify-all profile)
          pattern-seq  (primary-patterns profile)]
      (reduce (fn [acc {pat-id :id :as pattern}]
-               (let [pat-fsm (-> pattern
-                                 (grow-pattern-tree temp-pat-map)
-                                 (pattern-tree->dfa statement-ref-fns))]
-                 (assoc acc pat-id pat-fsm)))
+               (let [pat-tree (grow-pattern-tree pattern temp-pat-map)
+                     pat-dfa  (pattern-tree->dfa pat-tree statement-ref-fns)
+                     pat-nfa  (pattern-tree->nfa pat-tree)]
+                 (assoc acc pat-id {:dfa pat-dfa
+                                    :nfa pat-nfa})))
              {}
              pattern-seq))))

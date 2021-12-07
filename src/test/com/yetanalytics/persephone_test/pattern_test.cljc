@@ -469,9 +469,9 @@
   (testing "profile-to-fsm function"
     (let [pattern-fsms (pv/profile->fsms ex-profile)
           read-nxt-1   (partial fsm/read-next
-                                (get pattern-fsms "http://foo.org/p1"))
+                                (:dfa (get pattern-fsms "http://foo.org/p1")))
           read-nxt-2   (partial fsm/read-next
-                                (get pattern-fsms "http://foo.org/p3"))
+                                (:dfa (get pattern-fsms "http://foo.org/p3")))
           stmt-1       {"id" "some-stmt-uuid"
                         "verb" {"id" "http://foo.org/verb1"}}
           stmt-2       {"id"   "some-stmt-uuid"
@@ -481,7 +481,7 @@
       (is (= 2 (count pattern-fsms)))
       (is (every? #(= (-> % keys set)
                       #{:type :symbols :states :start :accepts :transitions})
-                  (vals (pv/profile->fsms ex-profile))))
+                  (map :dfa (vals (pv/profile->fsms ex-profile)))))
       (is (every? :accepted?
                   (-> nil
                       (read-nxt-1 stmt-1))))

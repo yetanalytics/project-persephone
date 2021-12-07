@@ -77,6 +77,47 @@
                  :definition {:en "One or more iterations of Pattern 1"}
                  :oneOrMore  "http://foo.org/p1"}]})
 
+(def pattern-tree-1
+  {:id         "http://foo.org/p1"
+   :type       "Pattern"
+   :inScheme   "https://foo.org/version1"
+   :primary    true
+   :prefLabel  {:en "Pattern 1"}
+   :definition {:en "Alternate of Pattern 2 and Template 1"}
+   :alternates [{:id         "http://foo.org/p2"
+                 :type       "Pattern"
+                 :inScheme   "https://foo.org/version1"
+                 :primary    false
+                 :prefLabel  {:en "Pattern 2"}
+                 :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
+                 :sequence   [{:id         "http://foo.org/t2"
+                               :type       "StatementTemplate"
+                               :inScheme   "https://foo.org/version1"
+                               :prefLabel  {:en "Template 2"}
+                               :definition {:en "Second Statement Template"}
+                               :verb       "http://foo.org/verb2"}
+                              {:id         "http://foo.org/t3"
+                               :type       "StatementTemplate"
+                               :inScheme   "https://foo.org/version1"
+                               :prefLabel  {:en "Template 3"}
+                               :definition {:en "Third Statement Template"}
+                               :verb       "http://foo.org/verb3"}]}
+                {:id         "http://foo.org/t1"
+                 :type       "StatementTemplate"
+                 :inScheme   "https://foo.org/version1"
+                 :prefLabel  {:en "Template 1"}
+                 :definition {:en "First Statement Template"}
+                 :verb       "http://foo.org/verb1"}]})
+
+(def pattern-tree-2
+  {:id         "http://foo.org/p3"
+   :type       "Pattern"
+   :inScheme   "https://foo.org/version1"
+   :primary    true
+   :prefLabel  {:en "Pattern 3"}
+   :definition {:en "One or more iterations of Pattern 1"}
+   :oneOrMore  pattern-tree-1})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helper tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -152,171 +193,27 @@
 
 (deftest create-zipper-test
   (testing "create-zipper function"
-    (is (= {:id         "http://foo.org/p1"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 1"}
-            :definition {:en "Alternate of Pattern 2 and Template 1"}
-            :alternates ["http://foo.org/p2"
-                         "http://foo.org/t1"]}
-           (-> ex-profile :patterns (get 0))))
-    (is (= {:id         "http://foo.org/p1"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 1"}
-            :definition {:en "Alternate of Pattern 2 and Template 1"}
-            :alternates ["http://foo.org/p2"
-                         "http://foo.org/t1"]}
-           (-> ex-profile :patterns (get 0) pv/create-zipper zip/node)))
-    (is (-> ex-profile :patterns (get 0) pv/create-zipper zip/branch?))
-    (is (= '("http://foo.org/p2" "http://foo.org/t1")
-           (-> ex-profile :patterns (get 0) pv/create-zipper zip/children)))
-    (is (seq? (-> ex-profile :patterns (get 0) pv/create-zipper zip/children)))
-    (is (= {:id         "http://foo.org/p3"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 3"}
-            :definition {:en "One or more iterations of Pattern 1"}
-            :oneOrMore  "http://foo.org/p1"}
-           (-> ex-profile :patterns (get 2) pv/create-zipper zip/node)))
-    (is (= '("http://foo.org/p1")
-           (-> ex-profile :patterns (get 2) pv/create-zipper zip/children)))
-    (is (seq? (-> ex-profile :patterns (get 2) pv/create-zipper zip/children)))))
-
-(deftest update-children-test
-  (testing "update-children function"
-    (is (= {:id         "http://foo.org/p1"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 1"}
-            :definition {:en "Alternate of Pattern 2 and Template 1"}
-            :alternates [{:id         "http://foo.org/p2"
-                          :type       "Pattern"
-                          :inScheme   "https://foo.org/version1"
-                          :primary    false
-                          :prefLabel  {:en "Pattern 2"}
-                          :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
-                          :sequence   ["http://foo.org/t2" "http://foo.org/t3"]}
-                         {:id         "http://foo.org/t1"
-                          :type       "StatementTemplate"
-                          :inScheme   "https://foo.org/version1"
-                          :prefLabel  {:en "Template 1"}
-                          :definition {:en "First Statement Template"}
-                          :verb       "http://foo.org/verb1"}]}
-           (-> ex-profile :patterns (get 0) pv/create-zipper
-               (pv/update-children (pv/mapify-all ex-profile)) zip/node)))
-    (is (= {:id         "http://foo.org/p2"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    false
-            :prefLabel  {:en "Pattern 2"}
-            :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
-            :sequence   [{:id         "http://foo.org/t2"
-                          :type       "StatementTemplate"
-                          :inScheme   "https://foo.org/version1"
-                          :prefLabel  {:en "Template 2"}
-                          :definition {:en "Second Statement Template"}
-                          :verb       "http://foo.org/verb2"}
-                         {:id         "http://foo.org/t3"
-                          :type       "StatementTemplate"
-                          :inScheme   "https://foo.org/version1"
-                          :prefLabel  {:en "Template 3"}
-                          :definition {:en "Third Statement Template"}
-                          :verb       "http://foo.org/verb3"}]}
-           (-> ex-profile :patterns (get 1) pv/create-zipper
-               (pv/update-children (pv/mapify-all ex-profile)) zip/node)))
-    (is (= {:id         "http://foo.org/p3"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 3"}
-            :definition {:en "One or more iterations of Pattern 1"}
-            :oneOrMore  {:id         "http://foo.org/p1"
-                         :type       "Pattern"
-                         :inScheme   "https://foo.org/version1"
-                         :primary    true
-                         :prefLabel  {:en "Pattern 1"}
-                         :definition {:en "Alternate of Pattern 2 and Template 1"}
-                         :alternates ["http://foo.org/p2"
-                                      "http://foo.org/t1"]}}
-           (-> ex-profile :patterns (get 2) pv/create-zipper
-               (pv/update-children (pv/mapify-all ex-profile)) zip/node)))))
+    (let [zipper-1 (-> ex-profile :patterns (get 0) pv/create-zipper)
+          zipper-2 (-> ex-profile :patterns (get 2) pv/create-zipper)]
+      (testing "on pattern 1"
+        (is (zip/branch? zipper-1))
+        (is (= (-> ex-profile :patterns (get 0))
+               (zip/node zipper-1)))
+        (is (= '("http://foo.org/p2" "http://foo.org/t1")
+               (zip/children zipper-1))))
+      (testing "on pattern 2"
+        (is (zip/branch? zipper-2))
+        (is (= (-> ex-profile :patterns (get 2))
+               (zip/node zipper-2)))
+        (is (= '("http://foo.org/p1")
+               (zip/children zipper-2)))))))
 
 (deftest grow-pattern-tree-test
   (testing "grow-pattern-tree function (implicitly also tests update-children)"
-    (is (= {:id         "http://foo.org/p1"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 1"}
-            :definition {:en "Alternate of Pattern 2 and Template 1"}
-            :alternates [{:id         "http://foo.org/p2"
-                          :type       "Pattern"
-                          :inScheme   "https://foo.org/version1"
-                          :primary    false
-                          :prefLabel  {:en "Pattern 2"}
-                          :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
-                          :sequence   [{:id         "http://foo.org/t2"
-                                        :type       "StatementTemplate"
-                                        :inScheme   "https://foo.org/version1"
-                                        :prefLabel  {:en "Template 2"}
-                                        :definition {:en "Second Statement Template"}
-                                        :verb       "http://foo.org/verb2"}
-                                       {:id         "http://foo.org/t3"
-                                        :type       "StatementTemplate"
-                                        :inScheme   "https://foo.org/version1"
-                                        :prefLabel  {:en "Template 3"}
-                                        :definition {:en "Third Statement Template"}
-                                        :verb       "http://foo.org/verb3"}]}
-                         {:id         "http://foo.org/t1"
-                          :type       "StatementTemplate"
-                          :inScheme   "https://foo.org/version1"
-                          :prefLabel  {:en "Template 1"}
-                          :definition {:en "First Statement Template"}
-                          :verb       "http://foo.org/verb1"}]}
+    (is (= pattern-tree-1
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 0))
                                  (pv/mapify-all ex-profile))))
-    (is (= {:id         "http://foo.org/p3"
-            :type       "Pattern"
-            :inScheme   "https://foo.org/version1"
-            :primary    true
-            :prefLabel  {:en "Pattern 3"}
-            :definition {:en "One or more iterations of Pattern 1"}
-            :oneOrMore
-            {:id         "http://foo.org/p1"
-             :type       "Pattern"
-             :inScheme   "https://foo.org/version1"
-             :primary    true
-             :prefLabel  {:en "Pattern 1"}
-             :definition {:en "Alternate of Pattern 2 and Template 1"}
-             :alternates [{:id         "http://foo.org/p2"
-                           :type       "Pattern"
-                           :inScheme   "https://foo.org/version1"
-                           :primary    false
-                           :prefLabel  {:en "Pattern 2"}
-                           :definition {:en "Sequence of Template 2, Template 3, and Pattern 1"}
-                           :sequence   [{:id         "http://foo.org/t2"
-                                         :type       "StatementTemplate"
-                                         :inScheme   "https://foo.org/version1"
-                                         :prefLabel  {:en "Template 2"}
-                                         :definition {:en "Second Statement Template"}
-                                         :verb       "http://foo.org/verb2"}
-                                        {:id         "http://foo.org/t3"
-                                         :type       "StatementTemplate"
-                                         :inScheme   "https://foo.org/version1"
-                                         :prefLabel  {:en "Template 3"}
-                                         :definition {:en "Third Statement Template"}
-                                         :verb       "http://foo.org/verb3"}]}
-                          {:id         "http://foo.org/t1"
-                           :type       "StatementTemplate"
-                           :inScheme   "https://foo.org/version1"
-                           :prefLabel  {:en "Template 1"}
-                           :definition {:en "First Statement Template"}
-                           :verb       "http://foo.org/verb1"}]}}
+    (is (= pattern-tree-2
            (pv/grow-pattern-tree (-> ex-profile :patterns (get 2))
                                  (pv/mapify-all ex-profile))))))
 

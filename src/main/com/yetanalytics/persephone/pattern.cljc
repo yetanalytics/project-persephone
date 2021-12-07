@@ -33,6 +33,7 @@
 ;; Object maps -> tree data structure
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Public for testing - also in case anyone needs a pattern zipper
 (defn create-zipper
   "Create a zipper out of the root `pattern`, where each node is a
    Pattern and its sub-Patterns/Templates are its children."
@@ -70,7 +71,8 @@
                 (throw-invalid-pattern node))))]
     (zip/zipper branch? children make-node pattern)))
 
-(defn update-children
+;; Private because this is just a helper for `grow-pattern-tree`
+(defn- expand-children
   "Given a location in a pattern zipper and a table of objects
    (Templates and Patterns), replace the identifiers with their
    respective objects (either a Template map, a Pattern, or an
@@ -92,7 +94,7 @@
   (loop [pattern-loc (create-zipper pattern)]
     (if (zip/end? pattern-loc)
       (zip/node pattern-loc) ; Return the root
-      (let [new-loc (update-children pattern-loc objects-map)]
+      (let [new-loc (expand-children pattern-loc objects-map)]
         (recur (zip/next new-loc))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

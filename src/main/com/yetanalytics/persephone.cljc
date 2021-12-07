@@ -368,13 +368,14 @@
    
    If the profile ID is not included in the category context activities of
    `statement`, that means `statement` cannot match the compiled pattern,
-   so the keyword `::missing-profile-reference` is returned."
+   so an empty set with the metadata `{:error ::missing-profile-reference}`
+   is returned."
   [pat-fsms state-info statement]
   (assert-dfa (:dfa pat-fsms))
   (let [statement  (coerce-statement statement)
         profile-id (-> pat-fsms meta :profile-id)]
     (if-some [err-kw (validate-profile-ref profile-id statement)]
-      err-kw
+      (with-meta #{} {:error err-kw})
       (match-statement-vs-pattern* pat-fsms state-info statement))))
 
 (defn match-statement-vs-profile
@@ -404,23 +405,25 @@
    and the sub-registration will only be applied when `profile`
    matches the `:profile-id` metadata of `pat-fsm-map`.
 
-   Returns a error keyword if `statement` does not have the profile
-   ID as a category context activity, if a sub-registration is
-   present without a registration, or if the sub-registration
-   array is invalid, respectively:
+   On error, returns the map `{:error err-keyword}`, where `err-keyword`
+   is one of the following:
 
-     `::missing-profile-reference`
-     `::invalid-subreg-no-registration`
-     `::invalid-subreg-nonconformant`"
+     `::missing-profile-reference` if `statement` does not have a profile
+     ID as a category context activity.
+     `::invalid-subreg-no-registration` if a sub-registration is present
+     without a registration.
+     `::invalid-subreg-nonconformant` if the sub-registration extension
+     value is invalid."
   [pat-fsm-map state-info-map statement]
   (dorun (map assert-dfa (->> pat-fsm-map vals (map :dfa))))
   (let [stmt         (coerce-statement statement)
         profile-id   (-> pat-fsm-map meta :profile-id)
         registration (get-in stmt ["context" "registration"] :no-registration)
         ?subreg-val  (get-in stmt ["context" "extensions" subreg-iri])]
-    (if-some [err-kw (or (validate-profile-ref profile-id stmt)
+    (if-some [err-kw (or (:error state-info-map)
+                         (validate-profile-ref profile-id stmt)
                          (validate-subregistration registration ?subreg-val))]
-      err-kw
+      {:error err-kw}
       (letfn [(subreg-pred
                 [{:strs [profile subregistration] :as _subreg-object}]
                 (when (= profile-id profile)
@@ -435,7 +438,7 @@
                 (let [pat-st-info  (get reg-state-info pat-id)
                       pat-st-info' (match-statement-vs-pattern* pat-fsm
                                                                 pat-st-info
-                                                                stmt) ]
+                                                                stmt)]
                   (assoc reg-state-info pat-id pat-st-info')))
               (update-reg-si
                 [reg-state-info]
@@ -459,8 +462,8 @@
   "Like `match-statement-vs-pattern`, but takes a collection of
    Statements instead of a singleton Statement. Automatically
    orders Statements by timestamp value, which should be present.
-   Returns an error keyword if any statement in the batch has missing
-   Profile ID.
+   Returns `#{}` with `{:error err-kw}` metadata if any statement in the
+   batch has missing Profile ID.
 
    NOTE: This function treats all statements in the batch as having
    the same profile and registration info, even if they actually
@@ -470,8 +473,8 @@
          st-info   state-info]
     (if-let [stmt (first stmt-coll)]
       (let [match-res (match-statement-vs-pattern pat-fsm st-info stmt)]
-        (if (keyword? match-res)
-          ;; Error keyword - early termination
+        (if (= #{} match-res)
+          ;; Error or match failure - abort
           match-res
           ;; Valid state info - continue
           (recur (rest stmt-coll) match-res)))
@@ -481,14 +484,14 @@
   "Like `match-statement-vs-profile`, but takes a collection of
    Statements instead of a singleton Statement. Automatically
    orders Statements by timestamp value, which should be present.
-   Returns an error keyword if any statement in the batch has a
+   Returns `{:error err-keyword}` if any statement in the batch has a
    missing Profile ID or an invalid sub-registration."
   [pat-fsm-map state-info-map statement-coll]
   (loop [stmt-coll   (sort cmp-statements statement-coll)
          st-info-map state-info-map]
     (if-let [stmt (first stmt-coll)]
       (let [match-res (match-statement-vs-profile pat-fsm-map st-info-map stmt)]
-        (if (keyword? match-res)
+        (if (:error match-res)
           ;; Error keyword - early termination
           match-res
           ;; Valid state info map - continue

@@ -706,23 +706,39 @@ Pattern path:
 (deftest pattern-exceptions-test
   (testing "match-statement-vs-pattern exceptions"
     (is (= ::p/missing-profile-reference
-           (match-cmi {} (assoc-in satisfied-stmt
-                                   ["context" "contextActivities" "category"]
-                                   [])))))
+           (->> (assoc-in satisfied-stmt
+                          ["context" "contextActivities" "category"]
+                          [])
+                (match-cmi #{})
+                meta
+                :error))))
   (testing "match-statement-vs-profile exceptions"
     (is (= ::p/missing-profile-reference
-           (match-cmi-2 {} (assoc-in satisfied-stmt
-                                     ["context" "contextActivities" "category"]
-                                     []))))
+           (->> (assoc-in satisfied-stmt
+                          ["context" "contextActivities" "category"]
+                          [])
+                (match-cmi-2 {})
+                :error)))
     (is (= ::p/invalid-subreg-nonconformant
-           (match-cmi-2 {} (assoc-in satisfied-stmt-3
-                                     ["context" "extensions" p/subreg-iri]
-                                     []))))
+           (->> (assoc-in satisfied-stmt-3
+                          ["context" "extensions" p/subreg-iri]
+                          [])
+                (match-cmi-2 {})
+                :error)))
     (is (= ::p/invalid-subreg-no-registration
-           (match-cmi-2 {} (update satisfied-stmt-3
-                                   "context"
-                                   dissoc
-                                   "registration"))))))
+           (->> (update satisfied-stmt-3
+                        "context"
+                        dissoc
+                        "registration")
+                (match-cmi-2 {})
+                :error))))
+  (testing "error input returns the same"
+    (is (= {:error ::p/missing-profile-reference}
+           (meta (match-cmi (with-meta #{}
+                              {:error ::p/missing-profile-reference})
+                            {}))))
+    (is (= {:error ::p/missing-profile-reference}
+           (match-cmi-2 {:error ::p/missing-profile-reference} {})))))
 
 ;; Batch Matching Tests
 

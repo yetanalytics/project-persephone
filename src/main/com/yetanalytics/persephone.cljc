@@ -318,13 +318,16 @@
      `template->validator`.
      :validate-profile? is default true. If true, `profile->validator`
      checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [statement-ref-fns validate-profile?]
-              :or   {validate-profile? true}}]
+  [profile & {:keys [statement-ref-fns validate-profile? compile-nfa?]
+              :or   {validate-profile? true
+                     compile-nfa?      false}}]
   (let [profile (coerce-profile profile)]
     (when validate-profile? (assert-profile profile))
     (let [prof-id (-> profile latest-version :id)
           add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))
-          fsm-map (p/profile->fsms profile statement-ref-fns)]
+          opt-map {:statement-ref-fns statement-ref-fns
+                   :compile-nfa?      compile-nfa?}
+          fsm-map (p/profile->fsms profile opt-map)]
       (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
                  (add-pid {})
                  fsm-map))))

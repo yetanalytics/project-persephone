@@ -228,16 +228,17 @@
    their respective FSMs that can perform Statement validation.
    Assumes a valid Profile."
   ([profile]
-   (profile->fsms profile nil))
-  ([profile statement-ref-fns]
+   (profile->fsms profile {}))
+  ([profile {:keys [statement-ref-fns compile-nfa?]}]
    (let [temp-pat-map (mapify-all profile)
          pattern-seq  (primary-patterns profile)]
      (reduce (fn [acc {pat-id :id :as pattern}]
                (let [pat-tree (grow-pattern-tree pattern temp-pat-map)
                      pat-dfa  (pattern-tree->dfa pat-tree statement-ref-fns)
-                     pat-nfa  (pattern-tree->nfa pat-tree)]
-                 (assoc acc pat-id {:id  pat-id
-                                    :dfa pat-dfa
-                                    :nfa pat-nfa})))
+                     pat-map  (cond-> {:id  pat-id
+                                       :dfa pat-dfa}
+                                compile-nfa?
+                                (assoc :nfa (pattern-tree->nfa pat-tree)))]
+                 (assoc acc pat-id pat-map)))
              {}
              pattern-seq))))

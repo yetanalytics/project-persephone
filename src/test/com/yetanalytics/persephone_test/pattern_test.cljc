@@ -347,6 +347,8 @@
 ;; FSM compilation and matching tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def fsm-symbol-set #{:type :symbols :states :start :accepts :transitions})
+
 (deftest profile-to-fsm-test
   (testing "profile-to-fsm function"
     (let [pattern-fsms (pv/profile->fsms ex-profile)
@@ -361,9 +363,14 @@
           stmt-3       {"id"   "some-stmt-uuid"
                         "verb" {"id" "http://foo.org/verb3"}}]
       (is (= 2 (count pattern-fsms)))
-      (is (every? #(= (-> % keys set)
-                      #{:type :symbols :states :start :accepts :transitions})
-                  (map :dfa (vals (pv/profile->fsms ex-profile)))))
+      (is (->> pattern-fsms
+               vals
+               (map :dfa)
+               (every? #(= fsm-symbol-set (-> % keys set)))))
+      (is (->> pattern-fsms
+               vals
+               (map :nfa)
+               (every? nil?)))
       (is (every? :accepted?
                   (-> nil
                       (read-nxt-1 stmt-1))))
@@ -379,7 +386,12 @@
                       (read-nxt-2 stmt-1)
                       (read-nxt-2 stmt-1)
                       (read-nxt-2 stmt-1)
-                      (read-nxt-2 stmt-1)))))))
+                      (read-nxt-2 stmt-1)))))
+    (testing "profile-to-fsm function with `compile-nfa?` set to true"
+      (is (is (->> (pv/profile->fsms ex-profile {:compile-nfa? true})
+                   vals
+                   (map :nfa)
+                   (every? #(= fsm-symbol-set (-> % keys set)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Error Message Tests

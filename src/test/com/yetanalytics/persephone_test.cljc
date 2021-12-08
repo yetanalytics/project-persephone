@@ -399,7 +399,7 @@
 
 ;; Pattern Matching Tests
 
-(def cmi-fsm-map (p/profile->fsms cmi-profile))
+(def cmi-fsm-map (p/profile->fsms cmi-profile :compile-nfa? true))
 (def cmi-fsm (get cmi-fsm-map "https://w3id.org/xapi/cmi5#toplevel"))
 (def match-cmi (partial p/match-statement-vs-pattern cmi-fsm))
 
@@ -1095,6 +1095,7 @@ Pattern path:
   (p/profile->fsms catch-profile
                    :statement-ref-fns {:get-statement-fn catch-id-stmt-map-2
                                        :get-template-fn  catch-id-temp-map}
+                   :compile-nfa?      true
                    :validate-profile? false))
 
 (deftest statement-ref-pattern-test

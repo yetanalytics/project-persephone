@@ -90,9 +90,9 @@ The above error message indicates that the Statement's Verb property has an inco
 
 ### Validation on Pattern
 
-Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `profile->fsms`, each Pattern is returned as a map with `:id`, `:dfa`, and `:nfa` values; the latter two different FSMs:
+Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `profile->fsms`, each Pattern is returned as a map with `:id`, `:dfa`, and optionally `:nfa` values; the latter two different FSMs:
 - `:dfa` is a (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
-- `:nfa` is a non-deterministic NFA with pattern metadata associated with each of its states. It is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
+- `:nfa` is a non-deterministic NFA with pattern metadata associated with each of its states. If present, it is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
 
 (NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.)
 
@@ -114,7 +114,7 @@ Using `match-statement-vs-pattern`, a single Pattern from a compiled Profile ret
 
 - `:accepted?` - Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
 
-- `:visited` - A vector of template IDs that records the templates that were previously matched against.
+- `:visited` - A vector of template IDs that records the templates that were previously matched against. This is an optional value that is only present if the FSM map includes `:nfa` (since it is only used to reconstruct error traces).
 
 If the state info is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern. An input sequence is considered accepted if _any one_ of the `:accepted?` values in the set is `true`.
 
@@ -124,7 +124,7 @@ If the state info is `nil`, then both match functions will begin at the start st
 
 `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile` are batch validation versions of their singleton counterparts. Before validation, both functions automatically sort the Statement batches by timestamp values, which should be present, or else calling these functions could lead to undefined behavior.
 
-For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; useful articles include:
+For more information about the technical implementation details (including about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; useful articles include:
 - [Deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
 - [Nondeterministic finite automaton](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)
 - [Thompson's construction](https://en.wikipedia.org/wiki/Thompson%27s_construction) (for NFA composition)

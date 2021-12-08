@@ -233,8 +233,7 @@
 (deftest build-node-fsm-test
   (testing "build-node-fsm function"
     (is (= #{{:state     (-> template-1-dfa :accepts first)
-              :accepted? true
-              :visited   ["http://foo.org/t1"]}}
+              :accepted? true}}
            (fsm/read-next template-1-dfa
                           nil
                           {"verb" {"id" "http://foo.org/verb1"}})))
@@ -245,7 +244,7 @@
 
 (deftest pattern-dfa-test
   (testing "pattern-tree->dfa function on pattern #1"
-    (let [read-nxt (partial fsm/read-next pattern-1-dfa)]
+    (let [read-nxt (partial fsm/read-next pattern-1-dfa {:record-visits? true})]
       (is (every? :accepted?
                   (-> nil
                       (read-nxt {"verb" {"id" "http://foo.org/verb1"}}))))
@@ -299,7 +298,7 @@
 
 (deftest pattern-nfa-test
   (testing "pattern-tree->nfa function"
-    (let [read-nxt (partial fsm/read-next pattern-1-nfa)]
+    (let [read-nxt (partial fsm/read-next pattern-1-nfa {:record-visits? true})]
       (is (= '({:accepted? true
                 :visited   ["http://foo.org/t1"]})
              (->> (-> nil
@@ -435,6 +434,15 @@
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "\n"
                 "Pattern cannot match any statements.")
+           (err/error-msg-str
+            {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+             :pattern   "http://example.org/p1"
+             :traces    []})))
+    (is (= (str "----- Pattern Match Failure -----\n"
+                "Primary Pattern ID: http://example.org/p1\n"
+                "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
+                "\n"
+                "Pattern matching has failed.")
            (err/error-msg-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"

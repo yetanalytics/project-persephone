@@ -510,7 +510,7 @@ Pattern path:
                   ex-statement))))
     (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
                       :pattern   "https://w3id.org/xapi/cmi5#toplevel"
-                      :traces    nil}}
+                      :traces    []}}
            (meta (match-cmi nil ex-statement))))
     ;; The first failure happens on the "completion-no-success" pattern.
     ;; The second failure happens either on the "completion-maybe-failed"

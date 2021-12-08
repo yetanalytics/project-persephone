@@ -38,6 +38,7 @@
             "%s")
        pattern-id
        statement-id
-       (if (not-empty trace-coll)
-         (trace-str trace-coll)
-         "Pattern cannot match any statements.")))
+       (cond
+         (nil? trace-coll)   "Pattern matching has failed."
+         (empty? trace-coll) "Pattern cannot match any statements."
+         :else               (trace-str trace-coll))))

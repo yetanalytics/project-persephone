@@ -350,8 +350,7 @@
                             (let [ptraces (p/read-visited-templates ?pat-nfa
                                                                     temp-ids)]
                               {:templates temp-ids
-                               :patterns  ptraces})))
-                     not-empty)]
+                               :patterns  ptraces}))))]
             (with-meta new-st-info {:failure {:statement (get statement "id")
                                               :pattern   pat-id
                                               :traces    fail-info}}))

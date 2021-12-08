@@ -141,6 +141,13 @@ This system allows for flexibility when retrieving Statements and Templates by I
 - `profile->id-template-map`: Takes a Profile and returns a map between Template IDs and Templates.
 - `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements. Intended to be used with `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile`.
 
+### So...does it fit the spec?
+
+Persephone validates both Profiles and input Statements against the latest xAPI specs. However, there are some requirements that are deliberately not checked against:
+- "All Statements following a primary Pattern MUST use the same registration." Other libraries developed at Yet, namely DATASIM, may assign multiple registrations to Statements following the same Pattern, e.g. to distinguish between Actors, so Persephone avoids validating against this requirement in order to be backwards compatible.
+- "LRPs MUST send Statements following a Pattern ordered by Statement timestamp." This is enforced in the `match-statement-batch-*` functions, but not the single statement matching functions.
+- "LRPs MUST order Statements following a Pattern within the same batch with the same timestamp so ones intended to match earlier in the Pattern are earlier in the array..." Given that an LRP SHOULD give all Statements different timestamps and that this will be an extreme edge case, same-timestamp Statements do not get reordered in the batch matching functions.
+
 ### What about Concepts?
 
 While Concepts are an integral part of most xAPI profiles, this library does not concern itself with them. This library is strictly focused on structural validation using Statement Templates and Patterns and not on any ontological meaning given by Concepts. In other words, this is a syntax library, not a semantics library.

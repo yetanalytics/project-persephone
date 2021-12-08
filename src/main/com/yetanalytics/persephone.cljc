@@ -302,10 +302,12 @@
   "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
    returns a map between primary Pattern IDs and their corresponding
    Pattern FSM maps. Returns `{}` if there are no primary Patterns in
-   `profile`. Each map has three values:
+   `profile`. Each map has at least two values:
    
      `:id`  The pattern ID.
      `:dfa` The DFA used for general pattern matching.
+   
+   If `:compile-nfa?` is true, then a third value exists:
      `:nfa` The NFA with pattern metadata used for reconstructing the
             pattern path.
    
@@ -317,7 +319,9 @@
      :statement-ref-fns takes the key-value pairs described in
      `template->validator`.
      :validate-profile? is default true. If true, `profile->validator`
-     checks that `profile` conforms to the xAPI Profile spec."
+     checks that `profile` conforms to the xAPI Profile spec.
+     :compile-nfa? is default false. Only when true is an NFA compiled
+     allowing for detailed traces on error messages."
   [profile & {:keys [statement-ref-fns validate-profile? compile-nfa?]
               :or   {validate-profile? true
                      compile-nfa?      false}}]

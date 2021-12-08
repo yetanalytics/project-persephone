@@ -658,13 +658,14 @@
     (for [symb  (keys trans)
           dest  (get trans symb)
           :let  [eps-closure (epsilon-closure nfa dest)
-                 visited     (conj visited symb)]
+                 visited     (when visited (conj visited symb))]
           :when (and (not= :epsilon symb)
                      ((get symbols symb) input))
           state eps-closure
-          :let  [state-info {:state     state
-                             :accepted? (contains? accepts state)
-                             :visited   visited}]]
+          :let  [state-info (cond-> {:state     state
+                                     :accepted? (contains? accepts state)}
+                              visited
+                              (assoc :visited visited))]]
       state-info)
     (let [err-msg (str "State not found in the finite state machine: "
                        (pr-str state))]
@@ -679,9 +680,10 @@
     (reduce-kv (fn [acc symb dest]
                  (if (and (not= :epsilon symb)
                           ((get symbols symb) input))
-                   (conj acc {:state     dest
-                              :accepted? (contains? accepts dest)
-                              :visited   (conj visited symb)})
+                   (conj acc (cond-> {:state     dest
+                                      :accepted? (contains? accepts dest)}
+                               visited
+                               (assoc :visited (conj visited symb))))
                    acc))
                #{}
                trans)
@@ -697,50 +699,64 @@
   :ret fs/state-info-spec)
 
 (defmulti read-next
-  "Given a compiled FSM, the current state info, and an input, let
-   the FSM read that input; this function returns update state info.
-   The state info has the following fields:
+  "Given a compiled `fsm`, the current `state-info`, and `input`, let
+   the FSM read that input; this function returns updated state info.
+   The state info is a set of maps with the following fields:
      
-     :state     The set of next states arrived at in the FSM
-                after reading the input. If :states is empty,
-                then the input sequence has been rejected.
-     :visited   The IDs of the transitions that led to the current
-                state.
+     :state     The states arrived at in the FSM after reading the input.
      :accepted? True if the FSM as arrived at an accept state
                 after reading the input; false otherwise.
-   If the state info is nil, the function starts at the start state.
-   If :states is empty, read-next will return state-info without
-   calling the FSM, and sets :states to the empty set (as nil is
-   always considered rejected)."
-  (fn [fsm _ _] (:type fsm)))
+   In addition to the required args, the optional `start-opts` map
+   can be passed. Valid options include:
+
+     :record-visits? If true, each state info map will contain an extra
+                     `:visited` value that is a list of visited
+                     transition IDs.
+   If `state-info` is `nil`, the function starts at the start state,
+   with `start-opts` applied as needed. As indicated by its name,
+   `start-opts` not applied when `state-info` is not `nil`.
+
+   If `state-info` is `#{}` is empty, it is returned as-is, since an
+   empty set indicates that no more states can be matched."
+  {:arglists '([fsm state-info input]
+               [fsm start-opts state-info input])}
+  (fn [fsm & _] (:type fsm)))
 
 (defmethod read-next :nfa
-  [nfa state-info input]
-  (let [{:keys
-         [start
-          accepts]} nfa
-        state-info  (if (nil? state-info)
+  ([nfa state-info input]
+   (read-next nfa {} state-info input))
+  ([nfa start-opts state-info input]
+   (let [;; Destructuring
+         {:keys [record-visits?]} start-opts
+         {:keys [start accepts]}  nfa
+         ;; State Info
+         state-info (if (nil? state-info)
                       (map (fn [s]
-                             {:state s
-                              :accepted? (contains? accepts s)
-                              :visited   []})
+                             (cond-> {:state     s
+                                      :accepted? (contains? accepts s)}
+                               record-visits?
+                               (assoc :visited [])))
                            (epsilon-closure nfa start))
                       state-info)]
-    (->> state-info
-         (map (fn [{s :state v :visited}] (read-next-nfa nfa input s v)))
-         (map set)
-         (apply cset/union))))
+     (->> state-info
+          (map (fn [{s :state v :visited}] (read-next-nfa nfa input s v)))
+          (map set)
+          (apply cset/union)))))
 
 (defmethod read-next :dfa
-  [dfa state-info input]
-  (let [{:keys
-         [start
-          accepts]} dfa
-        state-info  (if (nil? state-info)
-                      #{{:state     start
-                         :accepted? (contains? accepts start)
-                         :visited   []}}
+  ([dfa state-info input]
+   (read-next dfa {} state-info input))
+  ([dfa start-opts state-info input]
+   (let [;; Destructuring
+         {:keys [record-visits?]} start-opts
+         {:keys [start accepts]} dfa
+         ;; State Info
+         state-info (if (nil? state-info)
+                      #{(cond-> {:state     start
+                                 :accepted? (contains? accepts start)}
+                          record-visits?
+                          (assoc :visited []))}
                       state-info)]
-    (->> state-info
-         (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
-         (apply cset/union))))
+     (->> state-info
+          (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
+          (apply cset/union)))))

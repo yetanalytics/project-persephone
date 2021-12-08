@@ -776,7 +776,7 @@
     (is (= #{{:state     1
               :accepted? true
               :visited   ["a"]}}
-           (-> a-fsm (fsm/read-next nil "a"))))
+           (-> a-fsm (fsm/read-next {:record-visits? true} nil "a"))))
     (testing "when there are only epsilon transitions"
       (let [epsilon-nfa {:type        :nfa
                          :symbols     {}
@@ -787,7 +787,7 @@
                                        1 {:epsilon #{1}}
                                        2 {:epsilon #{0}}}}]
         (is (= #{}
-               (fsm/read-next epsilon-nfa nil "a")))))
+               (fsm/read-next epsilon-nfa {:record-visits? true} nil "a")))))
     (testing "when there are epsilon and regular transitions"
       (let [epsilon-nfa {:type        :nfa
                          :symbols     {"even" even?}
@@ -803,7 +803,9 @@
                                        3 {"even"   #{3}}
                                        4 {"even"   #{4}}
                                        5 {:epsilon #{5}}}}
-            eps-nfa-read (partial fsm/read-next epsilon-nfa)]
+            eps-nfa-read (partial fsm/read-next
+                                  epsilon-nfa
+                                  {:record-visits? true})]
         (is (= #{{:state     1
                   :accepted? false
                   :visited   ["even"]}
@@ -846,12 +848,17 @@
     (is (= #{{:state     #?(:clj 0 :cljs 1)
               :accepted? true
               :visited   ["a"]}}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "a"))))
-    (is (= #{}
-           (-> a-fsm fsm/nfa->dfa (fsm/read-next nil "b"))))
+           (-> a-fsm
+               fsm/nfa->dfa
+               (fsm/read-next {:record-visits? true} nil "a"))))
     (is (= #{}
            (-> a-fsm
                fsm/nfa->dfa
+               (fsm/read-next {:record-visits? true} nil "b"))))
+    (is (= #{}
+           (-> a-fsm
+               fsm/nfa->dfa
+               ;; start-opts only apply at start - hence why it's missing here
                (fsm/read-next #{{:state     #?(:clj 0 :cljs 1)
                                  :accepted? true
                                  :visited   []}}
@@ -860,7 +867,7 @@
               :accepted? true
               :visited   ["a" "b"]}}
            (let [dfa      (-> [a-fsm b-fsm] fsm/concat-nfa fsm/nfa->dfa)
-                 read-nxt (partial fsm/read-next dfa)]
+                 read-nxt (partial fsm/read-next dfa {:record-visits? true})]
              (-> nil (read-nxt "a") (read-nxt "b"))))))
   (testing "The read-next function on edge cases"
     (is (= #{}
@@ -884,7 +891,7 @@
                                  4 {}
                                  5 {}
                                  6 {}}}
-          read-nxt (partial fsm/read-next num-fsm)]
+          read-nxt (partial fsm/read-next num-fsm {:record-visits? true})]
       (is (= #{{:state 1 :accepted? false :visited ["even"]}
                {:state 2 :accepted? false :visited ["lt10"]}}
              (-> nil (read-nxt 2))))

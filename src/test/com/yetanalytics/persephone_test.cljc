@@ -503,6 +503,12 @@ Pattern path:
                     (match-cmi terminated-stmt)))))
   (testing "Error message output associated with the cmi5 Profile"
     (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+                      :pattern   "https://w3id.org/xapi/cmi5#toplevel"}}
+           (meta (p/match-statement-vs-pattern
+                  (dissoc cmi-fsm :nfa)
+                  nil
+                  ex-statement))))
+    (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
                       :pattern   "https://w3id.org/xapi/cmi5#toplevel"
                       :traces    nil}}
            (meta (match-cmi nil ex-statement))))

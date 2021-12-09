@@ -703,9 +703,10 @@
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map (s/nilable state-info-map-spec)
-               :statement (s/or :error match-stmt-error-spec
-                                :ok statement-spec))
+               :state-info-map    (s/or :start (s/nilable #{{}})
+                                        :continue state-info-map-spec)
+               :statement         (s/or :error match-stmt-error-spec
+                                        :ok statement-spec))
   :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 
@@ -806,9 +807,10 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map (s/nilable state-info-map-spec)
-               :statement-batch (s/coll-of (s/or :error match-stmt-error-spec
-                                                 :ok statement-spec)))
+               :state-info-map    (s/or :start (s/nilable #{{}})
+                                        :continue state-info-map-spec)
+               :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
+                                                   :ok statement-spec)))
   :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 

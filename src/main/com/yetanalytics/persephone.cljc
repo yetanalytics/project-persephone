@@ -250,13 +250,17 @@
 
 ;; Statement validation functions
 
+(defn- get-stmt-profile-ids
+  [statement]
+  (let [cat-acts (get-in statement ["context" "contextActivities" "category"])]
+    (map #(get % "id") cat-acts)))
+
 (defn- validate-profile-ref
   "Returns `::missing-profile-reference` if `profile-id` does not exist in
    `statement`'s category context activities, `nil` otherwise."
-  [profile-id statement]
-  (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
-        cat-ids  (map #(get % "id") cat-acts)]
-    (when-not (some #(= profile-id %) cat-ids)
+  [profile-id-set statement]
+  (let [cat-ids (get-stmt-profile-ids statement)]
+    (when-not (some profile-id-set cat-ids)
       ::missing-profile-reference)))
 
 (defn- validate-subregistration
@@ -328,12 +332,11 @@
   (let [profile (coerce-profile profile)]
     (when validate-profile? (assert-profile profile))
     (let [prof-id (-> profile latest-version :id)
-          add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))
           opt-map {:statement-ref-fns statement-ref-fns
                    :compile-nfa?      compile-nfa?}
           fsm-map (p/profile->fsms profile opt-map)]
-      (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
-                 (add-pid {})
+      (reduce-kv (fn [m k v] (assoc m k (assoc v :prof prof-id)))
+                 {}
                  fsm-map))))
 
 (defn- match-statement-vs-pattern*
@@ -383,8 +386,8 @@
   [pat-fsms state-info statement]
   (assert-dfa (:dfa pat-fsms))
   (let [statement  (coerce-statement statement)
-        profile-id (-> pat-fsms meta :profile-id)]
-    (if-some [err-kw (validate-profile-ref profile-id statement)]
+        profile-id (:prof pat-fsms)]
+    (if-some [err-kw (validate-profile-ref #{profile-id} statement)]
       (with-meta #{} {:error err-kw})
       (match-statement-vs-pattern* pat-fsms state-info statement))))
 
@@ -427,33 +430,41 @@
   [pat-fsm-map state-info-map statement]
   (dorun (map assert-dfa (->> pat-fsm-map vals (map :dfa))))
   (let [stmt         (coerce-statement statement)
-        profile-id   (-> pat-fsm-map meta :profile-id)
+        profile-ids  (->> pat-fsm-map vals (map :prof) set)
         registration (get-in stmt ["context" "registration"] :no-registration)
         ?subreg-val  (get-in stmt ["context" "extensions" subreg-iri])]
     (if-some [err-kw (or (:error state-info-map)
-                         (validate-profile-ref profile-id stmt)
+                         (validate-profile-ref profile-ids stmt)
                          (validate-subregistration registration ?subreg-val))]
       {:error err-kw}
-      (letfn [(subreg-pred
-                [{:strs [profile subregistration] :as _subreg-object}]
-                (when (= profile-id profile)
-                  subregistration))
-              (get-reg-key
-                []
-                (if-let [sub-reg (some subreg-pred ?subreg-val)]
-                  [registration sub-reg]
-                  registration))
-              (update-pat-si
-                [reg-state-info pat-id pat-fsm]
-                (let [pat-st-info  (get reg-state-info pat-id)
-                      pat-st-info' (match-statement-vs-pattern* pat-fsm
-                                                                pat-st-info
-                                                                stmt)]
-                  (assoc reg-state-info pat-id pat-st-info')))
-              (update-reg-si
-                [reg-state-info]
-                (reduce-kv update-pat-si reg-state-info pat-fsm-map))]
-        (update state-info-map (get-reg-key) update-reg-si)))))
+      (let [;; TODO: Optimize
+            ;; - Return stmt-prof-ids during validation
+            ;; - Use a { prof-id { pat-id {...} } } map instead of a filter
+            stmt-prof-ids (set (get-stmt-profile-ids stmt))
+            pat-fsm-map   (reduce-kv (fn [acc pat-id pat-fsms]
+                                       (if (stmt-prof-ids (:prof pat-fsms))
+                                         (assoc acc pat-id pat-fsms)
+                                         acc))
+                                     {}
+                                     pat-fsm-map)
+            subreg-pred   (fn [{:strs [profile subregistration]}]
+                            (when (profile-ids profile)
+                              subregistration))
+            register-key  (if-let [sub-reg (some subreg-pred ?subreg-val)]
+                            [registration sub-reg]
+                            registration)
+            update-pat-si (fn [reg-state-info pat-id pat-fsm]
+                            (let [pat-st-info  (get reg-state-info pat-id)
+                                  pat-st-info' (match-statement-vs-pattern*
+                                                pat-fsm
+                                                pat-st-info
+                                                stmt)]
+                              (assoc reg-state-info pat-id pat-st-info')))
+            update-reg-si (fn [reg-state-info]
+                            (reduce-kv update-pat-si
+                                       reg-state-info
+                                       pat-fsm-map))]
+        (update state-info-map register-key update-reg-si)))))
 
 ;; TODO: Add a custom `get-by-registration` function that can get statement
 ;; info by `registration`, including when keys are `[registration sub-reg]`
@@ -507,3 +518,70 @@
           ;; Valid state info map - continue
           (recur (rest stmt-coll) match-res)))
       st-info-map)))
+
+(comment
+  (require '[criterium.core :as crit])
+  
+  (def prof-id-set #{"id-1" "id-2" "id-3"})
+  
+  (def pat-map-1 {;; id-1
+                  "pat-1" {:prof "id-1"}
+                  "pat-2" {:prof "id-1"}
+                  "pat-3" {:prof "id-1"}
+                  "pat-4" {:prof "id-1"}
+                  "pat-5" {:prof "id-1"}
+                  "pat-6" {:prof "id-1"}
+                  "pat-7" {:prof "id-1"}
+                  "pat-8" {:prof "id-1"}
+                  "pat-9" {:prof "id-1"}
+                  ;; id-2
+                  "pat-10" {:prof "id-2"}
+                  "pat-11" {:prof "id-2"}
+                  "pat-12" {:prof "id-2"}
+                  "pat-13" {:prof "id-2"}
+                  "pat-14" {:prof "id-2"}
+                  "pat-15" {:prof "id-2"}
+                  "pat-16" {:prof "id-2"}
+                  "pat-17" {:prof "id-2"}
+                  "pat-18" {:prof "id-2"}
+                  "pat-19" {:prof "id-2"}
+                  "pat-20" {:prof "id-2"}
+                  "pat-100" {:prof "id-4"}})
+  
+  (def pat-map-2 {"id-1" {"pat-1" {:prof "id-1"}
+                          "pat-2" {:prof "id-1"}
+                          "pat-3" {:prof "id-1"}
+                          "pat-4" {:prof "id-1"}
+                          "pat-5" {:prof "id-1"}
+                          "pat-6" {:prof "id-1"}
+                          "pat-7" {:prof "id-1"}
+                          "pat-8" {:prof "id-1"}
+                          "pat-9" {:prof "id-1"}}
+                  "id-2" {"pat-10" {:prof "id-2"}
+                          "pat-11" {:prof "id-2"}
+                          "pat-12" {:prof "id-2"}
+                          "pat-13" {:prof "id-2"}
+                          "pat-14" {:prof "id-2"}
+                          "pat-15" {:prof "id-2"}
+                          "pat-16" {:prof "id-2"}
+                          "pat-17" {:prof "id-2"}
+                          "pat-18" {:prof "id-2"}
+                          "pat-19" {:prof "id-2"}
+                          "pat-20" {:prof "id-2"}}
+                  "id-4" {"pat-100" {:prof "id-4"}}})
+  
+  (crit/quick-bench
+   (reduce-kv (fn [m k {prof-id :prof :as v}]
+                (if (prof-id-set prof-id)
+                  (assoc m k v)
+                  m))
+              {}
+              pat-map-1))
+  
+  (crit/quick-bench
+   (reduce-kv (fn [m k v]
+                (if (prof-id-set k)
+                  (assoc m k v)
+                  m))
+              {}
+              pat-map-2)))

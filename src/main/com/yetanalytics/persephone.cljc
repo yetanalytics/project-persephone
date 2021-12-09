@@ -69,13 +69,6 @@
                     {:kind   ::invalid-template
                      :errors err}))))
 
-(defn- assert-dfa
-  [pattern-fsm]
-  (when-not (= :dfa (:type pattern-fsm))
-    (throw (ex-info "Compiled pattern is invalid!"
-                    {:kind    ::invalid-dfa
-                     :pattern pattern-fsm}))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

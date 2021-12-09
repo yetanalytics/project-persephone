@@ -445,15 +445,20 @@
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
      :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
 
-;; Public for testing purposes
+;; `epsilon-closure` is public for testing purposes, and because it's a
+;; well-defined mathematical operation on NFAs.
 
+;; We only care about the transitions, hence the spec.
+;; Since `epsilon-closure` is called by internal fns like `nfa->dfa*`,
+;; spec-ing the whole NFA may cause a spec error.
 (s/fdef epsilon-closure
-  :args (s/cat :nfa fs/nfa-spec :init-state :nfa/state)
+  :args (s/cat :nfa (s/keys :req-un [:nfa/transitions])
+               :init-state :nfa/state)
   :ret :nfa/states)
 
 (defn epsilon-closure
-  "Given an NFA and a state, returns the epsilon closure for that
-   state."
+  "Given an NFA with transitions and an `init-state`, returns the
+   epsilon closure for that state."
   [{nfa-transitions :transitions :as _nfa} init-state]
   ;; Perform a BFS and keep track of visited states
   (loop [visited-states (transient #{})

@@ -194,6 +194,9 @@
                        (partial sample-to-set 0.25))
                       (s/gen :nfa/nfa-basics)))))
 
+;; Public NFA spec
+(s/def ::nfa nfa-spec)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DFA Specs and Generators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,6 +277,9 @@
     (fn [] (sgen/fmap
             dfa-gen-fmap
             (s/gen :set-dfa/dfa-basics)))))
+
+;; Public DFA spec
+(s/def ::dfa dfa-spec)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; State Info Specs

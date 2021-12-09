@@ -1,9 +1,12 @@
 (ns com.yetanalytics.persephone.pattern
-  (:require [clojure.walk :as w]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.walk :as w]
             [clojure.zip  :as zip]
+            [com.yetanalytics.pan.objects.pattern :as pan-pattern]
             [com.yetanalytics.persephone.utils.maps  :as m]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]
-            [com.yetanalytics.persephone.template    :as t]))
+            [com.yetanalytics.persephone.template    :as t]
+            [com.yetanalytics.persephone.pattern.fsm-spec :as fs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Asserts + Exceptions
@@ -222,6 +225,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Putting it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def fsm-map-spec
+  (s/keys :req-un [::pan-pattern/id
+                   ::fs/dfa]
+          :opt-un [::fs/nfa]))
+
+(def state-info-spec fs/state-info-spec)
 
 (defn profile->fsms
   "Given a Profile, returns a map between primary Pattern IDs and

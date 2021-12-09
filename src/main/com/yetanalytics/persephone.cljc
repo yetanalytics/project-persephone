@@ -1,7 +1,10 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
+            [xapi-schema.spec     :as xs]
             [com.yetanalytics.pan :as pan]
+            [com.yetanalytics.pan.objects.profile  :as pan-profile]
             [com.yetanalytics.pan.objects.template :as pan-template]
+            [com.yetanalytics.pan.objects.pattern  :as pan-pattern]
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.json      :as json]
@@ -45,6 +48,11 @@
 
 ;; FIXME: We need to set the :relation? key to true, but currently this will
 ;; cause errors because external IRIs are not supported yet in project-pan.
+
+(s/def ::profiles
+  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
+                                ::pan-profile/profile)
+                   :edn ::pan-profile/profile)))
 
 (defn- assert-profile
   [profile]
@@ -96,6 +104,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: More sophisticated function specs
+(s/def ::get-template-fn fn?)
+(s/def ::get-statement-fn fn?)
+
+(s/def ::statement-ref-fns
+  (s/keys :req-un [::get-template-fn
+                   ::get-statement-fn]))
 
 (defn template->validator
   "Takes `template`, along with an optional :validate-template?
@@ -338,6 +354,25 @@
       (reduce-kv (fn [m k v] (assoc m k (assoc v :prof prof-id)))
                  {}
                  fsm-map))))
+
+;; TODO: Move specs to top of namespace
+(s/def ::validate-profiles? boolean?)
+(s/def ::compile-nfa? boolean?)
+(s/def ::selected-profiles (s/every ::pan-profile/id))
+(s/def ::selected-patterns (s/every ::pan-pattern/id))
+
+(def compiled-profiles-spec
+  (s/every-kv ::pan-profile/id
+              (s/every-kv ::pan-pattern/id p/fsm-map-spec)))
+
+(s/fdef compile-profiles->fsms
+  :args (s/cat :profiles ::profiles
+               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+                                           ::validate-profiles?
+                                           ::compile-nfa?
+                                           ::selected-profiles
+                                           ::selected-patterns]))
+  :ret compiled-profiles-spec)
 
 (defn compile-profiles->fsms
   "Take `profiles`, a collection of JSON-LD profiles (or equivalent EDN
@@ -630,11 +665,41 @@
         registration))
     registration))
 
+(def registration-key-spec
+  (s/or :no-subregistration (s/or :registration ::xs/uuid
+                                  :no-registration #{:no-registration})
+        :subregistration (s/cat :registration ::xs/uuid
+                                :subregistration ::xs/uuid)))
+
+(def state-info-map-spec
+  (s/every-kv registration-key-spec
+              (s/every-kv ::pan-pattern/id
+                          p/state-info-spec)))
+
+(def match-statement-error-spec
+  #{::missing-profile-reference
+    ::invalid-subreg-no-registration
+    ::invalid-subreg-nonconformant})
+
+;; TODO: Move to top of ns
+(def statement-spec
+  (s/or :json (s/and (s/conformer coerce-statement)
+                     ::xs/statement)
+        :edn ::xs/statement))
+
+(s/fdef match-statement
+  :args (s/cat :compiled-profiles compiled-profiles-spec
+               :state-info-map state-info-map-spec
+               :statement (s/or :error match-statement-error-spec
+                                :ok statement-spec))
+  :ret (s/or :error match-statement-error-spec
+             :ok state-info-map-spec))
+
 (defn match-statement
-  [fsm-map state-info-map statement]
+  [compiled-profiles state-info-map statement]
   (if (:error state-info-map)
     state-info-map
-    (let [prof-id-set    (set (keys fsm-map))
+    (let [prof-id-set    (set (keys compiled-profiles))
           statement      (coerce-statement statement)
           stmt-prof-ids  (get-statement-profile-ids statement prof-id-set)
           stmt-reg       (get-statement-registration statement)
@@ -642,7 +707,7 @@
       (if-let [err-kw (or (keyword? stmt-prof-ids)
                           (keyword? ?stmt-subreg))]
         {:error err-kw}
-        (->> (for [[prof-id pat-fsm-m] fsm-map
+        (->> (for [[prof-id pat-fsm-m] compiled-profiles
                    :when (contains? stmt-prof-ids prof-id)
                    :let [reg-key (construct-registration-key prof-id
                                                              stmt-reg
@@ -659,12 +724,21 @@
                        (assoc-in m assoc-k new-st-info))
                      state-info-map))))))
 
+(s/fdef match-statement-batch
+  :args (s/cat :compiled-profiles compiled-profiles-spec
+               :state-info-map state-info-map-spec
+               :statement-batch (s/coll-of
+                                 (s/or :error match-statement-error-spec
+                                       :ok statement-spec)))
+  :ret (s/or :error match-statement-error-spec
+             :ok state-info-map-spec))
+
 (defn match-statement-batch
-  [fsm-map state-info-map statement-batch]
+  [compiled-profiles state-info-map statement-batch]
   (loop [stmt-coll   (sort cmp-statements statement-batch)
          st-info-map state-info-map]
     (if-let [stmt (first stmt-coll)]
-      (let [match-res (match-statement fsm-map st-info-map stmt)]
+      (let [match-res (match-statement compiled-profiles st-info-map stmt)]
         (if (:error match-res)
           ;; Error keyword - early termination
           match-res

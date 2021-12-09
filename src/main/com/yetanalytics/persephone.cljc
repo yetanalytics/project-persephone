@@ -468,9 +468,10 @@
                   :pattern-id ::pan-pattern/id)))
 
 (def state-info-map-spec
-  (s/keys :req-un [::accepts
-                   ::rejects
-                   ::states-map]))
+  (s/or :start (s/nilable #{{}})
+        :continue (s/keys :req-un [::accepts
+                                   ::rejects
+                                   ::states-map])))
 
 (def match-stmt-error-spec
   #{::missing-profile-reference
@@ -485,8 +486,7 @@
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :start (s/nilable #{{}})
-                                        :continue state-info-map-spec)
+               :state-info-map    state-info-map-spec
                :statement         (s/or :error match-stmt-error-spec
                                         :ok statement-spec))
   :ret (s/or :error match-stmt-error-spec
@@ -592,8 +592,7 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :start (s/nilable #{{}})
-                                        :continue state-info-map-spec)
+               :state-info-map    state-info-map-spec
                :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
                                                    :ok statement-spec)))
   :ret (s/or :error match-stmt-error-spec

@@ -168,9 +168,7 @@
                                  :nfa/accepts
                                  :nfa/transitions]))
 
-(defn valid-nfa-keys? [nfa] (s/valid? :nfa/nfa nfa))
-
-(def nfa-common-spec (s/and valid-nfa-keys?
+(def nfa-common-spec (s/and :nfa/nfa
                             valid-start-state?
                             valid-accept-states?
                             valid-transition-src-states?
@@ -250,12 +248,6 @@
                    :set-dfa/accepts
                    :set-dfa/transitions]))
 
-(defn valid-dfa-keys? [dfa]
-  (s/valid? :int-dfa/dfa dfa))
-
-(defn valid-set-dfa-keys? [dfa]
-  (s/valid? :set-dfa/dfa dfa))
-
 (def dfa-common-spec (s/and valid-start-state?
                             valid-accept-states?
                             valid-transition-src-states?
@@ -269,7 +261,7 @@
 
 (def dfa-spec
   (s/with-gen
-    (s/and valid-dfa-keys?
+    (s/and :int-dfa/dfa
            dfa-common-spec)
     (fn [] (sgen/fmap
             dfa-gen-fmap
@@ -277,7 +269,7 @@
 
 (def set-dfa-spec
   (s/with-gen
-    (s/and valid-set-dfa-keys?
+    (s/and :set-dfa/dfa
            dfa-common-spec)
     (fn [] (sgen/fmap
             dfa-gen-fmap
@@ -291,9 +283,10 @@
 (s/def ::visited (s/coll-of ::symbol-id))
 
 (def state-info-spec
-  (s/every (s/keys :req-un [:int-dfa/state
-                            ::accepted?
-                            ::visited])
+  (s/every (s/keys :req-un [(or :nfa/state
+                                :int-dfa/state)
+                            ::accepted?]
+                   :opt-un [::visited])
            :kind set?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

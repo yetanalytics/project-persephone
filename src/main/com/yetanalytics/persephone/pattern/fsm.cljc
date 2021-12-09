@@ -692,8 +692,12 @@
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
 
+(s/def ::record-visits? boolean?)
+(s/def ::start-opts (s/keys :opt-un [::record-visits?]))
+
 (s/fdef read-next
   :args (s/cat :dfa fs/dfa-spec
+               :start-opts (s/? ::start-opts)
                :state-info (s/nilable fs/state-info-spec)
                :input any?)
   :ret fs/state-info-spec)

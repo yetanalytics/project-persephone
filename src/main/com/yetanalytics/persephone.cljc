@@ -526,8 +526,11 @@
                 present if `compiled-profiles` was compiled with
                 `compile-nfa?` set to `true`.
 
-   On error, returns the map `{:error {:type error-kw ...}}`, where
-   `error-kw` is one of the following:
+   On error, returns the map
+     
+     {:error {:type error-kw :statement {...}}}
+   where `error-kw` is one of the following:
+     
      ::missing-profile-reference      if `statement` does not have a
                                       Profile ID from `compiled-profiles`
                                       as a category context activity.
@@ -544,8 +547,8 @@
           stmt-prof-ids  (get-statement-profile-ids statement prof-id-set)
           stmt-reg       (get-statement-registration statement)
           ?stmt-subreg   (get-statement-subregistration statement stmt-reg)]
-      (if-let [err-kw (or (keyword? stmt-prof-ids)
-                          (keyword? ?stmt-subreg))]
+      (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
+                          (when (keyword? ?stmt-subreg) ?stmt-subreg))]
         {:error {:type      err-kw
                  :statement statement}}
         (let [match-res

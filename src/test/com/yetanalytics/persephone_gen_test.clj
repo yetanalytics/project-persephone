@@ -22,7 +22,7 @@
 
 (def tc3-validator (per/profile->validator tc3-profile))
 
-(def tc3-dfas (per/profile->fsms tc3-profile))
+(def tc3-dfas (per/compile-profiles->fsms [tc3-profile]))
 
 (defn run-validate-stmt-vs-profile
   "Generate a sequence of n Statements and validate them all
@@ -52,20 +52,19 @@
     (if-let [next-stmt (first stmts)]
       (let [registration
             (get-in next-stmt ["context" "registration"] :no-registration)
-            state-info'
-            (per/match-statement-vs-profile tc3-dfas state-info next-stmt)
-            is-rejected?
-            (reduce-kv (fn [acc _ pat-si]
-                         (and acc (empty? pat-si)))
+            new-state-info
+            (per/match-statement tc3-dfas state-info next-stmt)
+            every-rejected?
+            (reduce-kv (fn [acc _ pat-si] (and acc (empty? pat-si)))
                        true
-                       (get state-info' registration))]
-        (if is-rejected?
+                       (get-in new-state-info [:states-map registration]))]
+        (if every-rejected?
           (throw (ex-info "Statement stream not matched by tc3 Profile"
                           {:kind       :datasim-pattern-test-failed
                            :statement  next-stmt
                            :patterns   tc3-dfas
-                           :state-info state-info'}))
-          (recur (rest stmts) state-info')))
+                           :state-info new-state-info}))
+          (recur (rest stmts) new-state-info)))
       true)))
 
 (deftest validate-stmt-vs-profile-test

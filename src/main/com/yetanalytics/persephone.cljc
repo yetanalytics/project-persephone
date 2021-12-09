@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
+            [clojure.set          :as cset]
             [xapi-schema.spec     :as xs]
             [com.yetanalytics.pan :as pan]
             [com.yetanalytics.pan.objects.profile  :as pan-profile]
@@ -620,11 +621,14 @@
       st-info-map)))
 
 (defn- get-statement-profile-ids
+  "Get the category context activity IDs that are also profile IDs, or
+   return `::missing-profile-reference` if none are."
   [statement prof-id-set]
   (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
-        cat-ids  (map #(get % "id") cat-acts)]
-    (if (some prof-id-set cat-ids)
-      (set cat-ids)
+        cat-ids  (cset/intersection (set (map #(get % "id") cat-acts))
+                                    prof-id-set)]
+    (if-not (empty? cat-ids)
+      cat-ids
       ::missing-profile-reference)))
 
 (defn- get-statement-registration
@@ -742,8 +746,8 @@
    On error, returns the map `{:error {:type error-kw ...}}`, where
    `error-kw` is one of the following:
      ::missing-profile-reference      if `statement` does not have a
-                                      Profile ID as a category context
-                                      activity.
+                                      Profile ID from `compiled-profiles`
+                                      as a category context activity.
      ::invalid-subreg-no-registration if a sub-registration is present
                                       without a registration.
      ::invalid-subreg-nonconformant   if the sub-registration extension

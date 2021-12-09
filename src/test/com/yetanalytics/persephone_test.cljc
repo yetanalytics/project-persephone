@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as p]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
-            [com.yetanalytics.persephone.utils.json :as jsn]))
+            [com.yetanalytics.persephone.utils.json :as jsn]
+            [com.yetanalytics.persephone.utils.statement :as stmt]))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -624,14 +625,14 @@ Pattern path:
 (def satisfied-stmt-3
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" p/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subreg-iri]
                 [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" p/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subreg-iri]
                 [{"profile"         "https://example.org/profile"
                   "subregistration" sub-reg-3}
                  {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
@@ -739,7 +740,7 @@ Pattern path:
     (let [bad-stmt (assoc-in satisfied-stmt
                              ["context" "contextActivities" "category"]
                              [])]
-      (is (= ::p/missing-profile-reference
+      (is (= ::stmt/missing-profile-reference
              (->> bad-stmt
                   (match-cmi #{})
                   :error
@@ -750,21 +751,21 @@ Pattern path:
                   :error
                   :statement)))))
   (testing "match-statement-vs-profile exceptions"
-    (is (= ::p/missing-profile-reference
+    (is (= ::stmt/missing-profile-reference
            (->> (assoc-in satisfied-stmt
                           ["context" "contextActivities" "category"]
                           [])
                 (match-cmi-2 {})
                 :error
                 :type)))
-    (is (= ::p/invalid-subreg-nonconformant
+    (is (= ::stmt/invalid-subreg-nonconformant
            (->> (assoc-in satisfied-stmt-3
-                          ["context" "extensions" p/subreg-iri]
+                          ["context" "extensions" stmt/subreg-iri]
                           [])
                 (match-cmi-2 {})
                 :error
                 :type)))
-    (is (= ::p/invalid-subreg-no-registration
+    (is (= ::stmt/invalid-subreg-no-registration
            (->> (update satisfied-stmt-3
                         "context"
                         dissoc
@@ -773,10 +774,10 @@ Pattern path:
                 :error
                 :type))))
   (testing "error input returns the same"
-    (is (= {:error ::p/missing-profile-reference}
-           (match-cmi {:error ::p/missing-profile-reference} {})))
-    (is (= {:error ::p/missing-profile-reference}
-           (match-cmi-2 {:error ::p/missing-profile-reference} {})))))
+    (is (= {:error ::stmt/missing-profile-reference}
+           (match-cmi {:error ::stmt/missing-profile-reference} {})))
+    (is (= {:error ::stmt/missing-profile-reference}
+           (match-cmi-2 {:error ::stmt/missing-profile-reference} {})))))
 
 ;; Batch Matching Tests
 

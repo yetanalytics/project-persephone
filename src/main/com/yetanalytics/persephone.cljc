@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
-            [clojure.set          :as cset]
             [xapi-schema.spec     :as xs]
             [com.yetanalytics.pan :as pan]
             [com.yetanalytics.pan.objects.profile  :as pan-profile]
@@ -10,11 +9,10 @@
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.json      :as json]
             [com.yetanalytics.persephone.utils.maps      :as maps]
-            [com.yetanalytics.persephone.utils.time      :as time]
+            [com.yetanalytics.persephone.utils.profile   :as prof]
+            [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
             [com.yetanalytics.persephone.template.errors :as err-printer]))
-
-(def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Coercions
@@ -261,23 +259,13 @@
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages when Patterns are rejected
 
-;; O(n) search instead of O(n log n) sorting.
-(defn- latest-version
-  "Get the most recent version ID of `profile`."
-  [{:keys [versions] :as _profile}]
-  (reduce (fn [{latest-ts :generatedAtTime :as latest-ver}
-               {newest-ts :generatedAtTime :as newest-ver}]
-            (if (neg-int? (time/compare-timestamps latest-ts newest-ts))
-              newest-ver   ; latest-ts occured before newest-ts
-              latest-ver))
-          (first versions) ; okay since empty arrays are banned by the spec
-          versions))
-
 ;; TODO: Move specs to top of namespace
 (s/def ::validate-profiles? boolean?)
 (s/def ::compile-nfa? boolean?)
 (s/def ::selected-profiles (s/every ::pan-profile/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
+
+;; Profile -> FSM Compilation
 
 (def compiled-profiles-spec
   (s/every-kv ::pan-profile/id
@@ -349,7 +337,7 @@
           profiles     (cond->> profiles
                          ?prof-id-set
                          (filter (fn [{:keys [id]}] ?prof-id-set id)))
-          prof-id-seq  (map (fn [prof] (->> prof latest-version :id))
+          prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
                             profiles)
           pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
                             profiles)]
@@ -357,7 +345,61 @@
                     prof-id-seq
                     pat-fsm-seq)))))
 
-(defn- match-statement-vs-pattern*
+;; Registration Key Construction
+
+(def registration-key-spec
+  (s/or :no-subregistration (s/or :registration ::xs/uuid
+                                  :no-registration #{:no-registration})
+        :subregistration (s/cat :registration ::xs/uuid
+                                :subregistration ::xs/uuid)))
+
+(defn- construct-registration-key
+  [profile-id registration ?subreg-ext]
+  (if ?subreg-ext
+    (let [subreg-pred (fn [{:strs [profile subregistration]}]
+                        (when (= profile-id profile)
+                          subregistration))]
+      (if-some [subreg (some subreg-pred ?subreg-ext)]
+        [registration subreg]
+        registration))
+    registration))
+
+;; Pattern Matching
+
+(s/def ::states-map
+  (s/every-kv registration-key-spec
+              (s/every-kv ::pan-pattern/id
+                          p/state-info-spec)))
+
+(s/def ::accepts
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(s/def ::rejects
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(def state-info-map-spec
+  (s/or :start (s/nilable #{{}})
+        :continue (s/keys :req-un [::accepts
+                                   ::rejects
+                                   ::states-map])))
+
+;; TODO: Move to top of namespace
+(s/def ::error #{::stmt/missing-profile-reference
+                 ::stmt/invalid-subreg-no-registration
+                 ::stmt/invalid-subreg-nonconformant})
+
+(def match-stmt-error-spec
+  (s/keys :req-un [::error ::xs/statement]))
+
+;; TODO: Move to top of ns
+(def statement-spec
+  (s/or :json (s/and (s/conformer coerce-statement)
+                     ::xs/statement)
+        :edn ::xs/statement))
+
+(defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
@@ -382,100 +424,6 @@
           (with-meta new-st-info {:failure {:statement (get statement "id")
                                             :pattern   pat-id}})))
       new-st-info)))
-
-;; TODO: Add a custom `get-by-registration` function that can get statement
-;; info by `registration`, including when keys are `[registration sub-reg]`
-;; In other words,
-;; `(get-2 registration) => {...}` vs `(get registration) => nil`
-
-(defn- cmp-statements
-  "Compare Statements `s1` and `s2` by their timestamp values."
-  [s1 s2]
-  (let [t1 (get s1 "timestamp")
-        t2 (get s2 "timestamp")]
-    (time/compare-timestamps t1 t2)))
-
-(defn- get-statement-profile-ids
-  "Get the category context activity IDs that are also profile IDs, or
-   return `::missing-profile-reference` if none are."
-  [statement prof-id-set]
-  (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
-        cat-ids  (cset/intersection (set (map #(get % "id") cat-acts))
-                                    prof-id-set)]
-    (if-not (empty? cat-ids)
-      cat-ids
-      ::missing-profile-reference)))
-
-(defn- get-statement-registration
-  [statement]
-  (get-in statement ["context" "registration"] :no-registration))
-
-(defn- get-statement-subregistration
-  [statement registration]
-  (let [subreg-ext (get-in statement ["context" "extensions" subreg-iri])]
-    (when (some? subreg-ext)
-      (cond
-        ;; Subregistrations present without registration
-        (= :no-registration registration)
-        ::invalid-subreg-no-registration
-        ;; Subregistration extension is an empty array
-        (empty? subreg-ext)
-        ::invalid-subreg-nonconformant
-        ;; Subregistration object is missing keys
-        (not (every? #(and (contains? % "profile")
-                           (contains? % "subregistration"))
-                     subreg-ext))
-        ::invalid-subreg-nonconformant
-        ;; Valid!
-        :else
-        subreg-ext))))
-
-(defn- construct-registration-key
-  [profile-id registration ?subreg-ext]
-  (if ?subreg-ext
-    (let [subreg-pred (fn [{:strs [profile subregistration]}]
-                        (when (= profile-id profile)
-                          subregistration))]
-      (if-some [subreg (some subreg-pred ?subreg-ext)]
-        [registration subreg]
-        registration))
-    registration))
-
-(def registration-key-spec
-  (s/or :no-subregistration (s/or :registration ::xs/uuid
-                                  :no-registration #{:no-registration})
-        :subregistration (s/cat :registration ::xs/uuid
-                                :subregistration ::xs/uuid)))
-
-(s/def ::states-map
-  (s/every-kv registration-key-spec
-              (s/every-kv ::pan-pattern/id
-                          p/state-info-spec)))
-
-(s/def ::accepts
-  (s/every (s/cat :registration-key registration-key-spec
-                  :pattern-id ::pan-pattern/id)))
-
-(s/def ::rejects
-  (s/every (s/cat :registration-key registration-key-spec
-                  :pattern-id ::pan-pattern/id)))
-
-(def state-info-map-spec
-  (s/or :start (s/nilable #{{}})
-        :continue (s/keys :req-un [::accepts
-                                   ::rejects
-                                   ::states-map])))
-
-(def match-stmt-error-spec
-  #{::missing-profile-reference
-    ::invalid-subreg-no-registration
-    ::invalid-subreg-nonconformant})
-
-;; TODO: Move to top of ns
-(def statement-spec
-  (s/or :json (s/and (s/conformer coerce-statement)
-                     ::xs/statement)
-        :edn ::xs/statement))
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
@@ -537,9 +485,9 @@
     (let [statement      (coerce-statement statement)
           reg-pat-st-m   (:states-map state-info-map)
           prof-id-set    (set (keys compiled-profiles))
-          stmt-prof-ids  (get-statement-profile-ids statement prof-id-set)
-          stmt-reg       (get-statement-registration statement)
-          ?stmt-subreg   (get-statement-subregistration statement stmt-reg)]
+          stmt-prof-ids  (stmt/get-statement-profile-ids statement prof-id-set)
+          stmt-reg       (stmt/get-statement-registration statement)
+          ?stmt-subreg   (stmt/get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
                           (when (keyword? ?stmt-subreg) ?stmt-subreg))]
         {:error {:type      err-kw
@@ -555,7 +503,7 @@
                     ;; Map over pattern IDs
                     [pat-id fsm-m] pat-fsm-m
                     :let [old-st-info (get-in reg-pat-st-m [reg-key pat-id])
-                          new-st-info (match-statement-vs-pattern*
+                          new-st-info (match-statement-vs-pattern
                                        fsm-m
                                        old-st-info
                                        statement)]]
@@ -592,8 +540,12 @@
              :ok state-info-map-spec))
 
 (defn match-statement-batch
+  "Similar to `match-statement`, except takes a batch of statements and
+   sorts them by timestamp before matching. Short-circuits if an error
+   (e.g. missing Profile ID reference) is detected."
   [compiled-profiles state-info-map statement-batch]
-  (loop [stmt-coll   (sort cmp-statements statement-batch)
+  (loop [stmt-coll   (sort stmt/compare-statements-by-timestamp
+                           statement-batch)
          st-info-map state-info-map]
     (if-let [stmt (first stmt-coll)]
       (let [match-res (match-statement compiled-profiles st-info-map stmt)]

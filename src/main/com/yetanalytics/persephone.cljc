@@ -339,6 +339,71 @@
                  {}
                  fsm-map))))
 
+(defn compile-profiles->fsms
+  "Take `profiles`, a collection of JSON-LD profiles (or equivalent EDN
+   data) and returns a map of the following form:
+     
+     { profile-version { pattern-id {:id ... :dfa ... :nfa ...} } }
+  Where `profile-version` is the latest profile version ID in the Profile
+  and `pattern-id` is the ID of a primary Pattern in that Profile. The
+  leaf values include the following: 
+     
+     `:id`  The pattern ID.
+     `:dfa` The DFA used for general pattern matching.
+     `:nfa` The NFA with pattern metadata used for reconstructing the
+            pattern path. This is an optional property that is only
+            produced when `:compile-nfa?` is `true`.
+   The following are optional arguments:
+
+     :statement-ref-fns  takes the key-value pairs described in
+     `template->validator`.
+     :validate-profiles? if true checks that all profiles conform to the
+     xAPI Profile spec and throws an exception if not. Default false.
+     :compile-nfa?       if true compiles an additional NFA that is used
+     for composing detailed error traces. Default false.
+     :selected-profiles  if present filters out any profiles whose IDs
+     are not in the coll. (Note that these should be profile IDs, not
+     profile version IDs.)
+     :selected-patterns  if present filters out any primary patterns
+     whose IDs are not in the coll."
+  [profiles & {:keys [statement-ref-fns
+                      validate-profiles?
+                      compile-nfa?
+                      selected-profiles
+                      selected-patterns]
+               :or   {validate-profiles?     true
+                      compile-nfa?           false}}]
+  (let [profiles (map coerce-profile profiles)
+        opt-map  {:statement-ref-fns statement-ref-fns
+                  :compile-nfa?      compile-nfa?
+                  :selected-patterns selected-patterns}]
+    (when validate-profiles?
+      (dorun (map assert-profile profiles))
+      ;; TODO: Move the dupe ID check to project-pan, or at least to
+      ;; a `assert-profiles` function.
+      (let [prof-ids (map :id profiles)
+            pat-ids  (mapcat (fn [{:keys [patterns]}] (map :id patterns))
+                             profiles)]
+        (when (not= prof-ids (distinct prof-ids))
+          (throw (ex-info "Profile IDs are not unique!"
+                          {:type ::non-unique-profile-ids
+                           :ids  prof-ids})))
+        (when (not= pat-ids (distinct pat-ids))
+          (throw (ex-info "Pattern IDs are not unique!"
+                          {:type ::non-unique-pattern-ids
+                           :ids  pat-ids})))))
+    (let [?prof-id-set (when selected-profiles (set selected-profiles))
+          profiles     (cond->> profiles
+                         ?prof-id-set
+                         (filter (fn [{:keys [id]}] ?prof-id-set id)))
+          prof-id-seq  (map (fn [prof] (->> prof latest-version :id))
+                            profiles)
+          pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
+                            profiles)]
+      (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                    prof-id-seq
+                    pat-fsm-seq)))))
+
 (defn- match-statement-vs-pattern*
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
@@ -519,6 +584,94 @@
           (recur (rest stmt-coll) match-res)))
       st-info-map)))
 
+(defn- get-statement-profile-ids
+  [statement prof-id-set]
+  (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
+        cat-ids  (map #(get % "id") cat-acts)]
+    (if (some prof-id-set cat-ids)
+      (set cat-ids)
+      ::missing-profile-reference)))
+
+(defn- get-statement-registration
+  [statement]
+  (get-in statement ["context" "registration"] :no-registration))
+
+(defn- get-statement-subregistration
+  [statement registration]
+  (let [subreg-ext (get-in statement ["context" "extensions" subreg-iri])]
+    (when (some? subreg-ext)
+      (cond
+      ;; Subregistrations present without registration
+        (= :no-registration registration)
+        ::invalid-subreg-no-registration
+
+      ;; Subregistration extension is an empty array
+        (empty? subreg-ext)
+        ::invalid-subreg-nonconformant
+
+      ;; Subregistration object is missing keys
+        (not (every? #(and (contains? % "profile")
+                           (contains? % "subregistration"))
+                     subreg-ext))
+        ::invalid-subreg-nonconformant
+
+      ;; Valid!
+        :else
+        subreg-ext))))
+
+(defn- construct-registration-key
+  [profile-id registration ?subreg-ext]
+  (if ?subreg-ext
+    (let [subreg-pred (fn [{:strs [profile subregistration]}]
+                        (when (= profile-id profile)
+                          subregistration))]
+      (if-some [subreg (some subreg-pred ?subreg-ext)]
+        [registration subreg]
+        registration))
+    registration))
+
+(defn match-statement
+  [fsm-map state-info-map statement]
+  (if (:error state-info-map)
+    state-info-map
+    (let [prof-id-set    (set (keys fsm-map))
+          statement      (coerce-statement statement)
+          stmt-prof-ids  (get-statement-profile-ids statement prof-id-set)
+          stmt-reg       (get-statement-registration statement)
+          ?stmt-subreg   (get-statement-subregistration statement stmt-reg)]
+      (if-let [err-kw (or (keyword? stmt-prof-ids)
+                          (keyword? ?stmt-subreg))]
+        {:error err-kw}
+        (->> (for [[prof-id pat-fsm-m] fsm-map
+                   :when (contains? stmt-prof-ids prof-id)
+                   :let [reg-key (construct-registration-key prof-id
+                                                             stmt-reg
+                                                             ?stmt-subreg)]
+                   [pat-id fsm-m] pat-fsm-m
+                   :let [old-st-info-map (get-in state-info-map
+                                                 [reg-key pat-id])
+                         new-st-info-map (match-statement-vs-pattern*
+                                          fsm-m
+                                          old-st-info-map
+                                          statement)]]
+               [[reg-key pat-id] new-st-info-map])
+             (reduce (fn [m [assoc-k new-st-info]]
+                       (assoc-in m assoc-k new-st-info))
+                     state-info-map))))))
+
+(defn match-statement-batch
+  [fsm-map state-info-map statement-batch]
+  (loop [stmt-coll   (sort cmp-statements statement-batch)
+         st-info-map state-info-map]
+    (if-let [stmt (first stmt-coll)]
+      (let [match-res (match-statement fsm-map st-info-map stmt)]
+        (if (:error match-res)
+          ;; Error keyword - early termination
+          match-res
+          ;; Valid state info map - continue
+          (recur (rest stmt-coll) match-res)))
+      st-info-map)))
+
 (comment
   (require '[criterium.core :as crit])
   
@@ -584,4 +737,8 @@
                   (assoc m k v)
                   m))
               {}
-              pat-map-2)))
+              pat-map-2))
+  
+  (crit/quick-bench
+   (select-keys pat-map-2 ["id-1" "id-2"]))
+  )

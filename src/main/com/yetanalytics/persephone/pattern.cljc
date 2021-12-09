@@ -229,9 +229,12 @@
    Assumes a valid Profile."
   ([profile]
    (profile->fsms profile {}))
-  ([profile {:keys [statement-ref-fns compile-nfa?]}]
-   (let [temp-pat-map (mapify-all profile)
-         pattern-seq  (primary-patterns profile)]
+  ([profile {:keys [statement-ref-fns compile-nfa? select-patterns]}]
+   (let [?pat-id-set  (when select-patterns (set select-patterns))
+         temp-pat-map (mapify-all profile)
+         pattern-seq  (cond->> (primary-patterns profile)
+                        ?pat-id-set
+                        (filter (fn [{:keys [id]}] (?pat-id-set id))))]
      (reduce (fn [acc {pat-id :id :as pattern}]
                (let [pat-tree (grow-pattern-tree pattern temp-pat-map)
                      pat-dfa  (pattern-tree->dfa pat-tree statement-ref-fns)

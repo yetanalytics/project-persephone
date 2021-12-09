@@ -1113,3 +1113,10 @@ Pattern path:
                      catch-stmt-batch-2)
                     (get :no-registration)
                     (get "https://w3id.org/xapi/catch/patterns#f1-1-01-completion"))))))
+
+(comment
+  (def compiled-profile (p/compile-profiles->fsms [cmi-profile]))
+  (p/match-statement compiled-profile
+                     {}
+                     satisfied-stmt)
+  )

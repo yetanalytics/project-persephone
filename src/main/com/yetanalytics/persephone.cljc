@@ -636,21 +636,18 @@
   (let [subreg-ext (get-in statement ["context" "extensions" subreg-iri])]
     (when (some? subreg-ext)
       (cond
-      ;; Subregistrations present without registration
+        ;; Subregistrations present without registration
         (= :no-registration registration)
         ::invalid-subreg-no-registration
-
-      ;; Subregistration extension is an empty array
+        ;; Subregistration extension is an empty array
         (empty? subreg-ext)
         ::invalid-subreg-nonconformant
-
-      ;; Subregistration object is missing keys
+        ;; Subregistration object is missing keys
         (not (every? #(and (contains? % "profile")
                            (contains? % "subregistration"))
                      subreg-ext))
         ::invalid-subreg-nonconformant
-
-      ;; Valid!
+        ;; Valid!
         :else
         subreg-ext))))
 
@@ -671,12 +668,25 @@
         :subregistration (s/cat :registration ::xs/uuid
                                 :subregistration ::xs/uuid)))
 
-(def state-info-map-spec
+(s/def ::states-map
   (s/every-kv registration-key-spec
               (s/every-kv ::pan-pattern/id
                           p/state-info-spec)))
 
-(def match-statement-error-spec
+(s/def ::accepts
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(s/def ::rejects
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(def state-info-map-spec
+  (s/keys :req-un [::accepts
+                   ::rejects
+                   ::states-map]))
+
+(def match-stmt-error-spec
   #{::missing-profile-reference
     ::invalid-subreg-no-registration
     ::invalid-subreg-nonconformant})
@@ -689,48 +699,113 @@
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map state-info-map-spec
-               :statement (s/or :error match-statement-error-spec
+               :state-info-map (s/nilable state-info-map-spec)
+               :statement (s/or :error match-stmt-error-spec
                                 :ok statement-spec))
-  :ret (s/or :error match-statement-error-spec
+  :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
+  "Takes `compiled-profiles`, `state-info-map`, and `statement`, where
+   `compiled-profiles` is a return value of `compile-profiles->fsms`.
+   Matches `statement` to against `compiled-profiles` and returns an
+   updated value of `state-info-map`.
+
+   `state-info-map` is a map of the form:
+   
+     {:accepts    [[registration-key pattern-id] ...]
+      :rejects    [[registration-key pattern-id] ...]
+      :states-map {registration-key {pattern-id state-info}}}
+   where
+
+     :accepts    is a coll of identifiers for accepted state infos
+                 (where `:accepted?` is `true`).
+     :rejects    is a coll of identifiers for rejected state infos
+                 (where they are empty sets).
+     :states-map is a doubly-nested map that associates registration
+                 keys and pattern IDs to state info maps.
+   
+   `registration-key` can either be a registration UUID or a
+   pair of registration and subregistration UUIDs. Statements without
+   registrations will be assigned a default `:no-registration` key.
+   
+   `state-info` is a map of the following:
+
+     :state     The current state in the FSM, i.e. where is the
+                current location in the Pattern?
+     :accepted? If that state is an accept state, i.e. did the inputs
+                fully match the Pattern?
+     :visited   The vec of visited Statement Templates; this is only
+                present if `compiled-profiles` was compiled with
+                `compile-nfa?` set to `true`.
+
+   On error, returns the map `{:error {:type error-kw ...}}`, where
+   `error-kw` is one of the following:
+     ::missing-profile-reference      if `statement` does not have a
+                                      Profile ID as a category context
+                                      activity.
+     ::invalid-subreg-no-registration if a sub-registration is present
+                                      without a registration.
+     ::invalid-subreg-nonconformant   if the sub-registration extension
+                                      value is invalid."
   [compiled-profiles state-info-map statement]
   (if (:error state-info-map)
     state-info-map
-    (let [prof-id-set    (set (keys compiled-profiles))
-          statement      (coerce-statement statement)
+    (let [statement      (coerce-statement statement)
+          reg-pat-st-m   (:states-map state-info-map)
+          prof-id-set    (set (keys compiled-profiles))
           stmt-prof-ids  (get-statement-profile-ids statement prof-id-set)
           stmt-reg       (get-statement-registration statement)
           ?stmt-subreg   (get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (keyword? stmt-prof-ids)
                           (keyword? ?stmt-subreg))]
-        {:error err-kw}
-        (->> (for [[prof-id pat-fsm-m] compiled-profiles
-                   :when (contains? stmt-prof-ids prof-id)
-                   :let [reg-key (construct-registration-key prof-id
-                                                             stmt-reg
-                                                             ?stmt-subreg)]
-                   [pat-id fsm-m] pat-fsm-m
-                   :let [old-st-info-map (get-in state-info-map
-                                                 [reg-key pat-id])
-                         new-st-info-map (match-statement-vs-pattern*
-                                          fsm-m
-                                          old-st-info-map
-                                          statement)]]
-               [[reg-key pat-id] new-st-info-map])
-             (reduce (fn [m [assoc-k new-st-info]]
-                       (assoc-in m assoc-k new-st-info))
-                     state-info-map))))))
+        {:error {:type      err-kw
+                 :statement statement}}
+        (let [match-res
+              (for [;; Map over profile IDs
+                    [prof-id pat-fsm-m] compiled-profiles
+                    :when (contains? stmt-prof-ids prof-id)
+                    :let [reg-key (construct-registration-key
+                                   prof-id
+                                   stmt-reg
+                                   ?stmt-subreg)]
+                    ;; Map over pattern IDs
+                    [pat-id fsm-m] pat-fsm-m
+                    :let [old-st-info (get-in reg-pat-st-m [reg-key pat-id])
+                          new-st-info (match-statement-vs-pattern*
+                                       fsm-m
+                                       old-st-info
+                                       statement)]]
+                [[reg-key pat-id] new-st-info])
+              new-states-map
+              (reduce (fn [m [assoc-k new-st-info]]
+                        (assoc-in m assoc-k new-st-info))
+                      reg-pat-st-m
+                      match-res)
+              new-accepts
+              (reduce (fn [acc [assoc-k new-st-info]]
+                        (cond-> acc
+                          (fsm/accepted? new-st-info)
+                          (conj assoc-k)))
+                      []
+                      match-res)
+              new-rejects
+              (reduce (fn [acc [assoc-k new-st-info]]
+                        (cond-> acc
+                          (fsm/rejected? new-st-info)
+                          (conj assoc-k)))
+                      []
+                      match-res)]
+          {:accepts    new-accepts
+           :rejects    new-rejects
+           :states-map new-states-map})))))
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map state-info-map-spec
-               :statement-batch (s/coll-of
-                                 (s/or :error match-statement-error-spec
-                                       :ok statement-spec)))
-  :ret (s/or :error match-statement-error-spec
+               :state-info-map (s/nilable state-info-map-spec)
+               :statement-batch (s/coll-of (s/or :error match-stmt-error-spec
+                                                 :ok statement-spec)))
+  :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch

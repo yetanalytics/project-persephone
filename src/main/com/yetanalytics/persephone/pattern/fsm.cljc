@@ -769,3 +769,23 @@
      (->> state-info
           (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
           (apply cset/union)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Input Reading Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/fdef accepted?
+  :args (s/cat :state-info fs/state-info-spec)
+  :ret boolean?)
+
+(defn accepted?
+  [state-info]
+  (boolean (some :accepted? state-info)))
+
+(s/fdef rejected?
+  :args (s/cat :state-info fs/state-info-spec)
+  :ret boolean?)
+
+(defn rejected?
+  [state-info]
+  (= #{} state-info))

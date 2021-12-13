@@ -67,6 +67,25 @@
                     {:kind   ::invalid-template
                      :errors err}))))
 
+;; TODO: Make these asserts Project Pan's responsibility
+
+(defn- assert-profile-ids
+  [profiles]
+  (let [prof-ids (map :id profiles)]
+    (when (not= prof-ids (distinct prof-ids))
+      (throw (ex-info "Profile IDs are not unique!"
+                      {:type ::non-unique-profile-ids
+                       :ids  prof-ids})))))
+
+(defn- assert-pattern-ids
+  [profiles]
+  (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
+                        profiles)]
+    (when (not= pat-ids (distinct pat-ids))
+      (throw (ex-info "Pattern IDs are not unique!"
+                      {:type ::non-unique-pattern-ids
+                       :ids  pat-ids})))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -320,19 +339,8 @@
                   :selected-patterns selected-patterns}]
     (when validate-profiles?
       (dorun (map assert-profile profiles))
-      ;; TODO: Move the dupe ID check to project-pan, or at least to
-      ;; a `assert-profiles` function.
-      (let [prof-ids (map :id profiles)
-            pat-ids  (mapcat (fn [{:keys [patterns]}] (map :id patterns))
-                             profiles)]
-        (when (not= prof-ids (distinct prof-ids))
-          (throw (ex-info "Profile IDs are not unique!"
-                          {:type ::non-unique-profile-ids
-                           :ids  prof-ids})))
-        (when (not= pat-ids (distinct pat-ids))
-          (throw (ex-info "Pattern IDs are not unique!"
-                          {:type ::non-unique-pattern-ids
-                           :ids  pat-ids})))))
+      (assert-profile-ids profiles)
+      (assert-pattern-ids profiles))
     (let [?prof-id-set (when selected-profiles (set selected-profiles))
           profiles     (cond->> profiles
                          ?prof-id-set

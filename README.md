@@ -98,16 +98,18 @@ with `:dfa` and `:nfa` being two different FSMs:
 
 (NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.)
 
+The `compile-profiles->fsms` functions have the following keyword arguments:
+- `:statement-ref-fns` - Same as in the Statement Template compilation functions.
+- `:validate-profile?` - Validates Profiles and checks that there are no clashing Profile or Pattern IDs.
+- `:compile-nfa?` - If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
+- `:selected-profiles` - Which Profiles in the collection should be compiled.
+- `:selected-patterns` - Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
+
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
-
 - `sequence` - The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
-
 - `alternates` - The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (the `|` operator in a regex string).
-
 - `zeroOrMore` - The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (the `*` operator in a regex string).
-
 - `oneOrMore` - The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
-
 - `optional` - The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.
 
 The `match-statement` and `match-statement-batch` functions take in a compiled Profile collection (returned by `compile-profiles->fsms`), a state info map, and a Statement or Statement collection, respectively. They return a state info map for easy pipelining. The following is an example state info map:
@@ -121,9 +123,7 @@ The `match-statement` and `match-statement-batch` functions take in a compiled P
 ```
 where the following are the values in the leaf `:states-data` map:
 - `:state` - The state that the FSM is currently at.
-
 - `:accepted?` - Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
-
 - `:visited` - A vector of template IDs that records the templates that were previously matched against. This is an optional value that is only present if the FSM map includes `:nfa` (since it is only used to reconstruct error traces).
 
 The registration key can be a UUID string, the keyword `:no-registration`, or a pair of the registration and subregistration UUID string.

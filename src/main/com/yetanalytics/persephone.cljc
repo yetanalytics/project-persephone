@@ -364,13 +364,10 @@
 
 (defn- construct-registration-key
   [profile-id registration ?subreg-ext]
-  (if ?subreg-ext
-    (let [subreg-pred (fn [{:strs [profile subregistration]}]
-                        (when (= profile-id profile)
-                          subregistration))]
-      (if-some [subreg (some subreg-pred ?subreg-ext)]
-        [registration subreg]
-        registration))
+  (if-some [subregistration (and ?subreg-ext
+                                 (stmt/get-subregistration-id profile-id
+                                                              ?subreg-ext))]
+    [registration subregistration]
     registration))
 
 ;; Pattern Matching

@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.1 - 2021-12-14
+- Expose `get-subregistration-id` function in `utils.statement` namespace.
+
 ## 0.7.0 - 2021-12-14
 - Main idea: Completely overhaul the Pattern API.
 - Remove the following functions:

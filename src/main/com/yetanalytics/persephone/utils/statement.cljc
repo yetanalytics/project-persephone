@@ -58,6 +58,8 @@
   :ret ::registration)
 
 (defn get-statement-registration
+  "Return the registration value from `statement`, or the keyword
+   `:no-registration` if not present."
   [statement]
   (get-in statement ["context" "registration"] :no-registration))
 
@@ -80,6 +82,9 @@
   :ret subregistration-spec)
 
 (defn get-statement-subregistration
+  "Given `statement` and `registration`, return the subregistration
+   extension value (a coll of subreg objects), or a keyword if the
+   subregistration value is invalid."
   [statement registration]
   (let [subreg-ext (get-in statement ["context" "extensions" subreg-iri])]
     (when (some? subreg-ext)
@@ -94,3 +99,18 @@
         ;; Valid!
         :else
         subreg-ext))))
+
+(s/fdef get-subregistration-id
+  :args (s/cat :profile-id ::pan-prof/id
+               :subreg-obj subregistration-spec)
+  :ret (s/nilable ::subregistration))
+
+(defn get-subregistration-id
+  "Given `profile-id` and `subreg-objs` that is a coll of subregistration
+   objects (with keys `profile` and `subregistration`), return the
+   subregistration UUID corresponding to `profile-id` or `nil` if not found."
+  [profile-id subreg-objs]
+  (let [subreg-pred (fn [{:strs [profile subregistration]}]
+                      (when (= profile-id profile)
+                        subregistration))]
+    (some subreg-pred subreg-objs)))

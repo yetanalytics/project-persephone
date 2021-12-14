@@ -132,6 +132,8 @@ If the whole state info map is `nil`, then both match functions will begin at th
 
 If the state info for a particular registration key and Pattern ID pair is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern. An input sequence is considered accepted if _any one_ of the `:accepted?` values in the set is `true`. The `:accepts` and `:rejects` values automatically record registration key and Pattern ID pairs as vectors that can be used in `assoc-in`, `update-in`, etc.
 
+`match-statement` and `match-statement-batch` also take in an optional `:print?` keyword arg; if set to true, any match failure messages will be printed.
+
 For more information about the technical implementation details (including about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; useful articles include:
 - [Deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
 - [Nondeterministic finite automaton](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)

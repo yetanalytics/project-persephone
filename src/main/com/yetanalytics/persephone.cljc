@@ -12,7 +12,8 @@
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
-            [com.yetanalytics.persephone.template.errors :as err-printer]))
+            [com.yetanalytics.persephone.template.errors :as err-printer]
+            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Coercions
@@ -411,26 +412,35 @@
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-id :id pat-dfa :dfa ?pat-nfa :nfa} state-info statement]
+  [{pat-id :id pat-dfa :dfa ?pat-nfa :nfa} state-info statement print?]
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
     (if (empty? new-st-info)
       (if-some [old-meta (meta state-info)]
         (with-meta new-st-info old-meta)
         (if ?pat-nfa
-          (let [fail-info
-                (->> state-info
-                     (map :visited)
-                     (map (fn [temp-ids]
-                            (let [ptraces (p/read-visited-templates ?pat-nfa
-                                                                    temp-ids)]
-                              {:templates temp-ids
-                               :patterns  ptraces}))))]
+          ;; Detailed trace info
+          (let [build-trace (fn [temp-ids]
+                              (let [ptraces (p/read-visited-templates
+                                             ?pat-nfa
+                                             temp-ids)]
+                                {:templates temp-ids
+                                 :patterns  ptraces}))
+                fail-info   (->> state-info
+                                 (map :visited)
+                                 (map build-trace))
+                fail-meta   {:statement (get statement "id")
+                             :pattern   pat-id
+                             :traces    fail-info}]
+            (when print? (println (perr-printer/error-msg-str fail-meta)))
             (with-meta new-st-info {:failure {:statement (get statement "id")
                                               :pattern   pat-id
                                               :traces    fail-info}}))
-          (with-meta new-st-info {:failure {:statement (get statement "id")
-                                            :pattern   pat-id}})))
+          ;; Simple fail info
+          (let [fail-meta {:statement (get statement "id")
+                           :pattern   pat-id}]
+            (when print? (println (perr-printer/error-msg-str fail-meta)))
+            (with-meta new-st-info {:failure fail-meta}))))
       new-st-info)))
 
 (s/fdef match-statement
@@ -486,8 +496,12 @@
      ::invalid-subreg-no-registration if a sub-registration is present
                                       without a registration.
      ::invalid-subreg-nonconformant   if the sub-registration extension
-                                      value is invalid."
-  [compiled-profiles state-info-map statement]
+                                      value is invalid.
+     
+     `match-statement` takes in an optional `:print?` kwarg; if true,
+     then prints any error or match failure."
+  [compiled-profiles state-info-map statement & {:keys [print?]
+                                                 :or   {print? false}}]
   (if (:error state-info-map)
     state-info-map
     (let [statement      (coerce-statement statement)
@@ -514,7 +528,8 @@
                           new-st-info (match-statement-vs-pattern
                                        fsm-m
                                        old-st-info
-                                       statement)]]
+                                       statement
+                                       print?)]]
                 [[reg-key pat-id] new-st-info])
               new-states-map
               (reduce (fn [m [assoc-k new-st-info]]
@@ -551,15 +566,21 @@
   "Similar to `match-statement`, except takes a batch of statements and
    sorts them by timestamp before matching. Short-circuits if an error
    (e.g. missing Profile ID reference) is detected."
-  [compiled-profiles state-info-map statement-batch]
-  (loop [stmt-coll   (sort stmt/compare-statements-by-timestamp
-                           statement-batch)
-         st-info-map state-info-map]
-    (if-let [stmt (first stmt-coll)]
-      (let [match-res (match-statement compiled-profiles st-info-map stmt)]
-        (if (:error match-res)
+  [compiled-profiles state-info-map statement-batch & {:keys [print?]
+                                                       :or   {print? false}}]
+  (let [match-statement (fn [st-info-map stmt]
+                          (match-statement compiled-profiles
+                                           st-info-map
+                                           stmt
+                                           :print? print?))]
+    (loop [stmt-coll   (sort stmt/compare-statements-by-timestamp
+                             statement-batch)
+           st-info-map state-info-map]
+      (if-let [stmt (first stmt-coll)]
+        (let [match-res (match-statement st-info-map stmt)]
+          (if (:error match-res)
           ;; Error keyword - early termination
-          match-res
+            match-res
           ;; Valid state info map - continue
-          (recur (rest stmt-coll) match-res)))
-      st-info-map)))
+            (recur (rest stmt-coll) match-res)))
+        st-info-map))))

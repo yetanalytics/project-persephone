@@ -607,7 +607,23 @@ Pattern path:
                  (update-in [:failure :traces 0 :patterns] set))))
       ;; Patterns ordering will be different in clj and cljs, so don't bother
       ;; with exact string matching.
-      (is (string? (perrs/error-msg-str (:failure errs-2)))))))
+      (is (string? (perrs/error-msg-str (:failure errs-2)))))
+    (testing ":print? kwarg set to true"
+      (let [match-cmi-print (fn [si stmt]
+                              (p/match-statement cmi-fsm-map
+                                                 si
+                                                 stmt
+                                                 :print? true))]
+        (is (string?
+             (with-out-str
+               (-> nil
+                   (match-cmi-print satisfied-stmt)
+                   (match-cmi-print launched-stmt)
+                   (match-cmi-print initialized-stmt)
+                   (match-cmi-print complete-stmt)
+                   (match-cmi-print satisfied-stmt)
+                   (match-cmi-print terminated-stmt)
+                   (match-cmi-print failed-stmt)))))))))
 
 ;; Profile Matching Tests
 

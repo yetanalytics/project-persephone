@@ -357,10 +357,9 @@
 ;; Registration Key Construction
 
 (def registration-key-spec
-  (s/or :no-subregistration (s/or :registration ::xs/uuid
-                                  :no-registration #{:no-registration})
-        :subregistration (s/cat :registration ::xs/uuid
-                                :subregistration ::xs/uuid)))
+  (s/or :no-subregistration ::stmt/registration
+        :subregistration (s/tuple ::stmt/registration-id
+                                  ::stmt/subregistration)))
 
 (defn- construct-registration-key
   [profile-id registration ?subreg-ext]
@@ -378,12 +377,10 @@
                           p/state-info-spec)))
 
 (s/def ::accepts
-  (s/every (s/cat :registration-key registration-key-spec
-                  :pattern-id ::pan-pattern/id)))
+  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
 
 (s/def ::rejects
-  (s/every (s/cat :registration-key registration-key-spec
-                  :pattern-id ::pan-pattern/id)))
+  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
 
 (def state-info-map-spec
   (s/or :start (s/nilable #{{}})

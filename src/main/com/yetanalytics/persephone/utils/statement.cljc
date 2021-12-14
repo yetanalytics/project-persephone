@@ -49,9 +49,11 @@
 ;; Registration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(s/def ::registration-id ::xs/uuid)
+
 (s/def ::registration
   (s/or :no-registration #{:no-registration}
-        :registration ::xs/uuid))
+        :registration ::registration-id))
 
 (s/fdef get-statement-registration
   :args (s/cat ::statement ::xs/statement)

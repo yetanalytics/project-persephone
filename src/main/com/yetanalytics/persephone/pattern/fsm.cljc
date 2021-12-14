@@ -70,54 +70,39 @@
 ;; Utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; State creation
-
-(def counter (atom -1))
-
-(defn- reset-counter
-  "Reset the counter used to name states; an optional starting value
-   may be provided (mainly for debugging). The counter must always be
-   reset before constructing a new NFA."
-  ([] (swap! counter (constantly -1)))
-  ([n] (swap! counter (constantly (- n 1)))))
-
-(defn- new-state []
-  (swap! counter (partial + 1)))
-
 ;; State alphatization
 
 (defn- alphatize-states-fsm*
-  [{type :type states :states :as fsm}]
-  (let [old-to-new-state
-        (reduce (fn [acc state] (assoc acc state (new-state)))
-                {}
-                states)
-        old-to-new-state-set
-        (fn [states]
-          (->> states (mapv old-to-new-state) (into #{})))
-        update-state-keys
-        (fn [m]
-          (cset/rename-keys m old-to-new-state))
-        update-dests
-        (fn [transitions]
-          (reduce-kv
-           (fn [acc src trans]
-             (assoc acc src (reduce-kv
-                             (fn [acc symb dests]
-                               (if (= type :nfa)
-                                 (assoc acc symb (old-to-new-state-set dests))
-                                 (assoc acc symb (old-to-new-state dests))))
-                             {}
-                             trans)))
-           {}
-           transitions))]
-    (-> fsm
-        (update :states old-to-new-state-set)
-        (update :start old-to-new-state)
-        (update :accepts old-to-new-state-set)
-        (update :transitions update-state-keys)
-        (update :transitions update-dests)
-        (vary-meta update :states update-state-keys))))
+  [{type :type states :states :as fsm} start-count]
+  (let [[states-m ncount]   (reduce (fn [[m counter] state]
+                                      [(assoc m state counter) (inc counter)])
+                                    [{} start-count]
+                                    states)
+        old-states->new-set (fn [states]
+                              (->> states (mapv states-m) set))
+        update-state-keys   (fn [m]
+                              (cset/rename-keys m states-m))
+        update-dests*       (fn [acc symb dests]
+                              (let [new-dests (if (= :nfa type)
+                                                (old-states->new-set dests)
+                                                (states-m dests))]
+                                (assoc acc symb new-dests)))
+        update-dests        (fn [transitions]
+                              (reduce-kv
+                               (fn [acc src trans]
+                                 (->> trans
+                                      (reduce-kv update-dests* {})
+                                      (assoc acc src)))
+                               {}
+                               transitions))]
+    [(-> fsm
+         (update :states old-states->new-set)
+         (update :start states-m)
+         (update :accepts old-states->new-set)
+         (update :transitions update-state-keys)
+         (update :transitions update-dests)
+         (vary-meta update :states update-state-keys))
+     ncount]))
 
 (s/fdef alphatize-states-fsm
   :args (s/cat :fsm (s/or :nfa fs/nfa-spec
@@ -132,8 +117,7 @@
   "Rename all states in a single FSM. Renames all map keys for the `:states`
    metadata value if provided."
   [fsm]
-  (reset-counter)
-  (alphatize-states-fsm* fsm))
+  (first (alphatize-states-fsm* fsm 0)))
 
 (s/fdef alphatize-states
   :args (s/cat :fsm-coll (s/every (s/or :nfa fs/nfa-spec
@@ -152,12 +136,14 @@
    share the same name. Renames all map keys for the `:states` metadata
    value if provided."
   [fsm-coll]
-  (reset-counter)
   (loop [new-fsm-queue []
-         fsm-queue fsm-coll]
+         fsm-queue     fsm-coll
+         counter       0]
     (if-let [fsm (first fsm-queue)]
-      (recur (->> fsm alphatize-states-fsm* (conj new-fsm-queue))
-             (rest fsm-queue))
+      (let [[new-fsm new-counter] (alphatize-states-fsm* fsm counter)]
+        (recur (conj new-fsm-queue new-fsm)
+               (rest fsm-queue)
+               new-counter))
       new-fsm-queue)))
 
 ;; Epsilon transition appending
@@ -206,9 +192,8 @@
   ([fn-symbol f]
    (transition-nfa fn-symbol f false))
   ([fn-symbol f meta?]
-   (reset-counter)
-   (let [start   (new-state)
-         accept  (new-state)
+   (let [start   0
+         accept  1
          new-nfa {:type        :nfa
                   :symbols     {fn-symbol f}
                   :states      #{start accept}
@@ -299,14 +284,15 @@
   ([nfa-coll meta?]
    (assert-nonempty-fsm-coll nfa-coll "union-nfa")
    (let [nfa-coll    (alphatize-states nfa-coll)
-         new-start   (new-state)
-         new-accept  (new-state)
-         old-starts  (set (mapv :start nfa-coll))
-         old-accepts (mapv #(-> % :accepts first) nfa-coll)
-         new-states* (reduce (fn [acc fsm] (->> fsm :states (cset/union acc)))
+         old-states  (reduce (fn [acc fsm] (->> fsm :states (cset/union acc)))
                              #{}
                              nfa-coll)
-         new-states  (cset/union new-states* #{new-start new-accept})
+         old-starts  (set (mapv :start nfa-coll))
+         old-accepts (mapv #(-> % :accepts first) nfa-coll)
+         max-state   (apply max old-states)
+         new-start   (+ max-state 1)
+         new-accept  (+ max-state 2)
+         new-states  (cset/union old-states #{new-start new-accept})
          new-trans*  (reduce (fn [acc fsm] (->> fsm :transitions (merge acc)))
                              {}
                              nfa-coll)
@@ -343,9 +329,9 @@
   ([nfa]
    (kleene-nfa nfa false))
   ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
-   (reset-counter (+ 1 (apply max states)))
-   (let [new-start    (new-state)
-         new-accept   (new-state)
+   (let [max-state    (apply max states)
+         new-start    (+ max-state 1)
+         new-accept   (+ max-state 2)
          old-accept   (first accepts)
          union-accept (fn [s] (cset/union s #{start new-accept}))
          new-trans    (-> transitions
@@ -379,9 +365,9 @@
   ([nfa]
    (optional-nfa nfa false))
   ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
-   (reset-counter (+ 1 (apply max states)))
-   (let [new-start    (new-state)
-         new-accept   (new-state)
+   (let [max-state    (apply max states)
+         new-start    (+ max-state 1)
+         new-accept   (+ max-state 2)
          old-accept   (first accepts)
          union-start  (fn [s] (cset/union s #{start new-accept}))
          union-accept (fn [s] (cset/union s #{new-accept}))
@@ -415,9 +401,9 @@
   ([nfa]
    (plus-nfa nfa false))
   ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
-   (reset-counter (+ 1 (apply max states)))
-   (let [new-start    (new-state)
-         new-accept   (new-state)
+   (let [max-state    (apply max states)
+         new-start    (+ max-state 1)
+         new-accept   (+ max-state 2)
          old-accept   (first accepts)
          union-start  (fn [s] (cset/union s #{start}))
          union-accept (fn [s] (cset/union s #{start new-accept}))

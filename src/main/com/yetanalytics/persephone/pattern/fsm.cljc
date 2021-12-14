@@ -95,6 +95,9 @@
         old-to-new-state-set
         (fn [states]
           (->> states (mapv old-to-new-state) (into #{})))
+        update-state-keys
+        (fn [m]
+          (cset/rename-keys m old-to-new-state))
         update-dests
         (fn [transitions]
           (reduce-kv
@@ -112,8 +115,9 @@
         (update :states old-to-new-state-set)
         (update :start old-to-new-state)
         (update :accepts old-to-new-state-set)
-        (update :transitions #(cset/rename-keys % old-to-new-state))
-        (update :transitions update-dests))))
+        (update :transitions update-state-keys)
+        (update :transitions update-dests)
+        (vary-meta update :states update-state-keys))))
 
 (s/fdef alphatize-states-fsm
   :args (s/cat :fsm (s/or :nfa fs/nfa-spec
@@ -125,7 +129,8 @@
            (count (:states ret)))))
 
 (defn alphatize-states-fsm
-  "Rename all states in a single FSM."
+  "Rename all states in a single FSM. Renames all map keys for the `:states`
+   metadata value if provided."
   [fsm]
   (reset-counter)
   (alphatize-states-fsm* fsm))
@@ -144,7 +149,8 @@
 
 (defn alphatize-states
   "Rename all states in a collection of FSMs such that no two states
-   share the same name."
+   share the same name. Renames all map keys for the `:states` metadata
+   value if provided."
   [fsm-coll]
   (reset-counter)
   (loop [new-fsm-queue []
@@ -188,153 +194,212 @@
 ;; x ---> a
 
 (s/fdef transition-nfa
-  :args (s/cat :fn-symbol ::fs/symbol-id :fn ::fs/symbol-pred)
+  :args (s/cat :fn-symbol ::fs/symbol-id
+               :fn ::fs/symbol-pred
+               :meta? (s/? boolean?))
   :ret (and fs/thompsons-nfa-spec
             (fn [{:keys [states]}] (= 2 (count states)))))
 
 (defn transition-nfa
-  "Create an NFA that accepts a single input."
-  [fn-symbol f]
-  (reset-counter)
-  (let [start (new-state) accept (new-state)]
-    {:type        :nfa
-     :symbols     {fn-symbol f}
-     :states      #{start accept}
-     :start       start
-     :accepts     #{accept}
-     :transitions {start  {fn-symbol #{accept}} accept {}}}))
+  "Create an NFA that accepts a single input. If `meta?` is true, then
+   associate `:states` metadata to the NFA."
+  ([fn-symbol f]
+   (transition-nfa fn-symbol f false))
+  ([fn-symbol f meta?]
+   (reset-counter)
+   (let [start   (new-state)
+         accept  (new-state)
+         new-nfa {:type        :nfa
+                  :symbols     {fn-symbol f}
+                  :states      #{start accept}
+                  :start       start
+                  :accepts     #{accept}
+                  :transitions {start {fn-symbol #{accept}} accept {}}}]
+     (if meta?
+       (with-meta new-nfa {:states {start {} accept {}}})
+       new-nfa))))
 
 ;; -> q ==> s --> s ==> a
 
 (s/fdef concat-nfa
-  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec :min-count 1 :gen-max 5))
+  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec
+                                  :min-count 1
+                                  :gen-max 5)
+               :meta? (s/? boolean?))
   :ret fs/thompsons-nfa-spec
   :fn (fn [{:keys [args ret]}]
         (= (fs/count-states (:nfa-coll args)) (count (:states ret)))))
 
+(defn- concat-nfa*
+  [nfa-coll]
+  (loop [fsm      (first nfa-coll)
+         fsm-list (rest nfa-coll)]
+    (if-let [next-fsm (first fsm-list)]
+      (let [;; Destructure
+            {symbols     :symbols
+             states      :states
+             start       :start
+             accepts     :accepts
+             transitions :transitions}      fsm
+            {next-symbols     :symbols
+             next-states      :states
+             next-start       :start
+             next-accepts     :accepts
+             next-transitions :transitions} next-fsm
+            ;; Create
+            new-trans (-> (merge transitions next-transitions)
+                          (update-in
+                           [(first accepts) :epsilon]
+                           (fn [nexts] (set (conj nexts next-start)))))
+            new-fsm   {:type        :nfa
+                       :symbols     (merge symbols next-symbols)
+                       :states      (cset/union states next-states)
+                       :start       start
+                       :accepts     next-accepts
+                       :transitions new-trans}]
+        (recur new-fsm (rest fsm-list)))
+      fsm)))
+
 (defn concat-nfa
   "Concat a collection of NFAs in sequential order. The function throws
-   an exception on empty collections."
-  [nfa-coll]
-  (assert-nonempty-fsm-coll nfa-coll "concat-nfa")
-  (let [nfa-coll (alphatize-states nfa-coll)]
-    (loop [fsm      (first nfa-coll)
-           fsm-list (rest nfa-coll)]
-      (if-let [next-fsm (first fsm-list)]
-        (let [{symbols     :symbols
-               states      :states
-               start       :start
-               accepts     :accepts
-               transitions :transitions}
-              fsm
-              {next-symbols     :symbols
-               next-states      :states
-               next-start       :start
-               next-accepts     :accepts
-               next-transitions :transitions}
-              next-fsm
-              new-fsm
-              {:type     :nfa
-               :symbols  (merge symbols next-symbols)
-               :states   (cset/union states next-states)
-               :start    start
-               :accepts  next-accepts
-               :transitions
-               (-> (merge transitions next-transitions)
-                   (update-in
-                    [(first accepts) :epsilon]
-                    (fn [nexts] (set (conj nexts next-start)))))}]
-          (recur new-fsm (rest fsm-list)))
-        fsm))))
+   an exception on empty collections. If `meta?` is true, then assoc the
+   alphatized `:states` metadata to the NFA."
+  ([nfa-coll]
+   (concat-nfa nfa-coll false))
+  ([nfa-coll meta?]
+   (assert-nonempty-fsm-coll nfa-coll "concat-nfa")
+   (let [nfa-coll (alphatize-states nfa-coll)
+         new-nfa  (concat-nfa* nfa-coll)]
+     (if meta?
+       (with-meta new-nfa {:states (->> nfa-coll
+                                        (map meta)
+                                        (map :states)
+                                        (apply merge))})
+       new-nfa))))
 
 ;;    + --> s ==> s --v
 ;; -> q               f
 ;;    + --> s ==> s --^
 
 (s/fdef union-nfa
-  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec :min-count 1 :gen-max 5))
+  :args (s/cat :nfa-coll (s/every fs/thompsons-nfa-spec
+                                  :min-count 1
+                                  :gen-max 5)
+               :meta? (s/? boolean?))
   :ret fs/thompsons-nfa-spec
   :fn (fn [{:keys [args ret]}]
         (= (+ 2 (fs/count-states (:nfa-coll args))) (count (:states ret)))))
 
 (defn union-nfa
-  "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)"
-  [nfa-coll]
-  (assert-nonempty-fsm-coll nfa-coll "union-nfa")
-  (let [nfa-coll    (alphatize-states nfa-coll)
-        new-start   (new-state)
-        new-accept  (new-state)
-        old-starts  (set (mapv :start nfa-coll))
-        old-accepts (mapv #(-> % :accepts first) nfa-coll)]
-    {:type     :nfa
-     :symbols  (into {} (mapcat :symbols nfa-coll))
-     :start    new-start
-     :accepts  #{new-accept}
-     :states
-     (cset/union
-      (reduce (fn [acc fsm] (->> fsm :states (cset/union acc))) #{} nfa-coll)
-      #{new-start new-accept})
-     :transitions
-     (->
-      (reduce (fn [acc fsm] (->> fsm :transitions (merge acc))) {} nfa-coll)
-      (add-epsilon-transitions old-accepts new-accept)
-      (update-in [new-start :epsilon] (constantly old-starts))
-      (update new-accept (constantly {})))}))
+  "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)
+   If `meta?` is true, then assoc the alphatized `:states` metadata to
+   the NFA."
+  ([nfa-coll]
+   (union-nfa nfa-coll false))
+  ([nfa-coll meta?]
+   (assert-nonempty-fsm-coll nfa-coll "union-nfa")
+   (let [nfa-coll    (alphatize-states nfa-coll)
+         new-start   (new-state)
+         new-accept  (new-state)
+         old-starts  (set (mapv :start nfa-coll))
+         old-accepts (mapv #(-> % :accepts first) nfa-coll)
+         new-states* (reduce (fn [acc fsm] (->> fsm :states (cset/union acc)))
+                             #{}
+                             nfa-coll)
+         new-states  (cset/union new-states* #{new-start new-accept})
+         new-trans*  (reduce (fn [acc fsm] (->> fsm :transitions (merge acc)))
+                             {}
+                             nfa-coll)
+         new-trans   (-> new-trans*
+                         (add-epsilon-transitions old-accepts new-accept)
+                         (update-in [new-start :epsilon] (constantly old-starts))
+                         (update new-accept (constantly {})))
+         new-nfa     {:type        :nfa
+                      :symbols     (into {} (mapcat :symbols nfa-coll))
+                      :start       new-start
+                      :accepts     #{new-accept}
+                      :states      new-states
+                      :transitions new-trans}]
+     (if meta?
+       (let [meta-states
+             (merge {new-start {} new-accept {}}
+                    (->> nfa-coll (map meta) (map :states) (apply merge)))]
+         (with-meta new-nfa {:states meta-states}))
+       new-nfa))))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
 ;;    +-----------------^
 
 (s/fdef kleene-nfa
-  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :args (s/cat :nfa fs/thompsons-nfa-spec
+               :meta? (s/? boolean?))
   :ret fs/thompsons-nfa-spec)
 
 (defn kleene-nfa
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol),
-   which means the NFA can be taken zero or more times."
-  [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states)))
-  (let [new-start  (new-state)
-        new-accept (new-state)
-        old-accept (first accepts)]
-    {:type     :nfa
-     :symbols  symbols
-     :states   (cset/union states #{new-start new-accept})
-     :start    new-start
-     :accepts  #{new-accept}
-     :transitions
-     (->
-      transitions
-      (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
-      (update new-accept (constantly {})))}))
+   which means the NFA can be taken zero or more times. If `meta` is true,
+   copy the original `:states` metadata."
+  ([nfa]
+   (kleene-nfa nfa false))
+  ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
+   (reset-counter (+ 1 (apply max states)))
+   (let [new-start    (new-state)
+         new-accept   (new-state)
+         old-accept   (first accepts)
+         union-accept (fn [s] (cset/union s #{start new-accept}))
+         new-trans    (-> transitions
+                          (update-in [new-start :epsilon] union-accept)
+                          (update-in [old-accept :epsilon] union-accept)
+                          (update new-accept (constantly {})))
+         new-nfa      {:type        :nfa
+                       :symbols     symbols
+                       :states      (cset/union states #{new-start new-accept})
+                       :start       new-start
+                       :accepts     #{new-accept}
+                       :transitions new-trans}]
+     (if meta?
+       (with-meta new-nfa (-> (meta nfa)
+                              (assoc-in [:states new-start] {})
+                              (assoc-in [:states new-accept] {})))
+       new-nfa))))
 
 ;;    +-----------------v
 ;; -> q --> s ==> s --> f
 
 (s/fdef optional-nfa
-  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :args (s/cat :nfa fs/thompsons-nfa-spec
+               :meta? (s/? boolean?))
   :ret fs/thompsons-nfa-spec)
 
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
-   means the NFA may or may not be taken."
-  [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states)))
-  (let [new-start  (new-state)
-        new-accept (new-state)
-        old-accept (first accepts)]
-    {:type     :nfa
-     :symbols  symbols
-     :states   (cset/union states #{new-start new-accept})
-     :start    new-start
-     :accepts  #{new-accept}
-     :transitions
-     (->
-      transitions
-      (update-in [new-start :epsilon] #(cset/union % #{start new-accept}))
-      (update-in [old-accept :epsilon] #(cset/union % #{new-accept}))
-      (update new-accept (constantly {})))}))
+   means the NFA may or may not be taken. If `meta` is true, copy the
+   original `:states` metadata."
+  ([nfa]
+   (optional-nfa nfa false))
+  ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
+   (reset-counter (+ 1 (apply max states)))
+   (let [new-start    (new-state)
+         new-accept   (new-state)
+         old-accept   (first accepts)
+         union-start  (fn [s] (cset/union s #{start new-accept}))
+         union-accept (fn [s] (cset/union s #{new-accept}))
+         new-trans    (-> transitions
+                          (update-in [new-start :epsilon] union-start)
+                          (update-in [old-accept :epsilon] union-accept)
+                          (update new-accept (constantly {})))
+         new-nfa      {:type        :nfa
+                       :symbols     symbols
+                       :states      (cset/union states #{new-start new-accept})
+                       :start       new-start
+                       :accepts     #{new-accept}
+                       :transitions new-trans}]
+     (if meta?
+       (with-meta new-nfa (-> (meta nfa)
+                              (assoc-in [:states new-start] {})
+                              (assoc-in [:states new-accept] {})))
+       new-nfa))))
 
 ;;          v-----+
 ;; -> q --> s ==> s --> f
@@ -345,23 +410,32 @@
 
 (defn plus-nfa
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol),
-   which means the NFA can be taken one or more times."
-  [{:keys [symbols states start accepts transitions] :as _nfa}]
-  (reset-counter (+ 1 (apply max states)))
-  (let [new-start  (new-state)
-        new-accept (new-state)
-        old-accept (first accepts)]
-    {:type     :nfa
-     :symbols  symbols
-     :states   (cset/union states #{new-start new-accept})
-     :start    new-start
-     :accepts  #{new-accept}
-     :transitions
-     (->
-      transitions
-      (update-in [new-start :epsilon] #(cset/union % #{start}))
-      (update-in [old-accept :epsilon] #(cset/union % #{start new-accept}))
-      (update new-accept (constantly {})))}))
+   which means the NFA can be taken one or more times. If `meta` is true,
+   copy the original `:states` metadata."
+  ([nfa]
+   (plus-nfa nfa false))
+  ([{:keys [symbols states start accepts transitions] :as nfa} meta?]
+   (reset-counter (+ 1 (apply max states)))
+   (let [new-start    (new-state)
+         new-accept   (new-state)
+         old-accept   (first accepts)
+         union-start  (fn [s] (cset/union s #{start}))
+         union-accept (fn [s] (cset/union s #{start new-accept}))
+         new-trans    (-> transitions
+                          (update-in [new-start :epsilon] union-start)
+                          (update-in [old-accept :epsilon] union-accept)
+                          (update new-accept (constantly {})))
+         new-nfa      {:type        :nfa
+                       :symbols     symbols
+                       :states      (cset/union states #{new-start new-accept})
+                       :start       new-start
+                       :accepts     #{new-accept}
+                       :transitions new-trans}]
+     (if meta?
+       (with-meta new-nfa (-> (meta nfa)
+                              (assoc-in [:states new-start] {})
+                              (assoc-in [:states new-accept] {})))
+       new-nfa))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NFA to DFA Conversion
@@ -371,9 +445,20 @@
   #?(:clj (conj clojure.lang.PersistentQueue/EMPTY init)
      :cljs (conj cljs.core/PersistentQueue.EMPTY init)))
 
-(defn- epsilon-closure
-  "Given an NFA and a state, returns the epsilon closure for that
-   state."
+;; `epsilon-closure` is public for testing purposes, and because it's a
+;; well-defined mathematical operation on NFAs.
+
+;; We only care about the transitions, hence the spec.
+;; Since `epsilon-closure` is called by internal fns like `nfa->dfa*`,
+;; spec-ing the whole NFA may cause a spec error.
+(s/fdef epsilon-closure
+  :args (s/cat :nfa (s/keys :req-un [:nfa/transitions])
+               :init-state :nfa/state)
+  :ret :nfa/states)
+
+(defn epsilon-closure
+  "Given an NFA with transitions and an `init-state`, returns the
+   epsilon closure for that state."
   [{nfa-transitions :transitions :as _nfa} init-state]
   ;; Perform a BFS and keep track of visited states
   (loop [visited-states (transient #{})
@@ -566,47 +651,141 @@
         construct-reverse-dfa)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; DFA Input Reading
+;; Input Reading
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- read-next*
-  "Like read-next, except it takes in the state directly, rather than
-   state info. Returns a set of destination states.
-   The read-next function is more useful for threading."
-  [{:keys [symbols accepts transitions] :as _dfa} state input]
-  (if-let [trans (-> transitions (get state))]
-    (let [dests
-          (->> trans
-               (filterv (fn [[symb _]] (let [pred? (get symbols symb)]
-                                         (pred? input))))
-               (mapv (fn [[_ dest]] dest)))]
-      {:states    (set dests)
-       :accepted? (-> (filterv (partial contains? accepts) dests)
-                      not-empty
-                      boolean)})
-    (let [err-msg "State not found in the finite state machine"]
+(defn- read-next-nfa
+  "Like `read-next` for NFAs, except it takes in the state directly.
+   Runs the epsilon closure first before reading the input; `:epsilon`
+   is therefore not recorded as a visited transition."
+  [{:keys [symbols accepts transitions] :as nfa} input state visited]
+  (if-let [trans (get transitions state)]
+    (for [symb  (keys trans)
+          dest  (get trans symb)
+          :let  [eps-closure (epsilon-closure nfa dest)
+                 visited     (when visited (conj visited symb))]
+          :when (and (not= :epsilon symb)
+                     ((get symbols symb) input))
+          state eps-closure
+          :let  [state-info (cond-> {:state     state
+                                     :accepted? (contains? accepts state)}
+                              visited
+                              (assoc :visited visited))]]
+      state-info)
+    (let [err-msg (str "State not found in the finite state machine: "
+                       (pr-str state))]
       (throw #?(:clj (Exception. err-msg)
                 :cljs (js/Error. err-msg))))))
 
-(defn read-next
-  "Given a compiled FSM, the current state info, and an input, let
-   the FSM read that input; this function returns update state info.
-   The state info has the following fields:
-     :states      The set of next states arrived at in the FSM
-                  after reading the input. If :states is empty,
-                  then the input sequence has been rejected.
-     :accepted?   True if the FSM as arrived at an accept state
-                  after reading the input; false otherwise.
-   If the state info is nil, the function starts at the start state.
-   If :states is empty, read-next will return state-info without
-   calling the FSM, and sets :states to the empty set (as nil is
-   always considered rejected)."
-  [{start :start :as dfa} state-info input]
-  (let [states (if (nil? state-info) #{start} (:states state-info))]
-    (reduce (fn [{:keys [states accepted?] :as acc}
-                 {m-states :states m-accepted? :accepted?}]
-              (-> acc
-                  (assoc :states (cset/union states m-states))
-                  (assoc :accepted? (or accepted? m-accepted?))))
-            {:states #{} :accepted? false}
-            (map #(read-next* dfa % input) states))))
+(defn- read-next-dfa
+  "Like `read-next` for DFAs, except it takes in the state directly, rather
+   than state info. Returns a set of state info maps."
+  [{:keys [symbols accepts transitions] :as _dfa} input state visited]
+  (if-let [trans (get transitions state)]
+    (reduce-kv (fn [acc symb dest]
+                 (if (and (not= :epsilon symb)
+                          ((get symbols symb) input))
+                   (conj acc (cond-> {:state     dest
+                                      :accepted? (contains? accepts dest)}
+                               visited
+                               (assoc :visited (conj visited symb))))
+                   acc))
+               #{}
+               trans)
+    (let [err-msg (str "State not found in the finite state machine: "
+                       (pr-str state))]
+      (throw #?(:clj (Exception. err-msg)
+                :cljs (js/Error. err-msg))))))
+
+(s/def ::record-visits? boolean?)
+(s/def ::start-opts (s/keys :opt-un [::record-visits?]))
+
+(s/fdef read-next
+  :args (s/cat :dfa fs/dfa-spec
+               :start-opts (s/? ::start-opts)
+               :state-info (s/nilable fs/state-info-spec)
+               :input any?)
+  :ret fs/state-info-spec)
+
+(defmulti read-next
+  "Given a compiled `fsm`, the current `state-info`, and `input`, let
+   the FSM read that input; this function returns updated state info.
+   The state info is a set of maps with the following fields:
+     
+     :state     The states arrived at in the FSM after reading the input.
+     :accepted? True if the FSM as arrived at an accept state
+                after reading the input; false otherwise.
+   In addition to the required args, the optional `start-opts` map
+   can be passed. Valid options include:
+
+     :record-visits? If true, each state info map will contain an extra
+                     `:visited` value that is a list of visited
+                     transition IDs.
+   If `state-info` is `nil`, the function starts at the start state,
+   with `start-opts` applied as needed. As indicated by its name,
+   `start-opts` not applied when `state-info` is not `nil`.
+
+   If `state-info` is `#{}` is empty, it is returned as-is, since an
+   empty set indicates that no more states can be matched."
+  {:arglists '([fsm state-info input]
+               [fsm start-opts state-info input])}
+  (fn [fsm & _] (:type fsm)))
+
+(defmethod read-next :nfa
+  ([nfa state-info input]
+   (read-next nfa {} state-info input))
+  ([nfa start-opts state-info input]
+   (let [;; Destructuring
+         {:keys [record-visits?]} start-opts
+         {:keys [start accepts]}  nfa
+         ;; State Info
+         state-info (if (nil? state-info)
+                      (map (fn [s]
+                             (cond-> {:state     s
+                                      :accepted? (contains? accepts s)}
+                               record-visits?
+                               (assoc :visited [])))
+                           (epsilon-closure nfa start))
+                      state-info)]
+     (->> state-info
+          (map (fn [{s :state v :visited}] (read-next-nfa nfa input s v)))
+          (map set)
+          (apply cset/union)))))
+
+(defmethod read-next :dfa
+  ([dfa state-info input]
+   (read-next dfa {} state-info input))
+  ([dfa start-opts state-info input]
+   (let [;; Destructuring
+         {:keys [record-visits?]} start-opts
+         {:keys [start accepts]} dfa
+         ;; State Info
+         state-info (if (nil? state-info)
+                      #{(cond-> {:state     start
+                                 :accepted? (contains? accepts start)}
+                          record-visits?
+                          (assoc :visited []))}
+                      state-info)]
+     (->> state-info
+          (map (fn [{s :state v :visited}] (read-next-dfa dfa input s v)))
+          (apply cset/union)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Input Reading Helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/fdef accepted?
+  :args (s/cat :state-info fs/state-info-spec)
+  :ret boolean?)
+
+(defn accepted?
+  [state-info]
+  (boolean (some :accepted? state-info)))
+
+(s/fdef rejected?
+  :args (s/cat :state-info fs/state-info-spec)
+  :ret boolean?)
+
+(defn rejected?
+  [state-info]
+  (= #{} state-info))

@@ -1,7 +1,9 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as p]
-            [com.yetanalytics.persephone.utils.json :as jsn]))
+            [com.yetanalytics.persephone.pattern.errors :as perrs]
+            [com.yetanalytics.persephone.utils.json :as jsn]
+            [com.yetanalytics.persephone.utils.statement :as stmt]))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
@@ -146,6 +148,10 @@
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
 (def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
 (def cmi-templates (:templates (jsn/json->edn cmi-profile :keywordize? true)))
+
+(def cmi-profile-id "https://w3id.org/xapi/cmi5")
+(def cmi-version-id "https://w3id.org/xapi/cmi5/v1.0")
+(def cmi-pattern-id "https://w3id.org/xapi/cmi5#toplevel")
 
 ; Note: we need to add ['*'] to the original JSONPath specs in the "all" rules.
 (def launched-stmt
@@ -396,87 +402,232 @@
                  :fn-type :result)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
 
-;; Pattern tests
+;; Pattern Matching Tests
 
-(def cmi-fsm-map (p/profile->fsms cmi-profile))
-(def cmi-fsm (get cmi-fsm-map "https://w3id.org/xapi/cmi5#toplevel"))
-(def match-cmi (partial p/match-statement-vs-pattern cmi-fsm))
+(def cmi-fsm-map (p/compile-profiles->fsms [cmi-profile]
+                                           :compile-nfa? true
+                                           :select-patterns [cmi-pattern-id]))
+(def match-cmi (partial p/match-statement cmi-fsm-map))
 
-(deftest pattern-validation-tests
-  (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
-    (is (empty? (:states (match-cmi nil ex-statement))))
+(def failure-msg-1
+  "----- Pattern Match Failure -----
+Primary Pattern ID: https://w3id.org/xapi/cmi5#toplevel
+Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0
+
+Statement Templates visited:
+  https://w3id.org/xapi/cmi5#satisfied
+  https://w3id.org/xapi/cmi5#launched
+  https://w3id.org/xapi/cmi5#initialized
+  https://w3id.org/xapi/cmi5#completed
+  https://w3id.org/xapi/cmi5#satisfied
+  https://w3id.org/xapi/cmi5#terminated
+Pattern path:
+  https://w3id.org/xapi/cmi5#terminated
+  https://w3id.org/xapi/cmi5#terminatedorabandoned
+  https://w3id.org/xapi/cmi5#completionnosuccesssession
+  https://w3id.org/xapi/cmi5#typicalsession
+  https://w3id.org/xapi/cmi5#typicalsessions
+  https://w3id.org/xapi/cmi5#toplevel")
+
+(deftest pattern-match-test
+  (testing "Testing matching of a stream of Statements using Patterns from the cmi5 Profile."
+    (is (-> (match-cmi nil ex-statement)
+            (get-in [:states-map :no-registration cmi-pattern-id])
+            empty?))
     ;; Accepted by 'satisfied' Template
-    (is (not (:rejected? (match-cmi nil satisfied-stmt))))
+    (is (-> (match-cmi nil satisfied-stmt)
+            :accepts
+            not-empty))
     ;; Does not satifiy all rules in the 'satisfied' Template - rejected
-    (is (empty? (:states
-                 (match-cmi nil (assoc-in
-                                 ex-statement
-                                 ["verb" "id"]
-                                 "http://adlnet.gov/expapi/verbs/satisfied")))))
+    (is (-> (match-cmi nil (assoc-in
+                            ex-statement
+                            ["verb" "id"]
+                            "http://adlnet.gov/expapi/verbs/satisfied"))
+            :rejects
+            not-empty))
     ;; Forgot initialized-stmt - rejected
-    (is (empty? (-> nil
-                    (match-cmi satisfied-stmt)
-                    (match-cmi launched-stmt)
-                    (match-cmi failed-stmt)
-                    :states)))
+    (is (-> nil
+            (match-cmi satisfied-stmt)
+            (match-cmi launched-stmt)
+            (match-cmi failed-stmt)
+            :rejects
+            not-empty))
     ;; Session not completed yet
-    (is (not (:accepted? (-> nil
-                             (match-cmi satisfied-stmt)
-                             (match-cmi launched-stmt)
-                             (match-cmi initialized-stmt)
-                             (match-cmi failed-stmt)
-                             (match-cmi satisfied-stmt)))))
+    (is (-> nil
+            (match-cmi satisfied-stmt)
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi failed-stmt)
+            (match-cmi satisfied-stmt)
+            :accepts
+            empty?))
     ;; Just a bunch of satisfieds
-    (is (:accepted? (-> nil
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi satisfied-stmt))))
+    (is (-> nil
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi satisfied-stmt)
+            :accepts
+            not-empty))
     ;; Waive, then pass
-    (is (:accepted? (-> nil
-                        (match-cmi waived-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi passed-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi terminated-stmt))))
+    (is (-> nil
+            (match-cmi waived-stmt)
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi passed-stmt)
+            (match-cmi complete-stmt)
+            (match-cmi terminated-stmt)
+            :accepts
+            not-empty))
     ;; Completed, then failed (oof!)
-    (is (:accepted? (-> nil
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi abandoned-stmt))))
+    (is (-> nil
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi complete-stmt)
+            (match-cmi failed-stmt)
+            (match-cmi abandoned-stmt)
+            :accepts
+            not-empty))
     ;; Just straight up failed
-    (is (:accepted? (-> nil
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi abandoned-stmt))))
+    (is (-> nil
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi failed-stmt)
+            (match-cmi abandoned-stmt)
+            :accepts
+            not-empty))
     ;; Failed, then waived, then finally passed (yay!)
-    (is (:accepted? (-> nil
-                        (match-cmi satisfied-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi failed-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi abandoned-stmt)
-                        (match-cmi waived-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi launched-stmt)
-                        (match-cmi initialized-stmt)
-                        (match-cmi complete-stmt)
-                        (match-cmi satisfied-stmt)
-                        (match-cmi passed-stmt)
-                        (match-cmi terminated-stmt))))))
+    (is (-> nil
+            (match-cmi satisfied-stmt)
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi failed-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi abandoned-stmt)
+            (match-cmi waived-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi launched-stmt)
+            (match-cmi initialized-stmt)
+            (match-cmi complete-stmt)
+            (match-cmi satisfied-stmt)
+            (match-cmi passed-stmt)
+            (match-cmi terminated-stmt)
+            :accepts
+            not-empty)))
+  (testing "Error message output associated with the cmi5 Profile"
+    (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+                      :pattern   "https://w3id.org/xapi/cmi5#toplevel"}}
+           (-> (p/match-statement (assoc-in cmi-fsm-map
+                                            [cmi-version-id cmi-pattern-id :nfa]
+                                            nil)
+                                  nil
+                                  ex-statement)
+               (get-in [:states-map :no-registration cmi-pattern-id])
+               meta)))
+    (is (= {:failure {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+                      :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+                      :traces    []}}
+           (-> (match-cmi nil ex-statement)
+               (get-in [:states-map :no-registration cmi-pattern-id])
+               meta)))
+    ;; The first failure happens on the "completion-no-success" pattern.
+    ;; The second failure happens either on the "completion-maybe-failed"
+    ;; or the "failed" pattern.
+    (let [errs-1 (-> nil
+                     (match-cmi satisfied-stmt)
+                     (match-cmi launched-stmt)
+                     (match-cmi initialized-stmt)
+                     (match-cmi complete-stmt)
+                     (match-cmi satisfied-stmt)
+                     (match-cmi terminated-stmt)
+                     (match-cmi failed-stmt)
+                     (get-in [:states-map :no-registration cmi-pattern-id])
+                     meta)]
+      (is (= {:failure
+              {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+               :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+               :traces
+               [{:templates
+                 ["https://w3id.org/xapi/cmi5#satisfied"
+                  "https://w3id.org/xapi/cmi5#launched"
+                  "https://w3id.org/xapi/cmi5#initialized"
+                  "https://w3id.org/xapi/cmi5#completed"
+                  "https://w3id.org/xapi/cmi5#satisfied"
+                  "https://w3id.org/xapi/cmi5#terminated"]
+                 :patterns
+                 [["https://w3id.org/xapi/cmi5#terminated"
+                   "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                   "https://w3id.org/xapi/cmi5#completionnosuccesssession"
+                   "https://w3id.org/xapi/cmi5#typicalsession"
+                   "https://w3id.org/xapi/cmi5#typicalsessions"
+                   "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
+             errs-1))
+      (is (= failure-msg-1
+             (perrs/error-msg-str (:failure errs-1)))))
+    (let [errs-2 (-> nil
+                     (match-cmi satisfied-stmt)
+                     (match-cmi launched-stmt)
+                     (match-cmi initialized-stmt)
+                     (match-cmi failed-stmt)
+                     (match-cmi terminated-stmt)
+                     (match-cmi complete-stmt)
+                     (get-in [:states-map :no-registration cmi-pattern-id])
+                     meta)]
+      (is (= {:failure
+              {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
+               :pattern   "https://w3id.org/xapi/cmi5#toplevel"
+               :traces
+               [{:templates
+                 ["https://w3id.org/xapi/cmi5#satisfied"
+                  "https://w3id.org/xapi/cmi5#launched"
+                  "https://w3id.org/xapi/cmi5#initialized"
+                  "https://w3id.org/xapi/cmi5#failed"
+                  "https://w3id.org/xapi/cmi5#terminated"]
+                 :patterns
+                 #{["https://w3id.org/xapi/cmi5#terminated"
+                    "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                    "https://w3id.org/xapi/cmi5#completionmaybefailedsession"
+                    "https://w3id.org/xapi/cmi5#typicalsession"
+                    "https://w3id.org/xapi/cmi5#typicalsessions"
+                    "https://w3id.org/xapi/cmi5#toplevel"]
+                   ["https://w3id.org/xapi/cmi5#terminated"
+                    "https://w3id.org/xapi/cmi5#terminatedorabandoned"
+                    "https://w3id.org/xapi/cmi5#failedsession"
+                    "https://w3id.org/xapi/cmi5#typicalsession"
+                    "https://w3id.org/xapi/cmi5#typicalsessions"
+                    "https://w3id.org/xapi/cmi5#toplevel"]}}]}}
+             (-> errs-2
+                 (update-in [:failure :traces] vec)
+                 (update-in [:failure :traces 0 :patterns] set))))
+      ;; Patterns ordering will be different in clj and cljs, so don't bother
+      ;; with exact string matching.
+      (is (string? (perrs/error-msg-str (:failure errs-2)))))
+    (testing ":print? kwarg set to true"
+      (let [match-cmi-print (fn [si stmt]
+                              (p/match-statement cmi-fsm-map
+                                                 si
+                                                 stmt
+                                                 :print? true))]
+        (is (string?
+             (with-out-str
+               (-> nil
+                   (match-cmi-print satisfied-stmt)
+                   (match-cmi-print launched-stmt)
+                   (match-cmi-print initialized-stmt)
+                   (match-cmi-print complete-stmt)
+                   (match-cmi-print satisfied-stmt)
+                   (match-cmi-print terminated-stmt)
+                   (match-cmi-print failed-stmt)))))))))
 
-(def match-cmi-2 (partial p/match-statement-vs-profile cmi-fsm-map))
+;; Profile Matching Tests
+
+(def match-cmi-2 (partial p/match-statement cmi-fsm-map))
 
 (def registration-2 "c816c015-e07f-46de-aaa5-47abd9a57e06")
 (def registration-3 "c4605182-13bc-47f2-8ccf-3a4d6342926d")
@@ -490,144 +641,161 @@
 (def satisfied-stmt-3
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" p/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subreg-iri]
                 [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" p/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subreg-iri]
                 [{"profile"         "https://example.org/profile"
                   "subregistration" sub-reg-3}
                  {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-2}])))
 
-(deftest match-statement-vs-profile-test
-  (testing "the match-statement-vs-profile function w/ registrations."
+(deftest profile-match-test
+  (testing "the match-statement function w/ registrations against the cmi5 profile."
     (is (= 2 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
+                 (get :states-map)
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 (get :no-registration)
+                 (get-in [:states-map :no-registration])
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
-                 (get registration-2)
+                 (get-in [:states-map registration-2])
                  count)))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (get registration-2)
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 waived-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 complete-stmt)
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 passed-stmt)
-                        (match-cmi-2 terminated-stmt)
-                        (get :no-registration)
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 satisfied-stmt-2)
-                        (get registration-2)
-                        (get "https://w3id.org/xapi/cmi5#toplevel")))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (get-in [:states-map registration-2 cmi-pattern-id]))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 waived-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 complete-stmt)
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 passed-stmt)
+                    (match-cmi-2 terminated-stmt)
+                    (get-in [:states-map :no-registration cmi-pattern-id]))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 satisfied-stmt-2)
+                    (get-in [:states-map registration-2 cmi-pattern-id])))))
   (testing "the match-statement-vs-profile function w/ sub-registrations."
     (is (= 4 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
+                 (get :states-map)
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get [registration-3 sub-reg-1])
+                 (get-in [:states-map [registration-3 sub-reg-1]])
                  count)))
     (is (= 1 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get [registration-3 sub-reg-2])
+                 (get-in [:states-map [registration-3 sub-reg-2]])
                  count)))
     (is (= 0 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
                  (match-cmi-2 satisfied-stmt-3)
                  (match-cmi-2 satisfied-stmt-4)
-                 (get registration-3)
+                 (get-in [:states-map registration-3])
                  count)))
-    (is (:accepted? (-> {}
-                        (match-cmi-2 satisfied-stmt-3)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 launched-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 initialized-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 failed-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (match-cmi-2 abandoned-stmt)
-                        (match-cmi-2 satisfied-stmt-4)
-                        (get [registration-3 sub-reg-2])
-                        (get "https://w3id.org/xapi/cmi5#toplevel"))))))
-
-(defn- match-cmi-ex
-  [statement]
-  (try (match-cmi {} statement)
-       (catch #?(:clj Exception :cljs js/Error) e
-         (-> e ex-data :kind))))
-
-(defn- match-cmi-2-ex
-  [statement]
-  (try (match-cmi-2 {} statement)
-       (catch #?(:clj Exception :cljs js/Error) e
-         (-> e ex-data :kind))))
+    (is (every? :accepted?
+                (-> {}
+                    (match-cmi-2 satisfied-stmt-3)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 launched-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 initialized-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 failed-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (match-cmi-2 abandoned-stmt)
+                    (match-cmi-2 satisfied-stmt-4)
+                    (get-in [:states-map
+                             [registration-3 sub-reg-2]
+                             cmi-pattern-id]))))))
 
 (deftest pattern-exceptions-test
   (testing "match-statement-vs-pattern exceptions"
-    (is (= ::p/missing-profile-reference
-           (match-cmi-ex (assoc-in satisfied-stmt
-                                   ["context" "contextActivities" "category"]
-                                   [])))))
+    (let [bad-stmt (assoc-in satisfied-stmt
+                             ["context" "contextActivities" "category"]
+                             [])]
+      (is (= ::stmt/missing-profile-reference
+             (->> bad-stmt
+                  (match-cmi #{})
+                  :error
+                  :type)))
+      (is (= bad-stmt
+             (->> bad-stmt
+                  (match-cmi #{})
+                  :error
+                  :statement)))))
   (testing "match-statement-vs-profile exceptions"
-    (is (= ::p/missing-profile-reference
-           (match-cmi-2-ex (assoc-in satisfied-stmt
-                                     ["context" "contextActivities" "category"]
-                                     []))))
-    (is (= ::p/invalid-subreg-nonconformant
-           (match-cmi-2-ex (assoc-in satisfied-stmt-3
-                                     ["context" "extensions" p/subreg-iri]
-                                     []))))
-    (is (= ::p/invalid-subreg-no-registration
-           (match-cmi-2-ex (update satisfied-stmt-3
-                                   "context"
-                                   dissoc
-                                   "registration"))))))
+    (is (= ::stmt/missing-profile-reference
+           (->> (assoc-in satisfied-stmt
+                          ["context" "contextActivities" "category"]
+                          [])
+                (match-cmi-2 {})
+                :error
+                :type)))
+    (is (= ::stmt/invalid-subreg-nonconformant
+           (->> (assoc-in satisfied-stmt-3
+                          ["context" "extensions" stmt/subreg-iri]
+                          [])
+                (match-cmi-2 {})
+                :error
+                :type)))
+    (is (= ::stmt/invalid-subreg-no-registration
+           (->> (update satisfied-stmt-3
+                        "context"
+                        dissoc
+                        "registration")
+                (match-cmi-2 {})
+                :error
+                :type))))
+  (testing "error input returns the same"
+    (is (= {:error ::stmt/missing-profile-reference}
+           (match-cmi {:error ::stmt/missing-profile-reference} {})))
+    (is (= {:error ::stmt/missing-profile-reference}
+           (match-cmi-2 {:error ::stmt/missing-profile-reference} {})))))
+
+;; Batch Matching Tests
 
 (defn- create-statement-batch
   [statement-coll]
@@ -658,44 +826,47 @@
                            passed-stmt
                            terminated-stmt]))
 
-(deftest statement-batch-test
-  (testing "match-statement-batch-vs-pattern function"
-    (is (:accepted? (p/match-statement-batch-vs-pattern
-                     cmi-fsm
-                     nil
-                     statement-batch)))
-    (is (:accepted? (p/match-statement-batch-vs-pattern
-                     cmi-fsm
-                     nil
-                     (shuffle statement-batch)))))
-  (testing "match-statement-batch-vs-profile function"
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             statement-batch)
-                            [:no-registration
-                             "https://w3id.org/xapi/cmi5#toplevel"])))
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             (shuffle statement-batch))
-                            [:no-registration
-                             "https://w3id.org/xapi/cmi5#toplevel"])))
-    (is (:accepted? (get-in (p/match-statement-batch-vs-profile
-                             cmi-fsm-map
-                             {}
-                             (create-statement-batch [satisfied-stmt-3
-                                                      satisfied-stmt-4
-                                                      launched-stmt
-                                                      satisfied-stmt-4
-                                                      initialized-stmt
-                                                      satisfied-stmt-4
-                                                      failed-stmt
-                                                      satisfied-stmt-4
-                                                      abandoned-stmt
-                                                      satisfied-stmt-4]))
-                            [[registration-3 sub-reg-2]
-                             "https://w3id.org/xapi/cmi5#toplevel"])))))
+(deftest match-statement-batch-test
+  (testing "`match-statement-batch` function - single pattern"
+    (is (-> (p/match-statement-batch cmi-fsm-map
+                                     nil
+                                     statement-batch)
+            (get :accepts)
+            not-empty))
+    (is (-> (p/match-statement-batch cmi-fsm-map
+                                     nil
+                                     (shuffle statement-batch))
+            (get :accepts)
+            not-empty)))
+  (testing "`match-statement-batch` function - whole profile"
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch cmi-fsm-map
+                                                 {}
+                                                 statement-batch)
+                        [:states-map :no-registration cmi-pattern-id])))
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch
+                         cmi-fsm-map
+                         {}
+                         (shuffle statement-batch))
+                        [:states-map :no-registration cmi-pattern-id])))
+    (is (every? :accepted?
+                (get-in (p/match-statement-batch
+                         cmi-fsm-map
+                         {}
+                         (create-statement-batch [satisfied-stmt-3
+                                                  satisfied-stmt-4
+                                                  launched-stmt
+                                                  satisfied-stmt-4
+                                                  initialized-stmt
+                                                  satisfied-stmt-4
+                                                  failed-stmt
+                                                  satisfied-stmt-4
+                                                  abandoned-stmt
+                                                  satisfied-stmt-4]))
+                        [:states-map
+                         [registration-3 sub-reg-2]
+                         cmi-pattern-id])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CATCH Profile
@@ -974,17 +1145,26 @@
   (p/statement-batch->id-statement-map catch-stmt-batch-2))
 
 (def catch-fsm
-  (p/profile->fsms catch-profile
-                   :statement-ref-fns {:get-statement-fn catch-id-stmt-map-2
-                                       :get-template-fn  catch-id-temp-map}
-                   :validate-profile? false))
+  (p/compile-profiles->fsms
+   [catch-profile]
+   :statement-ref-fns {:get-statement-fn catch-id-stmt-map-2
+                       :get-template-fn  catch-id-temp-map}
+   :compile-nfa?      true
+   :validate-profile? false))
 
 (deftest statement-ref-pattern-test
-  (testing "patterns with Statement Refs"
-    (is (-> (p/match-statement-batch-vs-profile
-             catch-fsm
-             {}
-             catch-stmt-batch-2)
-            (get :no-registration)
-            (get "https://w3id.org/xapi/catch/patterns#f1-1-01-completion")
-            :accepted?))))
+  (testing "matching patterns with Statement Refs"
+    (let [pat-id "https://w3id.org/xapi/catch/patterns#f1-1-01-completion"]
+      (is (every? :accepted?
+                  (-> (p/match-statement-batch
+                       catch-fsm
+                       {}
+                       catch-stmt-batch-2)
+                      (get-in [:states-map :no-registration pat-id])))))))
+
+(comment
+  (def compiled-profile (p/compile-profiles->fsms [cmi-profile]))
+  (p/match-statement compiled-profile
+                     {}
+                     satisfied-stmt)
+  )

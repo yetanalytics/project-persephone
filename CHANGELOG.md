@@ -1,5 +1,31 @@
 # Change Log
 
+## 0.7.0 - 2021-12-14
+- Main idea: Completely overhaul the Pattern API.
+- Remove the following functions:
+  - `profile->fsms`
+  - `match-statement-vs-pattern`
+  - `match-statement-vs-profile`
+  - `match-statement-batch-vs-pattern`
+  - `match-statement-batch-vs-profile`
+- Add the following functions (see README and docstrings for details on the new functions):
+  - `compile-profiles->fsms`, which accepts a coll of Profiles and returns a nested map from Profile ID to Pattern ID to FSM map.
+  - `match-statement`, which accepts a compiled Profile coll, a state info map (which has been updated; see README for details), a Statement, and an optional `:print?` keyword arg.
+  - `match-statement-batch`, which is the same as above except it accepts a Statement coll.
+  - Note that the above matching functions now return an `{:error ...}` map instead of throwing an exception upon error.
+- Change the following functions in the `pattern` namespace:
+  - `update-children` has been made private.
+  - `pattern->fsm` has been made private.
+  - `pattern-tree->fsm` has been renamed to `pattern-tree->dfa`.
+  - `pattern-tree->nfa` has been added.
+  - `read-visited-templates` has been added.
+- Add new `util.profile`, `util.statement`, and `pattern.errors` namespaces.
+- Update `fsm/read-next` to:
+  - dispatch on the `:type` field of the FSM.
+  - accept and return a set of maps, instead of a single map.
+  - accept an optional `start-opts` map (currently `:record-visit?` is the only accepted field).
+- NFA construction functions now accept an optional `meta?` argument; if `true`, the returned NFAs have a `:states` map in the metadata.
+
 ## 0.6.0 - 2021-04-26
 - Add Statement batch validation versus Patterns.
 - Add support for sub-registrations.

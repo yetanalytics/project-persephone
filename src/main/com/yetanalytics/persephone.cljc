@@ -1,16 +1,19 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
+            [xapi-schema.spec     :as xs]
             [com.yetanalytics.pan :as pan]
+            [com.yetanalytics.pan.objects.profile  :as pan-profile]
             [com.yetanalytics.pan.objects.template :as pan-template]
+            [com.yetanalytics.pan.objects.pattern  :as pan-pattern]
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.json      :as json]
             [com.yetanalytics.persephone.utils.maps      :as maps]
-            [com.yetanalytics.persephone.utils.time      :as time]
+            [com.yetanalytics.persephone.utils.profile   :as prof]
+            [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
-            [com.yetanalytics.persephone.template.errors :as err-printer]))
-
-(def subreg-iri "https://w3id.org/xapi/profiles/extensions/subregistration")
+            [com.yetanalytics.persephone.template.errors :as err-printer]
+            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Coercions
@@ -46,6 +49,11 @@
 ;; FIXME: We need to set the :relation? key to true, but currently this will
 ;; cause errors because external IRIs are not supported yet in project-pan.
 
+(s/def ::profiles
+  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
+                                ::pan-profile/profile)
+                   :edn ::pan-profile/profile)))
+
 (defn- assert-profile
   [profile]
   (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
@@ -60,48 +68,24 @@
                     {:kind   ::invalid-template
                      :errors err}))))
 
-(defn- assert-dfa
-  [pattern-fsm]
-  (when-not (= :dfa (:type pattern-fsm))
-    (throw (ex-info "Compiled pattern is invalid!"
-                    {:kind    ::invalid-dfa
-                     :pattern pattern-fsm}))))
+;; TODO: Make these asserts Project Pan's responsibility
 
-(defn- assert-prof-ref
-  [profile-id statement]
-  (let [cat-acts (get-in statement ["context" "contextActivities" "category"])
-        cat-ids  (map #(get % "id") cat-acts)]
-    (when-not (some #(= profile-id %) cat-ids)
-      (throw (ex-info "Profile not referenced in category context activities!"
-                      {:kind         ::missing-profile-reference
-                       :profile      profile-id
-                       :statement    statement})))))
+(defn- assert-profile-ids
+  [profiles]
+  (let [prof-ids (map :id profiles)]
+    (when (not= prof-ids (distinct prof-ids))
+      (throw (ex-info "Profile IDs are not unique!"
+                      {:type ::non-unique-profile-ids
+                       :ids  prof-ids})))))
 
-(defn- assert-subregs
-  [profile-id statement registration subreg-ext]
-  (when (some? subreg-ext)
-    (cond
-      (= :no-registration registration)
-      (throw (ex-info "Subregistrations present without registration!"
-                      {:kind      ::invalid-subreg-no-registration
-                       :profile   profile-id
-                       :statement statement}))
-      (empty? subreg-ext)
-      (throw (ex-info "Subregistration extension is an empty array!"
-                      {:kind      ::invalid-subreg-nonconformant
-                       :profile   profile-id
-                       :statement statement
-                       :extension subreg-ext}))
-      (not (every? #(and (contains? % "profile")
-                         (contains? % "subregistration"))
-                   subreg-ext))
-      (throw (ex-info "Subregistration object is missing keys!"
-                      {:kind      ::invalid-subreg-nonconformant
-                       :profile   profile-id
-                       :statement statement
-                       :extension subreg-ext}))
-      :else
-      nil)))
+(defn- assert-pattern-ids
+  [profiles]
+  (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
+                        profiles)]
+    (when (not= pat-ids (distinct pat-ids))
+      (throw (ex-info "Pattern IDs are not unique!"
+                      {:type ::non-unique-pattern-ids
+                       :ids  pat-ids})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -132,6 +116,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: More sophisticated function specs
+(s/def ::get-template-fn fn?)
+(s/def ::get-statement-fn fn?)
+
+(s/def ::statement-ref-fns
+  (s/keys :req-un [::get-template-fn
+                   ::get-statement-fn]))
 
 (defn template->validator
   "Takes `template`, along with an optional :validate-template?
@@ -244,26 +236,26 @@
   [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
   (let [stmt (coerce-statement statement)]
     (letfn [(valid-stmt?
-             [stmt]
-             (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
-                            compiled-profile)))
+              [stmt]
+              (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
+                             compiled-profile)))
             (get-valid-ids
-             [stmt]
-             (reduce (fn [valid-ids {:keys [id predicate-fn]}]
-                       (if (predicate-fn stmt)
-                         (conj valid-ids id)
-                         valid-ids))
-                     []
-                     compiled-profile))
+              [stmt]
+              (reduce (fn [valid-ids {:keys [id predicate-fn]}]
+                        (if (predicate-fn stmt)
+                          (conj valid-ids id)
+                          valid-ids))
+                      []
+                      compiled-profile))
             (get-errors ; Returns nil if stmt is valid, else the id-error map
-             [stmt]
-             (not-empty ; no templates => vacuously true
-              (reduce (fn [acc {:keys [id validator-fn]}]
-                        (if-some [errs (validator-fn stmt)]
-                          (assoc acc id errs)
-                          (reduced nil)))
-                      {}
-                      compiled-profile)))]
+              [stmt]
+              (not-empty ; no templates => vacuously true
+               (reduce (fn [acc {:keys [id validator-fn]}]
+                         (if-some [errs (validator-fn stmt)]
+                           (assoc acc id errs)
+                           (reduced nil)))
+                       {}
+                       compiled-profile)))]
       (case fn-type
         :predicate
         (valid-stmt? stmt)
@@ -287,152 +279,308 @@
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages when Patterns are rejected
 
-;; O(n) search instead of O(n log n) sorting.
-(defn- latest-version
-  "Get the most recent version ID of `profile`."
-  [{:keys [versions] :as _profile}]
-  (reduce (fn [{latest-ts :generatedAtTime :as latest-ver}
-               {newest-ts :generatedAtTime :as newest-ver}]
-            (if (neg-int? (time/compare-timestamps latest-ts newest-ts))
-              newest-ver   ; latest-ts occured before newest-ts
-              latest-ver))
-          (first versions) ; okay since empty arrays are banned by the spec
-          versions))
+;; TODO: Move specs to top of namespace
+(s/def ::validate-profiles? boolean?)
+(s/def ::compile-nfa? boolean?)
+(s/def ::selected-profiles (s/every ::pan-profile/id))
+(s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(defn profile->fsms
-  "Take `profile`, a JSON-LD profile (or equivalent EDN data ) and
-   returns a map between primary Pattern IDs and their corresponding
-   Pattern FSMs. Returns `{}` if there are no primary Patterns in
-   `profile`. The ID of `profile` is saved as metadata for both the
-   return value and each individual FSM.
-   
-   :statement-ref-fns takes the key-value pairs described in
-   `template->validator`.
+;; Profile -> FSM Compilation
 
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [statement-ref-fns validate-profile?]
-              :or   {validate-profile? true}}]
-  (let [profile (coerce-profile profile)]
-    (when validate-profile? (assert-profile profile))
-    (let [prof-id (-> profile latest-version :id)
-          add-pid (fn [x] (vary-meta x assoc :profile-id prof-id))
-          fsm-map (p/profile->fsms profile statement-ref-fns)]
-      (reduce-kv (fn [m k v] (assoc m k (add-pid v)))
-                 (add-pid {})
-                 fsm-map))))
+(def compiled-profiles-spec
+  (s/every-kv ::pan-profile/id
+              (s/every-kv ::pan-pattern/id p/fsm-map-spec)))
 
-(defn match-statement-vs-pattern
-  "Takes `pat-fsm`, `state-info`, and `statement`, where `pat-fsm` is
-   one value in the map returned by `profile->fsms`. Uses `pat-fsm` to
-   validate `statement` and returns a new state info map.
-   
-   `state-info` is a nilable map with the following fields:
-     :states     The next state arrived at in the FSM after reading
-                 the previous input. If the FSM could not read the
-                 input, then :states is the empty set.
-     :accepted?  True if the FSM as arrived at an accept state
-                 after reading the previous input; false otherwise.
-   If `state-info` is nil, the function starts at the start state. If
-   :states is empty, return `state-info`.
-   
-   Throws an exception if the profile ID is not included in the
-   category context activities of `statement`."
-  [pat-fsm state-info statement]
-  (assert-dfa pat-fsm)
-  (let [stmt (coerce-statement statement)]
-    (assert-prof-ref (-> pat-fsm meta :profile-id) stmt)
-    (fsm/read-next pat-fsm state-info stmt)))
+(s/fdef compile-profiles->fsms
+  :args (s/cat :profiles ::profiles
+               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+                                           ::validate-profiles?
+                                           ::compile-nfa?
+                                           ::selected-profiles
+                                           ::selected-patterns]))
+  :ret compiled-profiles-spec)
 
-(defn match-statement-vs-profile
-  "Takes `pat-fsm-map`, `state-info-map`, and `statement`, where
-   `pat-fsm-map` is a return value of `profile->fsms`. Uses
-   `pat-fsm-map` to validate `statement` and return an updated value
-   for `state-info-map`.
+(defn compile-profiles->fsms
+  "Take `profiles`, a collection of JSON-LD profiles (or equivalent EDN
+   data) and returns a map of the following form:
+     
+     { profile-version { pattern-id {:id ... :dfa ... :nfa ...} } }
+  Where `profile-version` is the latest profile version ID in the Profile
+  and `pattern-id` is the ID of a primary Pattern in that Profile. The
+  leaf values include the following: 
+     
+     `:id`  The pattern ID.
+     `:dfa` The DFA used for general pattern matching.
+     `:nfa` The NFA with pattern metadata used for reconstructing the
+            pattern path. This is an optional property that is only
+            produced when `:compile-nfa?` is `true`.
+   The following are optional arguments:
+
+     :statement-ref-fns  takes the key-value pairs described in
+     `template->validator`.
+     :validate-profiles? if true checks that all profiles conform to the
+     xAPI Profile spec and throws an exception if not. Default false.
+     :compile-nfa?       if true compiles an additional NFA that is used
+     for composing detailed error traces. Default false.
+     :selected-profiles  if present filters out any profiles whose IDs
+     are not in the coll. (Note that these should be profile IDs, not
+     profile version IDs.)
+     :selected-patterns  if present filters out any primary patterns
+     whose IDs are not in the coll."
+  [profiles & {:keys [statement-ref-fns
+                      validate-profiles?
+                      compile-nfa?
+                      selected-profiles
+                      selected-patterns]
+               :or   {validate-profiles?     true
+                      compile-nfa?           false}}]
+  (let [profiles (map coerce-profile profiles)
+        opt-map  {:statement-ref-fns statement-ref-fns
+                  :compile-nfa?      compile-nfa?
+                  :selected-patterns selected-patterns}]
+    (when validate-profiles?
+      (dorun (map assert-profile profiles))
+      (assert-profile-ids profiles)
+      (assert-pattern-ids profiles))
+    (let [?prof-id-set (when selected-profiles (set selected-profiles))
+          profiles     (cond->> profiles
+                         ?prof-id-set
+                         (filter (fn [{:keys [id]}] ?prof-id-set id)))
+          prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
+                            profiles)
+          pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
+                            profiles)]
+      (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                    prof-id-seq
+                    pat-fsm-seq)))))
+
+;; Registration Key Construction
+
+(def registration-key-spec
+  (s/or :no-subregistration (s/or :registration ::xs/uuid
+                                  :no-registration #{:no-registration})
+        :subregistration (s/cat :registration ::xs/uuid
+                                :subregistration ::xs/uuid)))
+
+(defn- construct-registration-key
+  [profile-id registration ?subreg-ext]
+  (if ?subreg-ext
+    (let [subreg-pred (fn [{:strs [profile subregistration]}]
+                        (when (= profile-id profile)
+                          subregistration))]
+      (if-some [subreg (some subreg-pred ?subreg-ext)]
+        [registration subreg]
+        registration))
+    registration))
+
+;; Pattern Matching
+
+(s/def ::states-map
+  (s/every-kv registration-key-spec
+              (s/every-kv ::pan-pattern/id
+                          p/state-info-spec)))
+
+(s/def ::accepts
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(s/def ::rejects
+  (s/every (s/cat :registration-key registration-key-spec
+                  :pattern-id ::pan-pattern/id)))
+
+(def state-info-map-spec
+  (s/or :start (s/nilable #{{}})
+        :continue (s/keys :req-un [::accepts
+                                   ::rejects
+                                   ::states-map])))
+
+;; TODO: Move to top of namespace
+(s/def ::error #{::stmt/missing-profile-reference
+                 ::stmt/invalid-subreg-no-registration
+                 ::stmt/invalid-subreg-nonconformant})
+
+(def match-stmt-error-spec
+  (s/keys :req-un [::error ::xs/statement]))
+
+;; TODO: Move to top of ns
+(def statement-spec
+  (s/or :json (s/and (s/conformer coerce-statement)
+                     ::xs/statement)
+        :edn ::xs/statement))
+
+(defn- match-statement-vs-pattern
+  "Match `statement` against the pattern DFA, and upon failure (i.e.
+   `fsm/read-next` returns `#{}`), append printable failure metadata
+   to the return value."
+  [{pat-id :id pat-dfa :dfa ?pat-nfa :nfa} state-info statement print?]
+  (let [start-opts  {:record-visits? (some? ?pat-nfa)}
+        new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
+    (if (empty? new-st-info)
+      (if-some [old-meta (meta state-info)]
+        (with-meta new-st-info old-meta)
+        (if ?pat-nfa
+          ;; Detailed trace info
+          (let [build-trace (fn [temp-ids]
+                              (let [ptraces (p/read-visited-templates
+                                             ?pat-nfa
+                                             temp-ids)]
+                                {:templates temp-ids
+                                 :patterns  ptraces}))
+                fail-info   (->> state-info
+                                 (map :visited)
+                                 (map build-trace))
+                fail-meta   {:statement (get statement "id")
+                             :pattern   pat-id
+                             :traces    fail-info}]
+            (when print? (println (perr-printer/error-msg-str fail-meta)))
+            (with-meta new-st-info {:failure {:statement (get statement "id")
+                                              :pattern   pat-id
+                                              :traces    fail-info}}))
+          ;; Simple fail info
+          (let [fail-meta {:statement (get statement "id")
+                           :pattern   pat-id}]
+            (when print? (println (perr-printer/error-msg-str fail-meta)))
+            (with-meta new-st-info {:failure fail-meta}))))
+      new-st-info)))
+
+(s/fdef match-statement
+  :args (s/cat :compiled-profiles compiled-profiles-spec
+               :state-info-map    state-info-map-spec
+               :statement         (s/or :error match-stmt-error-spec
+                                        :ok statement-spec))
+  :ret (s/or :error match-stmt-error-spec
+             :ok state-info-map-spec))
+
+(defn match-statement
+  "Takes `compiled-profiles`, `state-info-map`, and `statement`, where
+   `compiled-profiles` is a return value of `compile-profiles->fsms`.
+   Matches `statement` to against `compiled-profiles` and returns an
+   updated value of `state-info-map`.
 
    `state-info-map` is a map of the form:
-
-   `{ registration { pattern-id state-info } }`
-
-   where `state-info` is returned by `match-statement-vs-pattern`.
-
-   `match-statement-vs-profile` will attempt to match `statement`
-   against all Patterns in `pat-fsm-map`. If `statement` matches a
-   Pattern, the updated state info will be associated with that
-   Pattern's ID, which will then be associated with the registration
-   value of `statement`. Statements without registrations will be
-   assigned a default :no-registration key.
    
-   If sub-registrations are present, then `state-info-map` keys will
-   be a pair of registrations to sub-registrations. A sub-registration
-   object will only be applied when its \"profile\" field corresponds
-   to the profile ID of `pat-fsm-map` (given as metadata); if no
-   such object has that ID, no sub-registration is applied.
+     {:accepts    [[registration-key pattern-id] ...]
+      :rejects    [[registration-key pattern-id] ...]
+      :states-map {registration-key {pattern-id state-info}}}
+   where
+
+     :accepts    is a coll of identifiers for accepted state infos
+                 (where `:accepted?` is `true`).
+     :rejects    is a coll of identifiers for rejected state infos
+                 (where they are empty sets).
+     :states-map is a doubly-nested map that associates registration
+                 keys and pattern IDs to state info maps.
    
-   Throws an exception if the Profile ID is not included in the
-   `statement` category context activites or if the sub-registration
-   extension is invalid."
-  [pat-fsm-map state-info-map statement]
-  (let [stmt         (coerce-statement statement)
-        profile-id   (-> pat-fsm-map meta :profile-id)
-        registration (get-in stmt ["context" "registration"] :no-registration)
-        ?subreg-ext  (get-in stmt ["context" "extensions" subreg-iri])]
-    (assert-prof-ref profile-id stmt)
-    (assert-subregs profile-id stmt registration ?subreg-ext)
-    (letfn [(subreg-pred
-              [subreg-obj]
-              (when (= profile-id (get subreg-obj "profile"))
-                (get subreg-obj "subregistration")))
-            (get-reg-key
-              []
-              (if-let [sub-reg (some subreg-pred ?subreg-ext)]
-                [registration sub-reg]
-                registration))
-            (update-pat-si
-              [reg-state-info pat-id pat-fsm]
-              (assert-dfa pat-fsm)
-              (let [pat-state-info  (get reg-state-info pat-id)
-                    pat-state-info' (fsm/read-next pat-fsm
-                                                   pat-state-info
-                                                   stmt)]
-                (assoc reg-state-info pat-id pat-state-info')))
-            (update-reg-si
-              [reg-state-info]
-              (reduce-kv update-pat-si reg-state-info pat-fsm-map))]
-      (update state-info-map (get-reg-key) update-reg-si))))
+   `registration-key` can either be a registration UUID or a
+   pair of registration and subregistration UUIDs. Statements without
+   registrations will be assigned a default `:no-registration` key.
+   
+   `state-info` is a map of the following:
 
-;; TODO: Add a custom `get-by-registration` function that can get statement
-;; info by `registration`, including when keys are `[registration sub-reg]`
-;; In other words,
-;; `(get-2 registration) => {...}` vs `(get registration) => nil`
+     :state     The current state in the FSM, i.e. where is the
+                current location in the Pattern?
+     :accepted? If that state is an accept state, i.e. did the inputs
+                fully match the Pattern?
+     :visited   The vec of visited Statement Templates; this is only
+                present if `compiled-profiles` was compiled with
+                `compile-nfa?` set to `true`.
 
-(defn- cmp-statements
-  "Compare Statements `s1` and `s2` by their timestamp values."
-  [s1 s2]
-  (let [t1 (get s1 "timestamp")
-        t2 (get s2 "timestamp")]
-    (time/compare-timestamps t1 t2)))
+   On error, returns the map
+     
+     {:error {:type error-kw :statement {...}}}
+   where `error-kw` is one of the following:
+     
+     ::missing-profile-reference      if `statement` does not have a
+                                      Profile ID from `compiled-profiles`
+                                      as a category context activity.
+     ::invalid-subreg-no-registration if a sub-registration is present
+                                      without a registration.
+     ::invalid-subreg-nonconformant   if the sub-registration extension
+                                      value is invalid.
+     
+     `match-statement` takes in an optional `:print?` kwarg; if true,
+     then prints any error or match failure."
+  [compiled-profiles state-info-map statement & {:keys [print?]
+                                                 :or   {print? false}}]
+  (if (:error state-info-map) ; TODO: Should errors also be printed?
+    state-info-map
+    (let [statement      (coerce-statement statement)
+          reg-pat-st-m   (:states-map state-info-map)
+          prof-id-set    (set (keys compiled-profiles))
+          stmt-prof-ids  (stmt/get-statement-profile-ids statement prof-id-set)
+          stmt-reg       (stmt/get-statement-registration statement)
+          ?stmt-subreg   (stmt/get-statement-subregistration statement stmt-reg)]
+      (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
+                          (when (keyword? ?stmt-subreg) ?stmt-subreg))]
+        {:error {:type      err-kw
+                 :statement statement}}
+        (let [match-res
+              (for [;; Map over profile IDs
+                    [prof-id pat-fsm-m] compiled-profiles
+                    :when (contains? stmt-prof-ids prof-id)
+                    :let [reg-key (construct-registration-key
+                                   prof-id
+                                   stmt-reg
+                                   ?stmt-subreg)]
+                    ;; Map over pattern IDs
+                    [pat-id fsm-m] pat-fsm-m
+                    :let [old-st-info (get-in reg-pat-st-m [reg-key pat-id])
+                          new-st-info (match-statement-vs-pattern
+                                       fsm-m
+                                       old-st-info
+                                       statement
+                                       print?)]]
+                [[reg-key pat-id] new-st-info])
+              new-states-map
+              (reduce (fn [m [assoc-k new-st-info]]
+                        (assoc-in m assoc-k new-st-info))
+                      reg-pat-st-m
+                      match-res)
+              new-accepts
+              (reduce (fn [acc [assoc-k new-st-info]]
+                        (cond-> acc
+                          (fsm/accepted? new-st-info)
+                          (conj assoc-k)))
+                      []
+                      match-res)
+              new-rejects
+              (reduce (fn [acc [assoc-k new-st-info]]
+                        (cond-> acc
+                          (fsm/rejected? new-st-info)
+                          (conj assoc-k)))
+                      []
+                      match-res)]
+          {:accepts    new-accepts
+           :rejects    new-rejects
+           :states-map new-states-map})))))
 
-(defn match-statement-batch-vs-pattern
-  "Like `match-statement-vs-pattern`, but takes a collection of
-   Statements instead of a singleton Statement. Automatically
-   orders Statements by timestamp value, which should be present."
-  [pat-fsm state-info statement-coll]
-  (loop [stmt-coll (sort cmp-statements statement-coll)
-         st-info   state-info]
-    (if-let [stmt (first stmt-coll)]
-      (recur (rest stmt-coll)
-             (match-statement-vs-pattern pat-fsm st-info stmt))
-      st-info)))
+(s/fdef match-statement-batch
+  :args (s/cat :compiled-profiles compiled-profiles-spec
+               :state-info-map    state-info-map-spec
+               :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
+                                                   :ok statement-spec)))
+  :ret (s/or :error match-stmt-error-spec
+             :ok state-info-map-spec))
 
-(defn match-statement-batch-vs-profile
-  "Like `match-statement-vs-profile`, but takes a collection of
-   Statements instead of a singleton Statement. Automatically
-   orders Statements by timestamp value, which should be present."
-  [pat-fsm-map state-info-map statement-coll]
-  (loop [stmt-coll (sort cmp-statements statement-coll)
-         si-map    state-info-map]
-    (if-let [stmt (first stmt-coll)]
-      (recur (rest stmt-coll)
-             (match-statement-vs-profile pat-fsm-map si-map stmt))
-      si-map)))
+(defn match-statement-batch
+  "Similar to `match-statement`, except takes a batch of statements and
+   sorts them by timestamp before matching. Short-circuits if an error
+   (e.g. missing Profile ID reference) is detected."
+  [compiled-profiles state-info-map statement-batch & {:keys [print?]
+                                                       :or   {print? false}}]
+  (let [match-statement (fn [st-info-map stmt]
+                          (match-statement compiled-profiles
+                                           st-info-map
+                                           stmt
+                                           :print? print?))]
+    (loop [stmt-coll   (sort stmt/compare-statements-by-timestamp
+                             statement-batch)
+           st-info-map state-info-map]
+      (if-let [stmt (first stmt-coll)]
+        (let [match-res (match-statement st-info-map stmt)]
+          (if (:error match-res)
+          ;; Error keyword - early termination
+            match-res
+          ;; Valid state info map - continue
+            (recur (rest stmt-coll) match-res)))
+        st-info-map))))

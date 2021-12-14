@@ -17,17 +17,13 @@ The `persephone` namespace contains functions that perform two main tasks. The f
 To compile a Statement Template or Profile for use with these functions, the `template->validator` and `profile->validator` functions are used, respectively.
 
 The other task is to validate streams/collections of Statements against
-Patterns, which are compiled into finite-state machines (FSMs). That is accomplished by the following functions:
+Patterns, which are compiled into so-called _finite-state machines (FSMs)_. That is accomplished by the following functions:
 
-- `match-statement-vs-pattern`: Taking a compiled Pattern, a map containing the current FSM state info, and a Statement, matches the Statement against that Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns) and returns updated state info.
+- `match-statement`: Taking a compiled Pattern collection, a map containing the current FSM state info, and a Statement, matches the Statement against that Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns) and returns updated state info.
 
-- `match-statement-vs-profile`: Taking a compiled Pattern, a current state info map, and a Statement, matches the Statement against all of the Profile's Patterns and returns updated state info.
+- `match-statement-batch`: Same as `match-statement`, but takes a batch (i.e. collection) of Statements as an argument, automatically sorting them by timestamp.
 
-- `match-statement-batch-vs-pattern`: Same as `match-statement-vs-pattern`, but takes a batch (i.e. collection) of Statements as an argument.
-
-- `match-statement-batch-vs-profile`: Same as `match-statement-vs-profile`, but takes a batch (i.e. collection) of Statements as an argument.
-
-To compile a Profile into FSMs, use the `profile->fsms` function. This will return a map between Pattern IDs and compiled Patterns, the latter which can be used in `match-statement-vs-pattern`.
+To compile Profiles into FSMs, use the `compile-profiles->fsms` function. This will return a map from Profile IDs to Pattern IDs to Pattern FSM maps, which can then be passed in as the first argument to `match-statement`.
 
 ### Validation on Statement Template
 
@@ -54,7 +50,7 @@ following:
 
 - `:printer` - Prints an error message when the Statement is invalid. Always returns `nil`.
 
-`validation-statement-vs-profile` takes an addition option for `:fn-type`:
+`validation-statement-vs-profile` takes an additional option for `:fn-type`:
 
 - `:templates` - Returns a vector of the IDs of the Statement Templates the Statement is valid for.
 
@@ -90,35 +86,60 @@ The above error message indicates that the Statement's Verb property has an inco
 
 ### Validation on Pattern
 
-Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `profile->fsms`, each Pattern is implemented as a finite state machine (FSM), which is mathematically equivalent to regular expressions.
+Each Pattern is essentially a regular expression on Statement Templates, which can be composed from other Patterns. Internally, after compilation with `compile-profiles->fsms`, each Pattern is returned as a map of the following:
+```clojure
+  {"profile-id" {"pattern-id" {:id "pattern-id"
+                               :dfa {...}
+                               :nfa {...}}}}
+```
+with `:dfa` and `:nfa` being two different FSMs:
+- `:dfa` is a (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
+- `:nfa` is a non-deterministic NFA with pattern metadata associated with each of its states. This is an optional value; if present, it is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
+
+(NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.)
+
+The `compile-profiles->fsms` functions have the following keyword arguments:
+- `:statement-ref-fns` - Same as in the Statement Template compilation functions.
+- `:validate-profile?` - Validates Profiles and checks that there are no clashing Profile or Pattern IDs.
+- `:compile-nfa?` - If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
+- `:selected-profiles` - Which Profiles in the collection should be compiled.
+- `:selected-patterns` - Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
 
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
+- `sequence` - The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
+- `alternates` - The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (the `|` operator in a regex string).
+- `zeroOrMore` - The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (the `*` operator in a regex string).
+- `oneOrMore` - The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
+- `optional` - The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.
 
-- `sequence`: The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
-
-- `alternates`: The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (`|` in a regex string).
-
-- `zeroOrMore`: The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (`\*` in a regex string).
-
-- `oneOrMore`: The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
-
-- `optional`: The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.
-
-Using `match-statement-vs-profile`, a compiled Profile can read a stream of Statements, where each call to `match-statement-vs-profile` returns a map between Statement registration values and a map representing the current state info for each registration. In turn, each per-registration state info data is a map from Pattern IDs to per-Pattern state info. Each per-Pattern state info map has the following fields:
-
-- `:states` - The states that the FSM aer currently at. If `:states` is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern.
-
+The `match-statement` and `match-statement-batch` functions take in a compiled Profile collection (returned by `compile-profiles->fsms`), a state info map, and a Statement or Statement collection, respectively. They return a state info map for easy pipelining. The following is an example state info map:
+```clojure
+  {:accepts [["registration-key" "pattern-id"]]
+   :rejects []
+   :states-data {"registration-key"
+                 {"pattern-id" #{{:state 1
+                                 :accepted? true
+                                 :visited ["template-id"]}}}}}
+```
+where the following are the values in the leaf `:states-data` map:
+- `:state` - The state that the FSM is currently at.
 - `:accepted?` - Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
+- `:visited` - A vector of template IDs that records the templates that were previously matched against. This is an optional value that is only present if the FSM map includes `:nfa` (since it is only used to reconstruct error traces).
 
-That per-Pattern state info map is the return value for `match-statement-vs-pattern`, which is designed to be used with single Patterns instead of a whole Profile.
+The registration key can be a UUID string, the keyword `:no-registration`, or a pair of the registration and subregistration UUID string.
 
-If the state info map is `nil`, then `match-statement-vs-pattern` will begin at the start state of the FSM. If `:states` is empty, then  `match-statement-vs-pattern` will return the same map, since it cannot read any more states; otherwise, it returns an updated map with a new `:state` value.
+If the whole state info map is `nil`, then both match functions will begin at the start state of all FSMs in the compiled Profile map, assoc-ing the matching results of each Pattern to the Statement's registration key and that Pattern's ID. Likewise, if a particular registration key and Pattern ID are missing, and the next Statement being matched has that registration, then the matching will start at the start state for that particular pair.
 
-`match-statement-vs-profile` attempts to match the Statement against each compiled Pattern in the Pattern map. If a sequence of Statements with different registrations is passed to `match-statement-vs-profile`, then each set of same-registration Patterns is treated as its own stream, hence the need for a mapping between registrations and state info.
+If the state info for a particular registration key and Pattern ID pair is an empty set, then the FSM cannot read additional states anymore, so the Statement stream fails to conform to the Pattern. An input sequence is considered accepted if _any one_ of the `:accepted?` values in the set is `true`. The `:accepts` and `:rejects` values automatically record registration key and Pattern ID pairs as vectors that can be used in `assoc-in`, `update-in`, etc.
 
-`match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile` are batch validation versions of their singleton counterparts. Before validation, both functions automatically sort the Statement batches by timestamp values, which should be present, or else calling these functions could lead to undefined behavior.
+`match-statement` and `match-statement-batch` also take in an optional `:print?` keyword arg; if set to true, any match failure messages will be printed.
 
-For more information about the technical implementation details (including  about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; important concepts include deterministic and non-deterministic finite automata, Thompson's Algorithm for NFA composition, the powerset construction for NFA to DFA conversion, and Brzozowski's algorithm for DFA minimization.
+For more information about the technical implementation details (including about the composition, determinization, and minimization of FSMs), check out the internal documentation, especially in the `utils/fsm` namespace. It is recommended that you also read up on the mathematical theory behind FSMs via Wikipedia and other resources; useful articles include:
+- [Deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
+- [Nondeterministic finite automaton](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton)
+- [Thompson's construction](https://en.wikipedia.org/wiki/Thompson%27s_construction) (for NFA composition)
+- [Powerset construction](https://en.wikipedia.org/wiki/Powerset_construction) (for NFA to DFA conversion)
+- [DFA Minimization](https://en.wikipedia.org/wiki/DFA_minimization) (includes discussion of Brzozowski's algorithm, the algorithm used by this library.)
 
 ### Statement Ref Templates
 
@@ -129,6 +150,12 @@ By default, Statement Ref Templates are not supported; however, to allow for suc
 This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, the API provides two functions for use with `statement-ref-fns`:
 - `profile->id-template-map`: Takes a Profile and returns a map between Template IDs and Templates.
 - `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements. Intended to be used with `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile`.
+
+### So...does it fit the spec?
+
+Persephone validates both Profiles and input Statements against the latest xAPI specs. However, there are some requirements that are deliberately not checked against:
+- "All Statements following a primary Pattern MUST use the same registration." Other libraries developed at Yet, namely DATASIM, may assign multiple registrations to Statements following the same Pattern, e.g. to distinguish between Actors, so Persephone avoids validating against this requirement in order to be backwards compatible.
+- "LRPs MUST send Statements following a Pattern ordered by Statement timestamp." This is enforced in the `match-statement-batch` function, but not in `match-statement`.
 
 ### What about Concepts?
 

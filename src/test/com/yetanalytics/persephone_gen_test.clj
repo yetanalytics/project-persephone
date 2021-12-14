@@ -22,7 +22,7 @@
 
 (def tc3-validator (per/profile->validator tc3-profile))
 
-(def tc3-dfas (per/profile->fsms tc3-profile))
+(def tc3-dfas (per/compile-profiles->fsms [tc3-profile]))
 
 (defn run-validate-stmt-vs-profile
   "Generate a sequence of n Statements and validate them all
@@ -43,7 +43,7 @@
           (recur (rest stmts))))
       true)))
 
-(defn run-match-stmt-vs-profile
+(defn run-match-statement
   "Generate a sequence of n Statemnets and pattern match them
    using match-statement-vs-profile"
   [n]
@@ -52,26 +52,25 @@
     (if-let [next-stmt (first stmts)]
       (let [registration
             (get-in next-stmt ["context" "registration"] :no-registration)
-            state-info'
-            (per/match-statement-vs-profile tc3-dfas state-info next-stmt)
-            is-rejected?
-            (reduce-kv (fn [acc _ pat-si]
-                         (and acc (empty? (:states pat-si))))
+            new-state-info
+            (per/match-statement tc3-dfas state-info next-stmt)
+            every-rejected?
+            (reduce-kv (fn [acc _ pat-si] (and acc (empty? pat-si)))
                        true
-                       (get state-info' registration))]
-        (if is-rejected?
+                       (get-in new-state-info [:states-map registration]))]
+        (if every-rejected?
           (throw (ex-info "Statement stream not matched by tc3 Profile"
                           {:kind       :datasim-pattern-test-failed
                            :statement  next-stmt
                            :patterns   tc3-dfas
-                           :state-info state-info'}))
-          (recur (rest stmts) state-info')))
+                           :state-info new-state-info}))
+          (recur (rest stmts) new-state-info)))
       true)))
 
 (deftest validate-stmt-vs-profile-test
   (testing "the validate-statement-vs-profile function using DATASIM"
     (is (run-validate-stmt-vs-profile 100))))
 
-(deftest match-stmt-vs-profile-test
-  (testing "the match-statement-vs-profile function using DATASIM"
-    (is (run-match-stmt-vs-profile 1000))))
+(deftest match-statement-test
+  (testing "the `match-statement` function using DATASIM"
+    (is (run-match-statement 1000))))

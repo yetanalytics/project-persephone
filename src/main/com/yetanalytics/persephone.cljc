@@ -502,7 +502,7 @@
      then prints any error or match failure."
   [compiled-profiles state-info-map statement & {:keys [print?]
                                                  :or   {print? false}}]
-  (if (:error state-info-map)
+  (if (:error state-info-map) ; TODO: Should errors also be printed?
     state-info-map
     (let [statement      (coerce-statement statement)
           reg-pat-st-m   (:states-map state-info-map)

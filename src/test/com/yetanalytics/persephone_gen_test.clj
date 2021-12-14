@@ -43,7 +43,7 @@
           (recur (rest stmts))))
       true)))
 
-(defn run-match-stmt-vs-profile
+(defn run-match-statement
   "Generate a sequence of n Statemnets and pattern match them
    using match-statement-vs-profile"
   [n]
@@ -71,6 +71,6 @@
   (testing "the validate-statement-vs-profile function using DATASIM"
     (is (run-validate-stmt-vs-profile 100))))
 
-(deftest match-stmt-vs-profile-test
-  (testing "the match-statement-vs-profile function using DATASIM"
-    (is (run-match-stmt-vs-profile 1000))))
+(deftest match-statement-test
+  (testing "the `match-statement` function using DATASIM"
+    (is (run-match-statement 1000))))

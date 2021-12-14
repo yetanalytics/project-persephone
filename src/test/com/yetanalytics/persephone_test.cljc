@@ -429,8 +429,8 @@ Pattern path:
   https://w3id.org/xapi/cmi5#typicalsessions
   https://w3id.org/xapi/cmi5#toplevel")
 
-(deftest pattern-validation-tests
-  (testing "Testing validation of a stream of Statements using Patterns from the cmi5 Profile."
+(deftest pattern-match-test
+  (testing "Testing matching of a stream of Statements using Patterns from the cmi5 Profile."
     (is (-> (match-cmi nil ex-statement)
             (get-in [:states-map :no-registration cmi-pattern-id])
             empty?))
@@ -654,8 +654,8 @@ Pattern path:
                  {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-2}])))
 
-(deftest match-statement-vs-profile-test
-  (testing "the match-statement-vs-profile function w/ registrations."
+(deftest profile-match-test
+  (testing "the match-statement function w/ registrations against the cmi5 profile."
     (is (= 2 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
@@ -826,8 +826,8 @@ Pattern path:
                            passed-stmt
                            terminated-stmt]))
 
-(deftest statement-batch-test
-  (testing "match-statement-batch-vs-pattern function"
+(deftest match-statement-batch-test
+  (testing "`match-statement-batch` function - single pattern"
     (is (-> (p/match-statement-batch cmi-fsm-map
                                      nil
                                      statement-batch)
@@ -838,7 +838,7 @@ Pattern path:
                                      (shuffle statement-batch))
             (get :accepts)
             not-empty)))
-  (testing "match-statement-batch-vs-profile function"
+  (testing "`match-statement-batch` function - whole profile"
     (is (every? :accepted?
                 (get-in (p/match-statement-batch cmi-fsm-map
                                                  {}
@@ -1153,7 +1153,7 @@ Pattern path:
    :validate-profile? false))
 
 (deftest statement-ref-pattern-test
-  (testing "patterns with Statement Refs"
+  (testing "matching patterns with Statement Refs"
     (let [pat-id "https://w3id.org/xapi/catch/patterns#f1-1-01-completion"]
       (is (every? :accepted?
                   (-> (p/match-statement-batch

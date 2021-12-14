@@ -289,7 +289,7 @@
                              nfa-coll)
          old-starts  (set (mapv :start nfa-coll))
          old-accepts (mapv #(-> % :accepts first) nfa-coll)
-         max-state   (apply max old-states)
+         max-state   (dec (count old-states)) ; optimization b/c alphatization
          new-start   (+ max-state 1)
          new-accept  (+ max-state 2)
          new-states  (cset/union old-states #{new-start new-accept})

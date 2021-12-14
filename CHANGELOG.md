@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.7.2 - 2021-12-14
+- Make FSM compilation thread-safe by removing use of internal atoms.
+- Update non-arg `s/cat` specs to `s/tuple` specs.
+
 ## 0.7.1 - 2021-12-14
 - Expose `get-subregistration-id` function in `utils.statement` namespace.
 

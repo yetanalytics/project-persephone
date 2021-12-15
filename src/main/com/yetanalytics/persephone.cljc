@@ -333,21 +333,46 @@
      :assertion  Throws an exception upon validation failure (where
                  `(-> e ex-data :errors)` returns all error data) if
                  every Template is invalid for `statement`, else
-                 returns`nil`."
-  [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
+                 returns`nil`.
+   
+   Note that the above descriptions are only for when the kwargs
+   `:all-valid?` and `:short-circuit?` are `false` (the default).
+     
+     If `:all-valid?` is `true`, then the validation is not considered
+     `true` unless all Templates are valid against `statement`.
+     If `:short-circuit?` is `true`, then only the error data for the
+     first invalid Template is returned."
+  [compiled-profiles statement & {:keys [fn-type all-valid? short-circuit?]
+                                  :or   {fn-type        :predicate
+                                         all-valid?     false
+                                         short-circuit? false}}]
   (case fn-type
     :predicate
-    (validated-statement? compiled-profiles statement)
+    (validated-statement? compiled-profiles
+                          statement
+                          :all-valid? all-valid?)
     :option
-    (validate-statement-filter compiled-profiles statement)
+    (validate-statement-filter compiled-profiles
+                               statement
+                               :all-valid? all-valid?)
     :result
-    (validate-statement-errors compiled-profiles statement)
+    (validate-statement-errors compiled-profiles
+                               statement
+                               :all-valid? all-valid?
+                               :short-circuit? short-circuit?)
     :templates
-    (validate-statement-template-ids compiled-profiles statement)
+    (validate-statement-template-ids compiled-profiles
+                                     statement)
     :printer
-    (validate-statement-print compiled-profiles statement)
+    (validate-statement-print compiled-profiles
+                              statement
+                              :all-valid? all-valid?
+                              :short-circuit? short-circuit?)
     :assertion
-    (validate-statement-assert compiled-profiles statement)
+    (validate-statement-assert compiled-profiles
+                               statement
+                               :all-valid? all-valid?
+                               :short-circuit? short-circuit?)
     ;; else
     (throw-unknown-opt fn-type)))
 

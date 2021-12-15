@@ -279,61 +279,89 @@
 
 (deftest cmi-statement-test-2
   (testing "calling validate-statement-vs-template with different modes"
-    ;; Valid Statement
-    (is (= ex-statement
-           (p/validate-statement
-            cmi-tmpl-0
-            ex-statement
-            :fn-type :option)))
-    (is (nil? (p/validate-statement
-               cmi-tmpl-0
-               ex-statement
-               :fn-type :result)))
-    (is (nil? (p/validate-statement
-               cmi-tmpl-0
-               ex-statement
-               :fn-type :assertion)))
-    (is (= "" (with-out-str
-                (p/validate-statement
+    (testing "on valid statements"
+      (is (= ex-statement
+             (p/validate-statement
+              cmi-tmpl-0
+              ex-statement
+              :fn-type :option)))
+      (is (nil? (p/validate-statement
                  cmi-tmpl-0
                  ex-statement
-                 :fn-type :printer))))
-    ;; Invalid Statement
-    (is (nil? (p/validate-statement
-               cmi-tmpl-1
-               ex-statement
-               :fn-type :option)))
-    (is (some? (p/validate-statement
-                cmi-tmpl-1
+                 :fn-type :result)))
+      (is (nil? (p/validate-statement
+                 cmi-tmpl-0
+                 ex-statement
+                 :fn-type :assertion)))
+      (is (= "" (with-out-str
+                  (p/validate-statement
+                   cmi-tmpl-0
+                   ex-statement
+                   :fn-type :printer)))))
+    (testing "on invalid statements"
+      (is (not (p/validate-statement
+                (concat cmi-tmpl-0 cmi-tmpl-1)
                 ex-statement
-                :fn-type :result)))
-    (is (= {:pred :every-val-present?
-            :vals ["https://example.com/scores"]
-            :rule {:location             "$.verb.id"
-                   :prop-vals            ["http://adlnet.gov/expapi/verbs/launched"]
-                   :determining-property "Verb"}
-            :temp "https://w3id.org/xapi/cmi5#launched"
-            :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
-           (-> (p/validate-statement
-                cmi-tmpl-1
-                ex-statement
-                :fn-type :result)
-               (get "https://w3id.org/xapi/cmi5#launched")
-               first)))
-    (is (= (p/validate-statement
-            cmi-tmpl-1
-            ex-statement
-            :fn-type :result)
-           (try (p/validate-statement
+                :all-valid? true)))
+      (is (nil? (p/validate-statement
                  cmi-tmpl-1
                  ex-statement
-                 :fn-type :assertion)
-                (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))
-    (is (not= "" (with-out-str
-                   (p/validate-statement
-                    cmi-tmpl-1
+                 :fn-type :option)))
+      (is (some? (p/validate-statement
+                  cmi-tmpl-1
+                  ex-statement
+                  :fn-type :result)))
+      (is (= {:pred :every-val-present?
+              :vals ["https://example.com/scores"]
+              :rule {:location             "$.verb.id"
+                     :prop-vals            ["http://adlnet.gov/expapi/verbs/launched"]
+                     :determining-property "Verb"}
+              :temp "https://w3id.org/xapi/cmi5#launched"
+              :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
+             (-> (p/validate-statement
+                  cmi-tmpl-1
+                  ex-statement
+                  :fn-type :result)
+                 (get "https://w3id.org/xapi/cmi5#launched")
+                 first)))
+      (testing "(any-valid vs all-valid)"
+        (is (nil? (p/validate-statement
+                   (concat cmi-tmpl-0 cmi-tmpl-1)
+                   ex-statement
+                   :fn-type :result)))
+        (is (some? (p/validate-statement
+                    (concat cmi-tmpl-0 cmi-tmpl-1)
                     ex-statement
-                    :fn-type :printer))))))
+                    :fn-type :result
+                    :all-valid? true))))
+      (testing "(short-circuit vs non-short-circuit)"
+        (is (= 2 (-> (p/validate-statement
+                      (concat cmi-tmpl-1 cmi-tmpl-2)
+                      ex-statement
+                      :fn-type :result)
+                     vals
+                     count)))
+        (is (= 1 (-> (p/validate-statement
+                      (concat cmi-tmpl-1 cmi-tmpl-2)
+                      ex-statement
+                      :fn-type :result
+                      :short-circuit? true)
+                     vals
+                     count))))
+      (is (= (p/validate-statement
+              cmi-tmpl-1
+              ex-statement
+              :fn-type :result)
+             (try (p/validate-statement
+                   cmi-tmpl-1
+                   ex-statement
+                   :fn-type :assertion)
+                  (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))
+      (is (not= "" (with-out-str
+                     (p/validate-statement
+                      cmi-tmpl-1
+                      ex-statement
+                      :fn-type :printer)))))))
 
 (deftest cmi-statement-test-3
   (testing "validating statements from cmi5 profile that exclude moveon"

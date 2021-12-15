@@ -95,6 +95,7 @@ Each Pattern is essentially a regular expression on Statement Templates, which c
 with `:dfa` and `:nfa` being two different FSMs:
 - `:dfa` is a (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
 - `:nfa` is a non-deterministic NFA with pattern metadata associated with each of its states. This is an optional value; if present, it is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
+- `:nfa-meta` is the metadata for the `:nfa` value; this is only present if `:nfa` is.
 
 (NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.)
 

@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.7.3 - 2021-12-15
+- Print match failures (if `:print?` is true) even if it was not the first time that failure was encountered.
+- Add `:nfa-meta` key to the pattern FSMs map (in case meta is lost from `:nfa`).
+
 ## 0.7.2 - 2021-12-14
 - Make FSM compilation thread-safe by removing use of internal atoms.
 - Update non-arg `s/cat` specs to `s/tuple` specs.

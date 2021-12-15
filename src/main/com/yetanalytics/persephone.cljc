@@ -188,26 +188,27 @@
                       selected-profiles
                       selected-templates]
                :or   {validate-profiles? true}}]
-  (when validate-profiles?
-    (dorun (map assert-profile profiles))
-    (assert-profile-ids profiles)
-    (assert-template-ids profiles))
-  (let [?prof-id-set    (when selected-profiles (set selected-profiles))
-        ?temp-id-set    (when selected-templates (set selected-templates))
-        temp->validator (fn [temp]
-                          (template->validator
-                           temp
-                           :statement-ref-fns statement-ref-fns
-                           :validate-template? false))]
-    (cond->> profiles
-      ?prof-id-set
-      (filter (fn [{:keys [id]}] (?prof-id-set id)))
-      true
-      (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
-      ?temp-id-set
-      (filter (fn [{:keys [id]}] (?temp-id-set id)))
-      true
-      (map temp->validator))))
+  (let [profiles (map coerce-profile profiles)]
+    (when validate-profiles?
+      (dorun (map assert-profile profiles))
+      (assert-profile-ids profiles)
+      (assert-template-ids profiles))
+    (let [?prof-id-set    (when selected-profiles (set selected-profiles))
+          ?temp-id-set    (when selected-templates (set selected-templates))
+          temp->validator (fn [temp]
+                            (template->validator
+                             temp
+                             :statement-ref-fns statement-ref-fns
+                             :validate-template? false))]
+      (cond->> profiles
+        ?prof-id-set
+        (filter (fn [{:keys [id]}] (?prof-id-set id)))
+        true
+        (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
+        ?temp-id-set
+        (filter (fn [{:keys [id]}] (?temp-id-set id)))
+        true
+        (map temp->validator)))))
 
 (defn validate-statement-vs-template
   "Takes `compiled-template` and `statement` where `compiled-template`
@@ -392,7 +393,10 @@
                                               statement
                                               :all-valid? all-valid?
                                               :short-circuit? short-circuit?)]
-    (dorun (map err-printer/print-errors errs))))
+    (dorun (->> errs
+                vals
+                (apply concat)
+                err-printer/print-errors))))
 
 ;; Other
 

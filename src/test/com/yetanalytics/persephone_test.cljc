@@ -241,57 +241,67 @@
       (assoc-in ["object" "definition" "type"]
                 "https://w3id.org/xapi/cmi5/activitytype/course")))
 
-(def cmi-tmpl-0 (p/template->validator (get cmi-templates 0)))
-(def cmi-tmpl-1 (p/template->validator (get cmi-templates 1)))
-(def cmi-tmpl-2 (p/template->validator (get cmi-templates 2)))
-(def cmi-tmpl-3 (p/template->validator (get cmi-templates 3)))
-(def cmi-tmpl-4 (p/template->validator (get cmi-templates 4)))
-(def cmi-tmpl-5 (p/template->validator (get cmi-templates 5)))
-(def cmi-tmpl-6 (p/template->validator (get cmi-templates 6)))
-(def cmi-tmpl-7 (p/template->validator (get cmi-templates 7)))
-(def cmi-tmpl-8 (p/template->validator (get cmi-templates 8)))
-(def cmi-tmpl-9 (p/template->validator (get cmi-templates 9)))
+(def cmi-tmpls (p/compile-profiles->validators [cmi-profile]))
+
+(defn- cmi-prof->validator
+  [template-id]
+  (p/compile-profiles->validators [cmi-profile]
+                                  :selected-templates [template-id]))
+
+(def cmi-validator
+  (p/compile-profiles->validators [cmi-profile]))
+
+(def cmi-tmpl-0 (cmi-prof->validator "https://w3id.org/xapi/cmi5#generalrestrictions"))
+(def cmi-tmpl-1 (cmi-prof->validator "https://w3id.org/xapi/cmi5#launched"))
+(def cmi-tmpl-2 (cmi-prof->validator "https://w3id.org/xapi/cmi5#initialized"))
+(def cmi-tmpl-3 (cmi-prof->validator "https://w3id.org/xapi/cmi5#completed"))
+(def cmi-tmpl-4 (cmi-prof->validator "https://w3id.org/xapi/cmi5#passed"))
+(def cmi-tmpl-5 (cmi-prof->validator "https://w3id.org/xapi/cmi5#failed"))
+(def cmi-tmpl-6 (cmi-prof->validator "https://w3id.org/xapi/cmi5#abandoned"))
+(def cmi-tmpl-7 (cmi-prof->validator "https://w3id.org/xapi/cmi5#waived"))
+(def cmi-tmpl-8 (cmi-prof->validator "https://w3id.org/xapi/cmi5#terminated"))
+(def cmi-tmpl-9 (cmi-prof->validator "https://w3id.org/xapi/cmi5#satisfied"))
 
 (deftest cmi-statements-test
   (testing "validating statements from the cmi5 profile"
-    (is (p/validate-statement-vs-template cmi-tmpl-0 ex-statement))
-    (is (p/validate-statement-vs-template cmi-tmpl-1 launched-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-2 initialized-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-3 complete-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-4 passed-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-5 failed-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-6 abandoned-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-7 waived-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-8 terminated-stmt))
-    (is (p/validate-statement-vs-template cmi-tmpl-9 satisfied-stmt))))
+    (is (p/validate-statement cmi-tmpl-0 ex-statement))
+    (is (p/validate-statement cmi-tmpl-1 launched-stmt))
+    (is (p/validate-statement cmi-tmpl-2 initialized-stmt))
+    (is (p/validate-statement cmi-tmpl-3 complete-stmt))
+    (is (p/validate-statement cmi-tmpl-4 passed-stmt))
+    (is (p/validate-statement cmi-tmpl-5 failed-stmt))
+    (is (p/validate-statement cmi-tmpl-6 abandoned-stmt))
+    (is (p/validate-statement cmi-tmpl-7 waived-stmt))
+    (is (p/validate-statement cmi-tmpl-8 terminated-stmt))
+    (is (p/validate-statement cmi-tmpl-9 satisfied-stmt))))
 
 (deftest cmi-statement-test-2
   (testing "calling validate-statement-vs-template with different modes"
     ;; Valid Statement
     (is (= ex-statement
-           (p/validate-statement-vs-template
+           (p/validate-statement
             cmi-tmpl-0
             ex-statement
             :fn-type :option)))
-    (is (nil? (p/validate-statement-vs-template
+    (is (nil? (p/validate-statement
                cmi-tmpl-0
                ex-statement
                :fn-type :result)))
-    (is (nil? (p/validate-statement-vs-template
+    (is (nil? (p/validate-statement
                cmi-tmpl-0
                ex-statement
                :fn-type :assertion)))
     (is (= "" (with-out-str
-                (p/validate-statement-vs-template
+                (p/validate-statement
                  cmi-tmpl-0
                  ex-statement
                  :fn-type :printer))))
     ;; Invalid Statement
-    (is (nil? (p/validate-statement-vs-template
+    (is (nil? (p/validate-statement
                cmi-tmpl-1
                ex-statement
                :fn-type :option)))
-    (is (some? (p/validate-statement-vs-template
+    (is (some? (p/validate-statement
                 cmi-tmpl-1
                 ex-statement
                 :fn-type :result)))
@@ -302,35 +312,37 @@
                    :determining-property "Verb"}
             :temp "https://w3id.org/xapi/cmi5#launched"
             :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
-           (first (p/validate-statement-vs-template
-                   cmi-tmpl-1
-                   ex-statement
-                   :fn-type :result))))
-    (is (= (p/validate-statement-vs-template
+           (-> (p/validate-statement
+                cmi-tmpl-1
+                ex-statement
+                :fn-type :result)
+               (get "https://w3id.org/xapi/cmi5#launched")
+               first)))
+    (is (= (p/validate-statement
             cmi-tmpl-1
             ex-statement
             :fn-type :result)
-           (try (p/validate-statement-vs-template
+           (try (p/validate-statement
                  cmi-tmpl-1
                  ex-statement
                  :fn-type :assertion)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))
     (is (not= "" (with-out-str
-                   (p/validate-statement-vs-template
+                   (p/validate-statement
                     cmi-tmpl-1
                     ex-statement
                     :fn-type :printer))))))
 
 (deftest cmi-statement-test-3
   (testing "validating statements from cmi5 profile that exclude moveon"
-    (is (not (p/validate-statement-vs-template
-              (p/template->validator (get cmi-templates 6))
+    (is (not (p/validate-statement
+              cmi-tmpl-6
               (assoc-in
                abandoned-stmt
                ["context" "contextActivities" "category"]
                [{"id" "https://w3id.org/xapi/cmi5/context/categories/moveon"}]))))
-    (is (not (p/validate-statement-vs-template
-              (p/template->validator (get cmi-templates 8))
+    (is (not (p/validate-statement
+              cmi-tmpl-8
               (assoc-in
                terminated-stmt
                ["context" "contextActivities" "category"]
@@ -340,66 +352,54 @@
   (testing "validating statements from the cmi5 profile, against the whole
             profile"
     ;; Valid Statement
-    (is (p/validate-statement-vs-profile
-         (p/profile->validator cmi-profile)
-         ex-statement
-         :fn-type :predicate))
+    (is (p/validate-statement cmi-validator
+                              ex-statement
+                              :fn-type :predicate))
     (is (= ex-statement
-           (p/validate-statement-vs-profile
-            (p/profile->validator cmi-profile)
-            ex-statement
-            :fn-type :option)))
-    (is (nil? (p/validate-statement-vs-profile
-               (p/profile->validator cmi-profile)
-               ex-statement
-               :fn-type :result)))
-    (is (nil? (p/validate-statement-vs-profile
-               (p/profile->validator cmi-profile)
-               ex-statement
-               :fn-type :assertion)))
+           (p/validate-statement cmi-validator
+                                 ex-statement
+                                 :fn-type :option)))
+    (is (nil? (p/validate-statement cmi-validator
+                                    ex-statement
+                                    :fn-type :result)))
+    (is (nil? (p/validate-statement cmi-validator
+                                    ex-statement
+                                    :fn-type :assertion)))
     (is (= ["https://w3id.org/xapi/cmi5#generalrestrictions"]
-           (p/validate-statement-vs-profile
-            (p/profile->validator cmi-profile)
-            ex-statement
-            :fn-type :templates)))
+           (p/validate-statement cmi-validator
+                                 ex-statement
+                                 :fn-type :templates)))
     ;; Invalid Statement (just an empty map)
-    (is (not (p/validate-statement-vs-profile
-              (p/profile->validator cmi-profile)
-              {}
-              :fn-type :predicate)))
-    (is (nil? (p/validate-statement-vs-profile
-               (p/profile->validator cmi-profile)
-               {}
-               :fn-type :option)))
-    (is (= [] (p/validate-statement-vs-profile
-               (p/profile->validator cmi-profile)
-               {}
-               :fn-type :templates)))
+    (is (not (p/validate-statement cmi-validator
+                                   {}
+                                   :fn-type :predicate)))
+    (is (nil? (p/validate-statement cmi-validator
+                                    {}
+                                    :fn-type :option)))
+    (is (= [] (p/validate-statement cmi-validator
+                                    {}
+                                    :fn-type :templates)))
     (is (= 10 (count
-               (p/validate-statement-vs-profile
-                (p/profile->validator cmi-profile)
-                {}
-                :fn-type :result))))
+               (p/validate-statement cmi-validator
+                                     {}
+                                     :fn-type :result))))
     (is (= {:pred :any-matchable?
             :vals [nil]
             :rule {:location "$.id"
                    :presence "included"}
             :temp "https://w3id.org/xapi/cmi5#generalrestrictions"
             :stmt nil}
-           (-> (p/validate-statement-vs-profile
-                (p/profile->validator cmi-profile)
-                {}
-                :fn-type :result)
+           (-> (p/validate-statement cmi-validator
+                                     {}
+                                     :fn-type :result)
                (get "https://w3id.org/xapi/cmi5#generalrestrictions")
                first)))
-    (is (= (p/validate-statement-vs-profile
-            (p/profile->validator cmi-profile)
-            {}
-            :fn-type :result)
-           (try (p/validate-statement-vs-profile
-                 (p/profile->validator cmi-profile)
-                 {}
-                 :fn-type :result)
+    (is (= (p/validate-statement cmi-validator
+                                 {}
+                                 :fn-type :result)
+           (try (p/validate-statement cmi-validator
+                                      {}
+                                      :fn-type :result)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
 
 ;; Pattern Matching Tests
@@ -963,34 +963,35 @@ Pattern path:
 
 (def catch-id-temp-map (p/profile->id-template-map catch-profile))
 (def catch-id-stmt-map (p/statement-batch->id-statement-map catch-stmt-batch))
-(def catch-compiled-profile
-  (p/profile->validator catch-profile
-                        :statement-ref-fns {:get-statement-fn catch-id-stmt-map
-                                            :get-template-fn  catch-id-temp-map}
-                        :validate-profile? false))
 
 (def evidence-advocacy-provide-irl
   "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
 
+(def catch-compiled-profile-1
+  (p/compile-profiles->validators
+   [catch-profile]
+   :statement-ref-fns {:get-statement-fn catch-id-stmt-map
+                       :get-template-fn  catch-id-temp-map}
+   :validate-profile? false
+   :selected-templates [evidence-advocacy-provide-irl]))
+
+(def catch-compiled-profile-2
+  (p/compile-profiles->validators
+   [catch-profile]
+   :statement-ref-fns {:get-statement-fn catch-id-stmt-map
+                       :get-template-fn  catch-id-temp-map}
+   :validate-profile? false))
+
 (deftest statement-ref-test
   (testing "validation of Statements with (Context) Statement Refs"
-    (is (p/validate-statement-vs-template
-         (some (fn [{id :id :as temp}]
-                 (when (= id evidence-advocacy-provide-irl)
-                   temp))
-               catch-compiled-profile)
+    (is (p/validate-statement
+         catch-compiled-profile-1
          test-stmt-1))
-    (is (p/validate-statement-vs-template
-         (some (fn [{id :id :as temp}]
-                 (when (= id evidence-advocacy-provide-irl)
-                   temp))
-               catch-compiled-profile)
+    (is (p/validate-statement
+         catch-compiled-profile-1
          test-stmt-2))
-    (is (not (p/validate-statement-vs-template
-              (some (fn [{id :id :as temp}]
-                      (when (= id evidence-advocacy-provide-irl)
-                        temp))
-                    catch-compiled-profile)
+    (is (not (p/validate-statement
+              catch-compiled-profile-1
               test-stmt-3)))
     (is (= (str "----- Invalid Statement -----\n"
                 "Template ID:  https://w3id.org/xapi/catch/templates#evidence-advocacy-provide\n"
@@ -1002,19 +1003,16 @@ Pattern path:
                 "Total errors found: 1\n"
                 "\n")
            (with-out-str
-             (p/validate-statement-vs-template
-              (some (fn [{id :id :as temp}]
-                      (when (= id "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
-                        temp))
-                    catch-compiled-profile)
+             (p/validate-statement
+              catch-compiled-profile-1
               test-stmt-3
               :fn-type :printer))))
-    (is (p/validate-statement-vs-profile catch-compiled-profile
-                                         test-stmt-1))
-    (is (p/validate-statement-vs-profile catch-compiled-profile
-                                         test-stmt-2))
-    (is (not (p/validate-statement-vs-profile catch-compiled-profile
-                                              test-stmt-3)))))
+    (is (p/validate-statement catch-compiled-profile-2
+                              test-stmt-1))
+    (is (p/validate-statement catch-compiled-profile-2
+                              test-stmt-2))
+    (is (not (p/validate-statement catch-compiled-profile-2
+                                   test-stmt-3)))))
 
 ;; Pattern tests
 

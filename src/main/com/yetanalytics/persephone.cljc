@@ -337,37 +337,50 @@
 
 ;; c.f. Result (Ok/Error) types
 (defn validate-statement-errors
-  "Returns a coll of error info maps when validating `statement` against
-   the Templates in `compiled-profiles` if all Templates are invalid,
-   `nil` otherwise."
-  [compiled-profiles statement]
+  "Returns map from Template IDs to error data maps for each Template
+   that `statement` is invalid against. Takes the `:short-circuit?`
+   kwarg that, if `true`, forces validation to stop against the
+   first invalidating Template."
+  [compiled-profiles statement & {:keys [short-circuit?]
+                                  :or   {short-circuit? false}}]
   (let [stmt       (coerce-statement statement)
-        conj-error (fn [acc {:keys [id validator-fn]}]
-                     (if-some [errs (validator-fn stmt)]
-                       (assoc acc id errs)
-                       (reduced nil)))]
+        conj-error (if short-circuit?
+                     (fn [acc {:keys [id validator-fn]}]
+                       (if-some [errs (validator-fn stmt)]
+                         (assoc acc id errs)
+                         (reduced nil)))
+                     (fn [acc {:keys [id validator-fn]}]
+                       (if-some [errs (validator-fn stmt)]
+                         (assoc acc id errs)
+                         acc)))]
     (->> compiled-profiles
          (reduce conj-error {})
-         ;; no templates => vacuously true
+         ;; no bad templates => vacuously true
          not-empty)))
 
 (defn validate-statement-assert
   "Throw an ExceptionInfo exception if `statement` is invalid against
-   all Templates in `compiled-profiles`, returns `nil` otherwise."
-  [compiled-profiles statement]
+   Templates in `compiled-profiles`, returns `nil` otherwise. If
+   `:short-circuit?` is `true`, throws upon the first error found;
+   else, throws with all error data in its ex-data."
+  [compiled-profiles statement & {:keys [short-circuit?]
+                                  :or   {short-circuit? false}}]
   (when-some [errs (validate-statement-errors compiled-profiles
-                                              statement)]
+                                              statement
+                                              :short-circuit? short-circuit?)]
     (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
                                           :errors errs}))))
 
 (defn validate-statement-print
-  "Print all errors for each Template that `statement` is invalid against."
-  [compiled-profiles statement]
-  (let [stmt (coerce-statement statement)]
-    (dorun (map (fn [{:keys [validation-fn]}]
-                  (when-some [errs (validation-fn stmt)]
-                    (err-printer/print-errors errs)))
-                compiled-profiles))))
+  "Prints errors for each Template that `statement` is invalid
+   against. If `:short-circuit?` is `true`, prints only the first
+   error found; else, print all errors."
+  [compiled-profiles statement & {:keys [short-circuit?]
+                                  :or   {short-circuit? false}}]
+  (when-some [errs (validate-statement-errors compiled-profiles
+                                              statement
+                                              :short-circuit? short-circuit?)]
+    (dorun (map err-printer/print-errors errs))))
 
 (defn validate-statement
   "Takes `compiled-profiles` and `statement` where `compiled-profile`
@@ -375,7 +388,8 @@
    `statement` against the Statement Templates in the Profile.
 
    Takes a `:fn-type` kwarg, which sets the return value and side effects
-   of `validate-statement`. Has the following options:
+   of `validate-statement`. Has the following options (with short
+   circuiting set to false always):
 
      :predicate  Returns `true` for a valid Statement, else `false`.
                  Default.

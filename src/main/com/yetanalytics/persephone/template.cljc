@@ -1,8 +1,65 @@
 (ns com.yetanalytics.persephone.template
-  (:require [clojure.string :as string]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as string]
+            [xapi-schema.spec] ; for :statement/id
+            [com.yetanalytics.pan.axioms :as ax]
+            [com.yetanalytics.pan.objects.template :as pan-temp]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template.predicates
              :refer [create-rule-pred]]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Specs 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def ::stmt :statement/id)
+(s/def ::temp ::pan-temp/id)
+
+(s/def ::location
+  ::ax/json-path)
+
+(s/def ::determining-property
+  #{"Verb"
+    "objectActivityType"
+    "contextParentActivityType"
+    "contextGroupingActivityType"
+    "contextCategoryActivityType"
+    "contextOtherActivityType"
+    "attachmentUsageType"})
+
+(s/def ::prop-vals
+  (s/coll-of any?))
+
+(s/def ::failure
+  #{:sref-not-found
+    :sref-object-type-invalid
+    :sref-id-missing
+    :sref-stmt-not-found})
+
+(s/def ::rule
+  (s/keys :req-un [::location
+                   ::prop-vals]
+          :opt-un [::determining-property
+                   ::failure]))
+
+(s/def ::pred
+  #{:statement-ref?
+    :all-matchable?
+    :none-matchable?
+    :any-matchable?
+    :some-any-values?
+    :only-all-values?
+    :no-unmatch-vals?
+    :no-none-values?})
+
+(s/def ::vals any?)
+
+(def validation-result-spec
+  (s/keys :req-un [::pred
+                   ::vals
+                   ::rule
+                   ::temp
+                   ::stmt]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -113,6 +170,9 @@
 ;; Validators
 ;; A validator returns a seq of errors upon failure, nil otherwise
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: More sophisticated fn spec
+(def validator-spec fn?)
 
 (defn- create-statement-ref-validator
   "The arguments are as follows:
@@ -232,6 +292,9 @@
 ;; Predicates
 ;; A predicate returns true on success, false on failure
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; TODO: More sophisticated fn spec
+(def predicate-spec fn?)
 
 (defn- create-statement-ref-predicate
   "Same arguments as `create-statement-ref-validator`.

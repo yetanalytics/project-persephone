@@ -38,6 +38,34 @@
     profile))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Specs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def ::profiles
+  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
+                                ::pan-profile/profile)
+                   :edn ::pan-profile/profile)))
+
+;; TODO: More sophisticated function specs
+(s/def ::get-template-fn fn?)
+(s/def ::get-statement-fn fn?)
+(s/def ::statement-ref-fns
+  (s/keys :req-un [::get-template-fn
+                   ::get-statement-fn]))
+
+(s/def ::validate-profiles? boolean?)
+(s/def ::compile-nfa? boolean?)
+
+(s/def ::selected-profiles (s/every ::pan-profile/id))
+(s/def ::selected-templates (s/every ::pan-template/id))
+(s/def ::selected-patterns (s/every ::pan-pattern/id))
+
+(def statement-spec
+  (s/or :json (s/and (s/conformer coerce-statement)
+                     ::xs/statement)
+        :edn ::xs/statement))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Assertions (Project Pan integration)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -48,11 +76,6 @@
 
 ;; FIXME: We need to set the :relation? key to true, but currently this will
 ;; cause errors because external IRIs are not supported yet in project-pan.
-
-(s/def ::profiles
-  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
-                                ::pan-profile/profile)
-                   :edn ::pan-profile/profile)))
 
 (defn- assert-profile
   [profile]
@@ -126,14 +149,6 @@
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: More sophisticated function specs
-(s/def ::get-template-fn fn?)
-(s/def ::get-statement-fn fn?)
-
-(s/def ::statement-ref-fns
-  (s/keys :req-un [::get-template-fn
-                   ::get-statement-fn]))
-
 (defn- template->validator
   "Takes `template` and returns a map contaiing the Template ID,
    a validation function, and a predicate function."
@@ -144,6 +159,25 @@
     {:id           (:id template)
      :validator-fn (t/create-template-validator template statement-ref-fns)
      :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
+
+(s/def ::validator t/validator-spec)
+(s/def ::predicate t/predicate-spec)
+
+(def compiled-template-spec
+  (s/keys :req-un [::pan-template/id
+                   ::validator
+                   ::predicate]))
+
+(def compiled-templates-spec
+  (s/every compiled-template-spec))
+
+(s/fdef compile-profiles->validators
+  :args (s/cat :profiles ::profiles
+               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+                                           ::validate-profiles?
+                                           ::selected-profiles
+                                           ::selected-templates]))
+  :ret compiled-templates-spec)
 
 (defn compile-profiles->validators
   "Takes a `profiles` coll and returns a coll of maps of:
@@ -205,7 +239,22 @@
         true
         (map temp->validator)))))
 
+(s/def ::all-valid? boolean?)
+(s/def ::short-circuit boolean?)
+(s/def ::fn-type #{:predicate
+                   :option
+                   :result
+                   :templates
+                   :printer
+                   :assertion})
+
 ;; `validated-statement?` based
+
+(s/fdef validated-statement?
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::all-valid?]))
+  :ret boolean?)
 
 (defn validated-statement?
   "Returns `true` if `statement` is valid against any Template (if
@@ -223,6 +272,12 @@
            boolean))))
 
 ;; c.f. Just/Option (Some/None) types
+(s/fdef validate-statement-filter
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::all-valid?]))
+  :ret (s/nilable statement-spec))
+
 (defn validate-statement-filter
   "Returns `statement` if it is valid against any Template (if
    `:all-valid?` is `true`, default) or all Templates (if it
@@ -237,6 +292,14 @@
 ;; `validate-statement-errors` based
 
 ;; c.f. Result (Ok/Error) types
+(s/fdef validate-statement-errors
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  :ret (s/nilable (s/coll-of t/validation-result-spec
+                             :min-count 1)))
+
 (defn validate-statement-errors
   "Returns map from Template IDs to error data maps for each Template
    that `statement` is invalid against. Takes the `:all-valid?` and
@@ -263,6 +326,14 @@
          ;; no bad templates => vacuously true
          not-empty)))
 
+(s/fdef validate-statement-assert
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  ;; Spec doesn't test side effects - only catch nil case
+  :ret nil?)
+
 (defn validate-statement-assert
   "Throw an ExceptionInfo exception when `statement` is invalid
    against Templates in `compiled-profiles`, returns `nil` otherwise.
@@ -277,6 +348,14 @@
                                               :short-circuit? short-circuit?)]
     (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
                                           :errors errs}))))
+
+(s/fdef validate-statement-print
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  ;; Spec doesn't test side effects - only catch nil return
+  :ret nil?)
 
 (defn validate-statement-print
   "Prints errors for each Template that `statement` is invalid
@@ -296,6 +375,12 @@
 
 ;; Other
 
+(s/fdef validate-statement-template-ids
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec)
+  ;; Spec doesn't test side effects - only catch nil return
+  :ret (s/every ::pan-template/id))
+
 (defn validate-statement-template-ids
   "Returns a vector of all the Template IDs that `statement` is
    valid against."
@@ -308,6 +393,20 @@
     (reduce conj-valid-id [] compiled-profiles)))
 
 ;; Generic validation
+
+(s/fdef validate-statement-template-ids
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement statement-spec
+               :kw-args (s/keys* :opt-un [::fn-type
+                                          ::all-valid?
+                                          ::short-circuit?]))
+  :ret (s/or :predicate boolean?
+             :option    (s/nilable statement-spec)
+             :result    (s/nilable (s/coll-of t/validation-result-spec
+                                              :min-count 1))
+             :templates (s/every ::pan-template/id)
+             :printer   nil?
+             :assertion nil?))
 
 (defn validate-statement
   "Takes `compiled-profiles` and `statement` where `compiled-profile`
@@ -382,12 +481,6 @@
 
 ;; TODO: Work with XML and Turtle Profiles
 ;; TODO: Add Exception messages when Patterns are rejected
-
-;; TODO: Move specs to top of namespace
-(s/def ::validate-profiles? boolean?)
-(s/def ::compile-nfa? boolean?)
-(s/def ::selected-profiles (s/every ::pan-profile/id))
-(s/def ::selected-patterns (s/every ::pan-pattern/id))
 
 ;; Profile -> FSM Compilation
 
@@ -501,12 +594,6 @@
 
 (def match-stmt-error-spec
   (s/keys :req-un [::error ::xs/statement]))
-
-;; TODO: Move to top of ns
-(def statement-spec
-  (s/or :json (s/and (s/conformer coerce-statement)
-                     ::xs/statement)
-        :edn ::xs/statement))
 
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.

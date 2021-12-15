@@ -626,13 +626,13 @@
                       (dissoc "context"))]
         (is (= [{:pred :statement-ref?
                  :vals stmt
-                 :sref {:location "$.object"
+                 :sref {:location     "$.object"
                         :sref-failure :sref-not-found}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
                  :vals stmt
-                 :sref {:location "$.context.statement"
+                 :sref {:location     "$.context.statement"
                         :sref-failure :sref-not-found}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}]
@@ -644,13 +644,13 @@
                                {"objectType" "Foo" "id" "bar"}))]
         (is (= [{:pred :statement-ref?
                  :vals (get-in stmt ["object"])
-                 :sref {:location "$.object"
+                 :sref {:location     "$.object"
                         :sref-failure :sref-object-type-invalid}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
                  :vals (get-in stmt ["context" "statement"])
-                 :sref {:location "$.context.statement"
+                 :sref {:location     "$.context.statement"
                         :sref-failure :sref-object-type-invalid}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}]
@@ -662,13 +662,13 @@
                                {"objectType" "StatementRef"}))]
         (is (= [{:pred :statement-ref?
                  :vals (get-in stmt ["object"])
-                 :sref {:location "$.object"
+                 :sref {:location     "$.object"
                         :sref-failure :sref-id-missing}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
                  :vals (get-in stmt ["context" "statement"])
-                 :sref {:location "$.context.statement"
+                 :sref {:location     "$.context.statement"
                         :sref-failure :sref-id-missing}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}]
@@ -680,28 +680,28 @@
                                {"objectType" "StatementRef" "id" "qux"}))]
         (is (= [{:pred :statement-ref?
                  :vals (get-in stmt ["object" "id"])
-                 :sref {:location "$.object"
-                        :sref-failure  :sref-stmt-not-found}
+                 :sref {:location     "$.object"
+                        :sref-failure :sref-stmt-not-found}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
                  :vals (get-in stmt ["context" "statement" "id"])
-                 :sref {:location "$.context.statement"
-                        :sref-failure  :sref-stmt-not-found}
+                 :sref {:location     "$.context.statement"
+                        :sref-failure :sref-stmt-not-found}
                  :temp "stmt-ref-template-3"
                  :stmt (get stmt "id")}]
                ((make-validator "stmt-ref-template-3") stmt))))
       (is (= [{:pred :every-val-present?
                :vals ["http://foo.org/verb"]
-               :prop {:location             "$.verb.id"
-                      :match-vals            ["http://foo.org/verb-bar"]
-                      :det-prop "Verb"}
+               :prop {:location   "$.verb.id"
+                      :match-vals ["http://foo.org/verb-bar"]
+                      :det-prop   "Verb"}
                :temp "stmt-ref-template-5"
                :stmt "stmt-4"}
               {:pred :statement-ref?
                :vals (get stmt-map "stmt-4")
-               :sref {:location "$.context.statement"
-                      :sref-failure  :sref-not-found}
+               :sref {:location     "$.context.statement"
+                      :sref-failure :sref-not-found}
                :temp "stmt-ref-template-5"
                :stmt "stmt-4"}]
              ((make-validator "stmt-ref-template-5")
@@ -709,38 +709,38 @@
       (is (= [;; stmt-template-b
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
-               :prop {:location             "$.verb.id"
-                      :match-vals         ["http://foo.org/verb-2"]
-                      :det-prop "Verb"}
+               :prop {:location   "$.verb.id"
+                      :match-vals ["http://foo.org/verb-2"]
+                      :det-prop   "Verb"}
                :temp "stmt-template-b"
                :stmt "stmt-4"}
               ;; stmt-ref-template-5 - object
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
-               :prop {:location             "$.verb.id"
-                      :match-vals         ["http://foo.org/verb-bar"]
-                      :det-prop "Verb"}
+               :prop {:location   "$.verb.id"
+                      :match-vals ["http://foo.org/verb-bar"]
+                      :det-prop   "Verb"}
                :temp "stmt-ref-template-5"
                :stmt "stmt-4"}
               {:pred :statement-ref?
                :vals (get stmt-map "stmt-4")
-               :sref {:location "$.context.statement"
-                      :sref-failure  :sref-not-found}
+               :sref {:location     "$.context.statement"
+                      :sref-failure :sref-not-found}
                :temp "stmt-ref-template-5"
                :stmt "stmt-4"}
               ;; stmt-ref-template-5 - context
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
-               :prop {:location             "$.verb.id"
-                      :match-vals         ["http://foo.org/verb-bar"]
-                      :det-prop "Verb"}
+               :prop {:location   "$.verb.id"
+                      :match-vals ["http://foo.org/verb-bar"]
+                      :det-prop   "Verb"}
                :temp "stmt-ref-template-5"
                :stmt "stmt-3"}
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
-               :prop {:location             "$.verb.id"
-                      :match-vals         ["http://foo.org/verb-3"]
-                      :det-prop "Verb"}
+               :prop {:location   "$.verb.id"
+                      :match-vals ["http://foo.org/verb-3"]
+                      :det-prop   "Verb"}
                :temp "stmt-template-c"
                :stmt "stmt-4"}]
              ((make-validator "stmt-ref-template-4")

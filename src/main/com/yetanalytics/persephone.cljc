@@ -308,50 +308,6 @@
         ;; else
         (throw-unknown-opt fn-type)))))
 
-;; Keep one big function...
-
-(defn validate-statement
-  [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (coerce-statement statement)]
-    (case fn-type
-      :predicate
-      (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
-                     compiled-profiles))
-      :option
-      (when (validate-statement compiled-profiles stmt)
-        stmt)
-      :result
-      (not-empty ; no templates => vacuously true
-       (reduce (fn [acc {:keys [id validator-fn]}]
-                 (if-some [errs (validator-fn stmt)]
-                   (assoc acc id errs)
-                   (reduced nil)))
-               {}
-               compiled-profiles))
-      :templates
-      (reduce (fn [valid-ids {:keys [id predicate-fn]}]
-                (if (predicate-fn stmt)
-                  (conj valid-ids id)
-                  valid-ids))
-              []
-              compiled-profiles)
-      :printer
-      (dorun
-       (map (fn [{:keys [validator-fn]}]
-              (when-some [errs (validator-fn stmt)]
-                (err-printer/print-errors errs)))
-            compiled-profiles))
-      :assertion
-      (when-some [errs (validate-statement compiled-profiles
-                                           stmt
-                                           :fn-type :result)]
-        (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                              :errors errs})))
-      ;; else
-      (throw-unknown-opt fn-type))))
-
-;; ... or separate functions?
-
 (defn validated-statement?
   "Returns `true` if `statement` is valid against all Templates in
    `compiled-profiles`, `false` otherwise."
@@ -403,6 +359,33 @@
                                               statement)]
     (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
                                           :errors errs}))))
+
+(defn validate-statement-print
+  "Print all errors for each Template that `statement` is invalid against."
+  [compiled-profiles statement]
+  (let [stmt (coerce-statement statement)]
+    (dorun (map (fn [{:keys [validation-fn]}]
+                  (when-some [errs (validation-fn stmt)]
+                    (err-printer/print-errors errs)))
+                compiled-profiles))))
+
+(defn validate-statement
+  [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
+  (case fn-type
+    :predicate
+    (validated-statement? compiled-profiles statement)
+    :option
+    (validate-statement-filter compiled-profiles statement)
+    :result
+    (validate-statement-errors compiled-profiles statement)
+    :templates
+    (validate-statement-template-ids compiled-profiles statement)
+    :printer
+    (validate-statement-print compiled-profiles statement)
+    :assertion
+    (validate-statement-assert compiled-profiles statement)
+    ;; else
+    (throw-unknown-opt fn-type)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions

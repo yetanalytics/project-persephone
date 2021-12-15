@@ -308,6 +308,8 @@
         ;; else
         (throw-unknown-opt fn-type)))))
 
+;; Keep one big function...
+
 (defn validate-statement
   [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
   (let [stmt (coerce-statement statement)]
@@ -341,6 +343,58 @@
                                               :errors errs})))
       ;; else
       (throw-unknown-opt fn-type))))
+
+;; ... or separate functions?
+
+(defn validated-statement?
+  "Returns `true` if `statement` is valid against all Templates in
+   `compiled-profiles`, `false` otherwise."
+  [compiled-profiles statement]
+  (let [stmt (coerce-statement statement)]
+    (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
+                   compiled-profiles))))
+
+(defn validate-statement-option
+  "Returns `statement` if it is valid against all Templates in
+   `compiled-profiles`, `nil` otherwise."
+  [compiled-profiles statement]
+  (when (validated-statement? compiled-profiles statement)
+    statement))
+
+(defn validate-statement-templates
+  "Returns a vector of the Template IDs that `statement` is valid
+   against."
+  [compiled-profiles statement]
+  (let [stmt   (coerce-statement statement)
+        red-fn (fn [valid-ids {:keys [id predicate-fn]}]
+                 (if (predicate-fn stmt)
+                   (conj valid-ids id)
+                   valid-ids))]
+    (reduce red-fn [] compiled-profiles)))
+
+(defn validate-statement-errors
+  "Returns a coll of error info maps when validating `statement` against
+   the Templates in `compiled-profiles` if such errors exist, `nil`
+   otherwise."
+  [compiled-profiles statement]
+  (let [stmt   (coerce-statement statement)
+        red-fn (fn [acc {:keys [id validator-fn]}]
+                 (if-some [errs (validator-fn stmt)]
+                   (assoc acc id errs)
+                   (reduced nil)))]
+    (->> compiled-profiles
+         (reduce red-fn {})
+         ;; no templates => vacuously true
+         not-empty)))
+
+(defn validate-statement-assert
+  "Throw an ExceptionInfo exception if `statement` is invalid against
+   any Template in `compiled-profiles`, returns `nil` otherwise."
+  [compiled-profiles statement]
+  (when-some [errs (validate-statement-errors compiled-profiles
+                                              statement)]
+    (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
+                                          :errors errs}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions

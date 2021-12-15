@@ -411,30 +411,27 @@
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
     (if (empty? new-st-info)
       (if-some [old-meta (meta state-info)]
-        (with-meta new-st-info old-meta)
-        (if ?pat-nfa
-          ;; Detailed trace info
-          (let [build-trace (fn [temp-ids]
-                              (let [ptraces (p/read-visited-templates
-                                             ?pat-nfa
-                                             temp-ids)]
-                                {:templates temp-ids
-                                 :patterns  ptraces}))
-                fail-info   (->> state-info
+        (do
+          (when print?
+            (println (perr-printer/error-msg-str (:failure old-meta))))
+          (with-meta new-st-info old-meta))
+        (let [?fail-trc (when ?pat-nfa
+                          (let [build-trace
+                                (fn [temp-ids]
+                                  {:templates temp-ids
+                                   :patterns  (p/read-visited-templates
+                                               ?pat-nfa
+                                               temp-ids)})]
+                            (->> state-info
                                  (map :visited)
-                                 (map build-trace))
-                fail-meta   {:statement (get statement "id")
-                             :pattern   pat-id
-                             :traces    fail-info}]
-            (when print? (println (perr-printer/error-msg-str fail-meta)))
-            (with-meta new-st-info {:failure {:statement (get statement "id")
-                                              :pattern   pat-id
-                                              :traces    fail-info}}))
-          ;; Simple fail info
-          (let [fail-meta {:statement (get statement "id")
-                           :pattern   pat-id}]
-            (when print? (println (perr-printer/error-msg-str fail-meta)))
-            (with-meta new-st-info {:failure fail-meta}))))
+                                 (map build-trace))))
+              fail-meta (cond-> {:statement (get statement "id")
+                                 :pattern   pat-id}
+                          ?fail-trc
+                          (assoc :traces ?fail-trc))]
+          (when print?
+            (println (perr-printer/error-msg-str fail-meta)))
+          (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
 (s/fdef match-statement

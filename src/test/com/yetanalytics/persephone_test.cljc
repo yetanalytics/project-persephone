@@ -313,9 +313,9 @@
                   :fn-type :result)))
       (is (= {:pred :every-val-present?
               :vals ["https://example.com/scores"]
-              :rule {:location             "$.verb.id"
-                     :prop-vals            ["http://adlnet.gov/expapi/verbs/launched"]
-                     :determining-property "Verb"}
+              :prop {:location   "$.verb.id"
+                     :match-vals ["http://adlnet.gov/expapi/verbs/launched"]
+                     :det-prop   "Verb"}
               :temp "https://w3id.org/xapi/cmi5#launched"
               :stmt "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"}
              (-> (p/validate-statement

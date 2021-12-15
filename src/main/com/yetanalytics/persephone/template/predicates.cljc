@@ -202,17 +202,17 @@
 (defn create-det-prop-pred
   "Returns a wrapped pred for use with Determining Properties.
    `prop-vals` contains the values of the given Property."
-  [{:keys [prop-vals]}]
-  (let [pres-set (nset prop-vals)]
+  [{:keys [match-vals]}]
+  (let [match-vals-set (nset match-vals)]
     (-> (wrap-pred any-matchable?)
-        (add-wrapped every-val-present? pres-set))))
+        (add-wrapped every-val-present? match-vals-set))))
 
 ;; Spec to check that the 'presence' keyword is correct.
 ;; A Statement Template MUST include one or more of presence, any, all or none.
 ;; NOTE: Should never happen with a validated Statement Template or Profile
 (defn- assert-valid-rule
   [rule]
-  (when-not (or (contains? rule :determining-property)
+  (when-not (or (contains? rule :det-prop)
                 (and (not (contains? rule :presence))
                      (or (contains? rule :any)
                          (contains? rule :all)
@@ -228,7 +228,7 @@
    false, or nil if all return true."
   [{:keys [presence] :as rule}]
   (assert-valid-rule rule)
-  (if (contains? rule :determining-property)
+  (if (contains? rule :det-prop)
     (create-det-prop-pred rule)
     (case presence
       "included"    (create-included-pred rule)

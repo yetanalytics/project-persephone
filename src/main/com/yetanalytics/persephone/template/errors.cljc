@@ -113,16 +113,16 @@
 (defn error-msg-str
   "Create a pretty error log output when a property or rule is not
    followed."
-  [{:keys [pred rule vals] :as _error}]
+  [{:keys [pred vals rule prop sref] :as _error}]
   (cond
     ;; Statement Ref Templates
-    (= :statement-ref? pred)
-    (let [{fail :failure sref :location} rule]
+    sref
+    (let [{fail :sref-failure sref :location} sref]
       (sref-error-str fail sref vals))
     ;; Determining Properties
-    (contains? rule :determining-property)
-    (let [{prop :determining-property pvals :prop-vals} rule]
-      (prop-error-str prop pvals vals))
+    prop
+    (let [{prop :det-prop mvals :match-vals} prop]
+      (prop-error-str prop mvals vals))
     ;; Rules
     :else
     (rule-error-str rule pred vals)))

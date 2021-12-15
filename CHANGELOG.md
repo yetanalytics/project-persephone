@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.4 - 2021-12-15
+- Fix bug where the `:selected-profiles` kwarg for `compile-profiles->fsms` did not work.
+
 ## 0.7.3 - 2021-12-15
 - Print match failures (if `:print?` is true) even if it was not the first time that failure was encountered.
 - Add `:nfa-meta` key to the pattern FSMs map (in case meta is lost from `:nfa`).

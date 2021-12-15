@@ -335,6 +335,12 @@
                   valid-ids))
               []
               compiled-profiles)
+      :printer
+      (dorun
+       (map (fn [{:keys [validator-fn]}]
+              (when-some [errs (validator-fn stmt)]
+                (err-printer/print-errors errs)))
+            compiled-profiles))
       :assertion
       (when-some [errs (validate-statement compiled-profiles
                                            stmt

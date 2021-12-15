@@ -347,7 +347,7 @@
     (let [?prof-id-set (when selected-profiles (set selected-profiles))
           profiles     (cond->> profiles
                          ?prof-id-set
-                         (filter (fn [{:keys [id]}] ?prof-id-set id)))
+                         (filter (fn [{:keys [id]}] (?prof-id-set id))))
           prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
                             profiles)
           pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))

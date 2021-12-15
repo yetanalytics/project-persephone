@@ -873,6 +873,7 @@ Pattern path:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def catch-profile (slurp "test-resources/sample_profiles/catch.json"))
+(def catch-profile-id "https://w3id.org/xapi/catch")
 
 (def statement-basics
   {"id"        "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
@@ -1144,13 +1145,25 @@ Pattern path:
 (def catch-id-stmt-map-2
   (p/statement-batch->id-statement-map catch-stmt-batch-2))
 
+;; Add extra profile to test `:selected-profiles`
 (def catch-fsm
   (p/compile-profiles->fsms
-   [catch-profile]
+   [cmi-profile catch-profile]
    :statement-ref-fns {:get-statement-fn catch-id-stmt-map-2
                        :get-template-fn  catch-id-temp-map}
    :compile-nfa?      true
-   :validate-profile? false))
+   :validate-profile? false
+   :selected-profiles [catch-profile-id]))
+
+(deftest compile-profile-test
+  (testing "the `compile-profiles->fsms` function"
+    (is (= 1 (count catch-fsm)))
+    (is (->> catch-fsm
+             vals
+             first
+             vals
+             (every? (fn [{:keys [id dfa nfa nfa-meta]}]
+                       (and id dfa nfa nfa-meta)))))))
 
 (deftest statement-ref-pattern-test
   (testing "matching patterns with Statement Refs"

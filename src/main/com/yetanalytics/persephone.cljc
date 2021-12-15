@@ -309,11 +309,13 @@
   and `pattern-id` is the ID of a primary Pattern in that Profile. The
   leaf values include the following: 
      
-     `:id`  The pattern ID.
-     `:dfa` The DFA used for general pattern matching.
-     `:nfa` The NFA with pattern metadata used for reconstructing the
-            pattern path. This is an optional property that is only
-            produced when `:compile-nfa?` is `true`.
+     `:id`       The pattern ID.
+     `:dfa`      The DFA used for general pattern matching.
+     `:nfa`      The NFA with pattern metadata used for reconstructing the
+                 pattern path. This is an optional property that is only
+                 produced when `:compile-nfa?` is `true`.
+     `:nfa-meta` The NFA metadata; assoc-ed here in case meta is lost
+                 from the `:nfa` value. Only present if `:nfa` is.
    The following are optional arguments:
 
      :statement-ref-fns  takes the key-value pairs described in
@@ -406,7 +408,13 @@
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-id :id pat-dfa :dfa ?pat-nfa :nfa} state-info statement print?]
+  [{pat-id    :id
+    pat-dfa   :dfa
+    ?pat-nfa  :nfa
+    ?nfa-meta :nfa-meta}
+   state-info
+   statement
+   print?]
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
     (if (empty? new-st-info)
@@ -416,12 +424,17 @@
             (println (perr-printer/error-msg-str (:failure old-meta))))
           (with-meta new-st-info old-meta))
         (let [?fail-trc (when ?pat-nfa
-                          (let [build-trace
+                          (let [read-temp-ids
+                                (if ?nfa-meta
+                                  (partial p/read-visited-templates
+                                           ?pat-nfa
+                                           ?nfa-meta)
+                                  (partial p/read-visited-templates
+                                           ?pat-nfa))
+                                build-trace
                                 (fn [temp-ids]
                                   {:templates temp-ids
-                                   :patterns  (p/read-visited-templates
-                                               ?pat-nfa
-                                               temp-ids)})]
+                                   :patterns  (read-temp-ids temp-ids)})]
                             (->> state-info
                                  (map :visited)
                                  (map build-trace))))

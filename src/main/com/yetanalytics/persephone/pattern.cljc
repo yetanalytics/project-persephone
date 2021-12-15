@@ -189,38 +189,37 @@
    sequence and return the path of Patterns and Templates that was taken
    during the original matching process. If `template-ids` is empty or
    represents an invalid input sequence, return an empty seq."
-  [nfa template-ids]
-  ;; This function takes advantage of the fact that due to the way our
-  ;; NFAs are constructed, the final epsilon closure will contain the
-  ;; state with all the relevant pattern path info (e.g. in a union
-  ;; of transitions, the pentultimate states will include the template ID).
-  (let [nfa-metadata (meta nfa)]
-    (if (not-empty template-ids)
-      (loop [tokens  template-ids
-             sinfo   nil]
-        (let [[fst & rst] tokens]
-          (cond
-            ;; Invalid token sequence - abort
-            (= #{} sinfo)
-            '()
-
-            ;; Last token - return
-            (empty? rst)
-            (let [sinfo* (fsm/read-next nfa sinfo fst)]
-              (->> sinfo*
-                   (map :state)
-                   (map (fn [s] (get-in nfa-metadata [:states s :path])))
-                   concat
-                   (filter (fn [path] (= fst (first path))))
-                   distinct
-                   (map vec)))
-
-            ;; More tokens- continue
-            :else
-            (recur rst
-                   (fsm/read-next nfa sinfo fst)))))
+  ([nfa template-ids] ; multi-arity for backwards compatibility
+   (read-visited-templates nfa (meta nfa) template-ids))
+  ([nfa nfa-meta template-ids]
+   ;; This function takes advantage of the fact that due to the way our
+   ;; NFAs are constructed, the final epsilon closure will contain the
+   ;; state with all the relevant pattern path info (e.g. in a union
+   ;; of transitions, the pentultimate states will include the template ID).
+   (if (not-empty template-ids)
+     (loop [tokens  template-ids
+            sinfo   nil]
+       (let [[fst & rst] tokens]
+         (cond
+           ;; Invalid token sequence - abort
+           (= #{} sinfo)
+           '()
+           ;; Last token - return
+           (empty? rst)
+           (let [sinfo* (fsm/read-next nfa sinfo fst)]
+             (->> sinfo*
+                  (map :state)
+                  (map (fn [s] (get-in nfa-meta [:states s :path])))
+                  concat
+                  (filter (fn [path] (= fst (first path))))
+                  distinct
+                  (map vec)))
+           ;; More tokens- continue
+           :else
+           (recur rst
+                  (fsm/read-next nfa sinfo fst)))))
       ;; Empty `template-ids` - no patterns were matched against
-      '())))
+     '())))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Putting it all together
@@ -251,7 +250,11 @@
                      pat-map  (cond-> {:id  pat-id
                                        :dfa pat-dfa}
                                 compile-nfa?
-                                (assoc :nfa (pattern-tree->nfa pat-tree)))]
+                                (merge
+                                 (let [pat-nfa  (pattern-tree->nfa pat-tree)
+                                       nfa-meta (meta pat-nfa)]
+                                   {:nfa      pat-nfa
+                                    :nfa-meta nfa-meta})))]
                  (assoc acc pat-id pat-map)))
              {}
              pattern-seq))))

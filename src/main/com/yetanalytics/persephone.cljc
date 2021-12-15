@@ -183,6 +183,38 @@
      (:templates profile))))
 
 (defn compile-profiles->validators
+  "Takes a `profiles` coll and returns a coll of maps of:
+   
+     :id           The Statement Template ID
+     :validator-fn A function that returns error data if a Statement
+                   is invalid against the Template, else `nil`.
+     :predicate-fn A function that returns `true` if a Statement
+                   is valid against the Template, else `false`.
+   
+   `compile-profiles->validators` takes the following kwargs:
+
+     :statement-ref-fns  A map with two fields: `:get-template-fn`
+                         and `get-statement-fn`. If not present,
+                         then any Template's StatementRef props
+                         are ignored.
+     :validate-profiles? Whether to validate against the Profile
+                         spec and check for ID clashes before
+                         compilation; default `true`.
+     :selected-profiles  if present filters out any Profiles whose
+                         IDs are not in the coll. (Note that these
+                         should be profile IDs, not version IDs.)
+     :selected-patterns  if present filters out any Templates
+                         whose IDs are not in the coll.
+   
+   The following are the fields of the `:statement-ref-fns` map:
+
+     :get-template-fn   Function that takes a Statement Template ID
+                        and returns the corresponding Template. Can be
+                        created using `profile->id-template-map`.
+                        Must return `nil` if the Template isn't found.
+     :get-statement-fn  Function that takes a Statement ID and
+                        returns the corresponding Statement. Must
+                        return `nil` if the Statement is not found."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
                       selected-profiles

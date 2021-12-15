@@ -134,24 +134,9 @@
   (s/keys :req-un [::get-template-fn
                    ::get-statement-fn]))
 
-(defn template->validator
-  "Takes `template`, along with an optional :validate-template?
-   arg, and returns a map contaiing the Statement Template ID,
-   a validation function, and a predicate function.
-
-   :statement-ref-fns is a map with the following key-val pairs:
-     :get-template-fn   Function that takes a Statement Template ID
-                        and returns the corresponding Template. Can be
-                        created using `profile->id-template-map`.
-                        Must return `nil` if the Template is not found.
-     :get-statement-fn  Function that takes a Statement ID and
-                        returns the corresponding Statement. Must
-                        return `nil` if the Statement is not found.
-   If :statement-ref-fns is not provided, Statement Ref Template
-   properties are ignored.
-
-   :validate-template? is default true. If true, `template->validator`
-   checks that `template` conforms to the xAPI Profile spec."
+(defn- template->validator
+  "Takes `template` and returns a map contaiing the Template ID,
+   a validation function, and a predicate function."
   [template & {:keys [statement-ref-fns validate-template?]
                :or   {validate-template? true}}]
   (let [template (coerce-template template)]
@@ -159,28 +144,6 @@
     {:id           (:id template)
      :validator-fn (t/create-template-validator template statement-ref-fns)
      :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
-
-(defn profile->validator
-  "Takes `profile`, along with an optional :validate-profile? arg,
-   and returns a vector of tuples of the Statement Template ID and
-   its Statement validation function.
-
-   :statement-ref-fns takes the key-value pairs described in
-   `template->validator`.
-
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [statement-ref-fns validate-profile?]
-              :or   {validate-profile? true}}]
-  (when validate-profile? (assert-profile profile))
-  (let [profile (coerce-profile profile)]
-    (reduce
-     (fn [acc template]
-       (conj acc (template->validator template
-                                      :statement-ref-fns statement-ref-fns
-                                      :validate-template? false)))
-     []
-     (:templates profile))))
 
 (defn compile-profiles->validators
   "Takes a `profiles` coll and returns a coll of maps of:
@@ -241,105 +204,6 @@
         (filter (fn [{:keys [id]}] (?temp-id-set id)))
         true
         (map temp->validator)))))
-
-(defn validate-statement-vs-template
-  "Takes `compiled-template` and `statement` where `compiled-template`
-   is the result of `template->validator`, and validates `statement`
-   against the Statement Template.
-
-   Takes the :fn-type keyword argument, which sets the return value
-   and side effects of `validate-statement-vs-template. Has the
-   following options:
-     :predicate  Returns true for a valid Statement, false otherwise.
-                 Default.
-     :option     Returns the Statement if it's valid, nil otherwise
-                 (c.f. Option/Maybe types).
-     :result     Returns the validation error data as a seq if the
-                 Statement is invalid, else nil (c.f. Result types).
-     :assertion  Returns nil on a valid Statement, throws an
-                 exception otherwise where the error data can be
-                 extracted using `(-> e ex-data :errors)`.
-     :printer    Prints an error message when the Statement is
-                 invalid. Always returns nil."
-  [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (coerce-statement statement)
-        {:keys [validator-fn predicate-fn]} compiled-template]
-    (case fn-type
-      :predicate
-      (predicate-fn stmt)
-      :option
-      (when (predicate-fn stmt) stmt)
-      :result
-      (validator-fn stmt)
-      :printer
-      (when-some [errs (validator-fn stmt)]
-        (err-printer/print-errors errs))
-      :assertion
-      (when-some [errs (validator-fn stmt)]
-        (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                              :errors errs})))
-      ;; else
-      (throw-unknown-opt fn-type))))
-
-(defn validate-statement-vs-profile
-  "Takes `compiled-profile` and `statement` where `compiled-profile`
-   is the result of `profile->validator`, and validates `statement`
-   against the Statement Templates in the Profile.
-
-   Takes the :fn-type keyword argument, which sets the return value
-   and side effects of `validate-statement-vs-profile.` Has the
-   following options:
-     :predicate  Returns true for a valid Statement, false otherwise.
-                 Default.
-     :option     Returns the Statement if it's valid, nil otherwise
-                 (c.f. Option/Maybe types).
-     :result     Returns the validation error data if the Statement
-                 is invalid, nil otherwise (c.f. Result types). The
-                 data is a map between each Statement Template and
-                 the error data they produced.
-     :templates  Returns the IDs of the Statement Templates the
-                 Statement is valid for.
-     :assertion  Returns nil on a valid Statement, throws an
-                 exception otherwise where the error data can be
-                 extracted using `(-> e ex-data :errors)`."
-  [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (coerce-statement statement)]
-    (letfn [(valid-stmt?
-              [stmt]
-              (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
-                             compiled-profile)))
-            (get-valid-ids
-              [stmt]
-              (reduce (fn [valid-ids {:keys [id predicate-fn]}]
-                        (if (predicate-fn stmt)
-                          (conj valid-ids id)
-                          valid-ids))
-                      []
-                      compiled-profile))
-            (get-errors ; Returns nil if stmt is valid, else the id-error map
-              [stmt]
-              (not-empty ; no templates => vacuously true
-               (reduce (fn [acc {:keys [id validator-fn]}]
-                         (if-some [errs (validator-fn stmt)]
-                           (assoc acc id errs)
-                           (reduced nil)))
-                       {}
-                       compiled-profile)))]
-      (case fn-type
-        :predicate
-        (valid-stmt? stmt)
-        :option
-        (when (valid-stmt? stmt) stmt)
-        :result
-        (get-errors stmt)
-        :templates
-        (get-valid-ids stmt)
-        :assertion
-        (when-some [errs (get-errors stmt)]
-          (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                                :errors errs})))
-        ;; else
-        (throw-unknown-opt fn-type)))))
 
 ;; `validated-statement?` based
 

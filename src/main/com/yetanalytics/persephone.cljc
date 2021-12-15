@@ -78,6 +78,15 @@
                       {:type ::non-unique-profile-ids
                        :ids  prof-ids})))))
 
+(defn- assert-template-ids
+  [profiles]
+  (let [temp-ids (mapcat (fn [{:keys [templates]}] (map :id templates))
+                         profiles)]
+    (when (not= temp-ids (distinct temp-ids))
+      (throw (ex-info "Template IDs are not unique!"
+                      {:type ::non-unique-template-ids
+                       :ids  temp-ids})))))
+
 (defn- assert-pattern-ids
   [profiles]
   (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
@@ -172,6 +181,33 @@
                                       :validate-template? false)))
      []
      (:templates profile))))
+
+(defn compile-profiles->validators
+  [profiles & {:keys [statement-ref-fns
+                      validate-profiles?
+                      selected-profiles
+                      selected-templates]
+               :or   {validate-profiles? true}}]
+  (when validate-profiles?
+    (dorun (map assert-profile profiles))
+    (assert-profile-ids profiles)
+    (assert-template-ids profiles))
+  (let [?prof-id-set    (when selected-profiles (set selected-profiles))
+        ?temp-id-set    (when selected-templates (set selected-templates))
+        temp->validator (fn [temp]
+                          (template->validator
+                           temp
+                           :statement-ref-fns statement-ref-fns
+                           :validate-template? false))]
+    (cond->> profiles
+      ?prof-id-set
+      (filter (fn [{:keys [id]}] (?prof-id-set id)))
+      true
+      (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
+      ?temp-id-set
+      (filter (fn [{:keys [id]}] (?temp-id-set id)))
+      true
+      (map temp->validator))))
 
 (defn validate-statement-vs-template
   "Takes `compiled-template` and `statement` where `compiled-template`

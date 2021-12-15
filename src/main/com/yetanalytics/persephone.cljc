@@ -354,42 +354,44 @@
     (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
                    compiled-profiles))))
 
-(defn validate-statement-option
+;; c.f. Just/Option (Some/None) types
+(defn validate-statement-filter
   "Returns `statement` if it is valid against all Templates in
    `compiled-profiles`, `nil` otherwise."
   [compiled-profiles statement]
   (when (validated-statement? compiled-profiles statement)
     statement))
 
-(defn validate-statement-templates
+(defn validate-statement-template-ids
   "Returns a vector of the Template IDs that `statement` is valid
    against."
   [compiled-profiles statement]
-  (let [stmt   (coerce-statement statement)
-        red-fn (fn [valid-ids {:keys [id predicate-fn]}]
-                 (if (predicate-fn stmt)
-                   (conj valid-ids id)
-                   valid-ids))]
-    (reduce red-fn [] compiled-profiles)))
+  (let [stmt          (coerce-statement statement)
+        conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
+                        (if (predicate-fn stmt)
+                          (conj valid-ids id)
+                          valid-ids))]
+    (reduce conj-valid-id [] compiled-profiles)))
 
+;; c.f. Result (Ok/Error) types
 (defn validate-statement-errors
   "Returns a coll of error info maps when validating `statement` against
-   the Templates in `compiled-profiles` if such errors exist, `nil`
-   otherwise."
+   the Templates in `compiled-profiles` if all Templates are invalid,
+   `nil` otherwise."
   [compiled-profiles statement]
-  (let [stmt   (coerce-statement statement)
-        red-fn (fn [acc {:keys [id validator-fn]}]
-                 (if-some [errs (validator-fn stmt)]
-                   (assoc acc id errs)
-                   (reduced nil)))]
+  (let [stmt       (coerce-statement statement)
+        conj-error (fn [acc {:keys [id validator-fn]}]
+                     (if-some [errs (validator-fn stmt)]
+                       (assoc acc id errs)
+                       (reduced nil)))]
     (->> compiled-profiles
-         (reduce red-fn {})
+         (reduce conj-error {})
          ;; no templates => vacuously true
          not-empty)))
 
 (defn validate-statement-assert
   "Throw an ExceptionInfo exception if `statement` is invalid against
-   any Template in `compiled-profiles`, returns `nil` otherwise."
+   all Templates in `compiled-profiles`, returns `nil` otherwise."
   [compiled-profiles statement]
   (when-some [errs (validate-statement-errors compiled-profiles
                                               statement)]

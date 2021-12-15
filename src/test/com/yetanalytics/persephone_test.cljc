@@ -99,8 +99,10 @@
 
 (deftest statement-validation-test
   (testing "validate statement using an example Template and Statement"
-    (is (not (p/validate-statement-vs-template
-              (p/template->validator ex-template)
+    (is (not (p/validate-statement
+              (p/compile-profiles->validators
+               [{:templates [ex-template]}]
+               :validate-profiles? false)
               ex-statement)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

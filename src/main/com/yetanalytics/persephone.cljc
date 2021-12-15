@@ -370,6 +370,26 @@
                 compiled-profiles))))
 
 (defn validate-statement
+  "Takes `compiled-profiles` and `statement` where `compiled-profile`
+   is the result of `compile-profiles->validators`, and validates
+   `statement` against the Statement Templates in the Profile.
+
+   Takes a `:fn-type` kwarg, which sets the return value and side effects
+   of `validate-statement`. Has the following options:
+
+     :predicate  Returns `true` for a valid Statement, else `false`.
+                 Default.
+     :option     Returns the Statement if it's valid, else `nil`.
+     :result     Returns validation error data on the first Template
+                 the Statement is invalid against,, else `nil`. The
+                 data is a map from Template ID to error data.
+     :templates  Returns the IDs of the Statement Templates the
+                 Statement is valid for.
+     :printer    Prints the error data for all Templates the Statement
+                 fails validation against.
+     :assertion  Throws an exception upon validation failure (where
+                 `(-> e ex-data :errors)` returns the error data),
+                 else returns `nil`."
   [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
   (case fn-type
     :predicate

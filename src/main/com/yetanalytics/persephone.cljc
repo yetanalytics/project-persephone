@@ -308,32 +308,36 @@
         ;; else
         (throw-unknown-opt fn-type)))))
 
+;; Valid Statement Focus
+
 (defn validated-statement?
-  "Returns `true` if `statement` is valid against all Templates in
-   `compiled-profiles`, `false` otherwise."
-  [compiled-profiles statement]
-  (let [stmt (coerce-statement statement)]
-    (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
-                   compiled-profiles))))
+  "Returns `true` if `statement` is valid against any Template (if
+   `:short-circuit` is `true`, default) or all Templates (if it
+   is `false`) in `compiled-profiles`, `false` otherwise."
+  [compiled-profiles statement & {:keys [short-circuit?]
+                                  :or   {short-circuit? true}}]
+  (let [stmt    (coerce-statement statement)
+        pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn stmt))]
+    (if short-circuit?
+      (->> compiled-profiles
+           (some pred-fn)
+           boolean)
+      (->> compiled-profiles
+           (every? pred-fn)))))
 
 ;; c.f. Just/Option (Some/None) types
 (defn validate-statement-filter
-  "Returns `statement` if it is valid against all Templates in
-   `compiled-profiles`, `nil` otherwise."
-  [compiled-profiles statement]
-  (when (validated-statement? compiled-profiles statement)
+  "Returns `statement` if it is valid against any Template (if
+   `:short-circuit` is `true`, default) or all Templates (if it
+   is `false`) in `compiled-profiles`, `nil` otherwise."
+  [compiled-profiles statement & {:keys [short-circuit?]
+                                  :or   {short-circuit? true}}]
+  (when (validated-statement? compiled-profiles
+                              statement
+                              :short-circuit? short-circuit?)
     statement))
 
-(defn validate-statement-template-ids
-  "Returns a vector of the Template IDs that `statement` is valid
-   against."
-  [compiled-profiles statement]
-  (let [stmt          (coerce-statement statement)
-        conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
-                        (if (predicate-fn stmt)
-                          (conj valid-ids id)
-                          valid-ids))]
-    (reduce conj-valid-id [] compiled-profiles)))
+;; Invalid Statement Focus
 
 ;; c.f. Result (Ok/Error) types
 (defn validate-statement-errors
@@ -382,27 +386,42 @@
                                               :short-circuit? short-circuit?)]
     (dorun (map err-printer/print-errors errs))))
 
+;; Other Focus
+
+(defn validate-statement-template-ids
+  "Returns a vector of the Template IDs that `statement` is valid
+   against."
+  [compiled-profiles statement]
+  (let [stmt          (coerce-statement statement)
+        conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
+                        (if (predicate-fn stmt)
+                          (conj valid-ids id)
+                          valid-ids))]
+    (reduce conj-valid-id [] compiled-profiles)))
+
+;; Generic validation
+
 (defn validate-statement
   "Takes `compiled-profiles` and `statement` where `compiled-profile`
    is the result of `compile-profiles->validators`, and validates
    `statement` against the Statement Templates in the Profile.
 
    Takes a `:fn-type` kwarg, which sets the return value and side effects
-   of `validate-statement`. Has the following options (with short
-   circuiting set to false always):
+   of `validate-statement`. Has the following options:
 
-     :predicate  Returns `true` for a valid Statement, else `false`.
-                 Default.
-     :option     Returns the Statement if it's valid, else `nil`.
-     :result     Returns validation error data on the first Template
+     :predicate  Returns `true` if `statement` is valid for any
+                 Statement Template, else `false`. Default.
+     :option     Returns `statement` if it is valid against any
+                 Template, else `nil`.
+     :result     Returns validation error data on every Template
                  the Statement is invalid against,, else `nil`. The
                  data is a map from Template ID to error data.
-     :templates  Returns the IDs of the Statement Templates the
-                 Statement is valid for.
+     :templates  Returns the IDs of the Templates that `statement`
+                 is valid against.
      :printer    Prints the error data for all Templates the Statement
                  fails validation against.
      :assertion  Throws an exception upon validation failure (where
-                 `(-> e ex-data :errors)` returns the error data),
+                 `(-> e ex-data :errors)` returns all error data),
                  else returns `nil`."
   [compiled-profiles statement & {:keys [fn-type] :or {fn-type :predicate}}]
   (case fn-type

@@ -222,7 +222,7 @@
 
 (defn validate-statement-assert
   "Throw an ExceptionInfo exception when `statement` is invalid
-   against Templates in `compiled-profiles`, returns `nil` otherwise.
+   against Templates in `compiled-templates`, returns `nil` otherwise.
    `:all-valid?` and `:short-circuit?` are the same as in the
    `validate-statement-errors` function."
   [compiled-templates statement & {:keys [all-valid? short-circuit?]

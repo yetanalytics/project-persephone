@@ -29,21 +29,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn coerce-statement
-  "If `statement` is a JSON string, coerce it to EDN with string keys."
+  "If `statement` is a JSON string, coerce it to EDN with string keys.
+   Throws if a parse failure occurs."
   [statement]
   (if (string? statement)
     (json->edn statement)
     statement))
 
-(defn coerce-template
-  "If `template` is a JSON string, coerce it to EDN with keyword keys."
-  [template]
-  (if (string? template)
-    (json->edn template :keywordize? true)
-    template))
-
 (defn coerce-profile
-  "If `profile` is a JSON string, coerce it to EDN with keyword keys."
+  "If `profile` is a JSON string, coerce it to EDN with keyword keys.
+   Throws if a parse failure occurs."
   [profile]
   (if (string? profile)
     (json->edn profile :keywordize? true)

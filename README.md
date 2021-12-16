@@ -34,7 +34,7 @@ The compilation function `compile-profiles->validators` takes a collection of Pr
 
 `compile-profiles->validators` takes the following keyword args:
 
-- `:statement-ref-fns` - A map of `:get-template-fn` and `:get-statement-fn`, which take a Template and Statement ID and returns a Template and Statement, respectively. This is used for Statement Ref validation; if `:statement-ref-fns` is `nil`, then Statement Refs are ignored.
+- `:statement-ref-fns` - A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
 - `:validate-profile?` - Validates the profiles against the xAPI Profile spec and checks for Profile and Template ID clashes. Default `true`.
 - `:selected-profiles` - Which Profiles in the collection should be compiled.
 - `:selected-patterns` - Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
@@ -143,13 +143,13 @@ For more information about the technical implementation details (including about
 
 ### Statement Ref Templates
 
-By default, Statement Ref Templates are not supported; however, to allow for such support, `template->validator`, `profile->validator`, and `profile->fsms` take in an optional `:statement-ref-fns` argument. `:statement-ref-fns` needs to be a map consisting of the following:
+By default, Statement Ref Template validation is not supported; however, to allow for such support, `compile-profiles->validators` and `compile-profiles->fsms` take in an optional `:statement-ref-fns` argument. Its value needs to be a map of the following:
 - `:get-statement-fn`: A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 - `:get-template-fn`: A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
 
 This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, the API provides two functions for use with `statement-ref-fns`:
 - `profile->id-template-map`: Takes a Profile and returns a map between Template IDs and Templates.
-- `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements. Intended to be used with `match-statement-batch-vs-pattern` and `match-statement-batch-vs-profile`.
+- `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements.
 
 ### So...does it fit the spec?
 

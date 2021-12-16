@@ -37,7 +37,7 @@ The compilation function `compile-profiles->validators` takes a collection of Pr
 - `:statement-ref-fns` - A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
 - `:validate-profile?` - Validates the profiles against the xAPI Profile spec and checks for Profile and Template ID clashes. Default `true`.
 - `:selected-profiles` - Which Profiles in the collection should be compiled.
-- `:selected-patterns` - Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
+- `:selected-templates` - Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
 
 The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
 

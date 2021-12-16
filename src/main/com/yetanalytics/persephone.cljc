@@ -1,12 +1,12 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
             [xapi-schema.spec     :as xs]
-            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.pan.objects.profile  :as pan-profile]
             [com.yetanalytics.pan.objects.template :as pan-template]
             [com.yetanalytics.pan.objects.pattern  :as pan-pattern]
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
+            [com.yetanalytics.persephone.utils.asserts   :as assert]
             [com.yetanalytics.persephone.utils.json      :as json]
             [com.yetanalytics.persephone.utils.maps      :as maps]
             [com.yetanalytics.persephone.utils.profile   :as prof]
@@ -16,33 +16,11 @@
             [com.yetanalytics.persephone.pattern.errors  :as perr-printer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Coercions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- coerce-statement
-  [statement]
-  (if (string? statement)
-    (json/json->edn statement)
-    statement))
-
-(defn- coerce-template
-  [template]
-  (if (string? template)
-    (json/json->edn template :keywordize? true)
-    template))
-
-(defn- coerce-profile
-  [profile]
-  (if (string? profile)
-    (json/json->edn profile :keywordize? true)
-    profile))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/def ::profiles
-  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
+  (s/coll-of (s/or :json (s/and (s/conformer json/coerce-profile)
                                 ::pan-profile/profile)
                    :edn ::pan-profile/profile)))
 
@@ -64,7 +42,7 @@
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
 (def statement-spec
-  (s/or :json (s/and (s/conformer coerce-statement)
+  (s/or :json (s/and (s/conformer json/coerce-statement)
                      ::xs/statement)
         :edn ::xs/statement))
 
@@ -80,47 +58,6 @@
 ;; FIXME: We need to set the :relation? key to true, but currently this will
 ;; cause errors because external IRIs are not supported yet in project-pan.
 
-(defn- assert-profile
-  [profile]
-  (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
-    (throw (ex-info "Invalid Profile!"
-                    {:kind   ::invalid-profile
-                     :errors err}))))
-
-(defn- assert-template
-  [template]
-  (when-some [err (s/explain-data ::pan-template/template template)]
-    (throw (ex-info "Invalid Statement Template!"
-                    {:kind   ::invalid-template
-                     :errors err}))))
-
-;; TODO: Make these asserts Project Pan's responsibility
-
-(defn- assert-profile-ids
-  [profiles]
-  (let [prof-ids (map :id profiles)]
-    (when (not= prof-ids (distinct prof-ids))
-      (throw (ex-info "Profile IDs are not unique!"
-                      {:type ::non-unique-profile-ids
-                       :ids  prof-ids})))))
-
-(defn- assert-template-ids
-  [profiles]
-  (let [temp-ids (mapcat (fn [{:keys [templates]}] (map :id templates))
-                         profiles)]
-    (when (not= temp-ids (distinct temp-ids))
-      (throw (ex-info "Template IDs are not unique!"
-                      {:type ::non-unique-template-ids
-                       :ids  temp-ids})))))
-
-(defn- assert-pattern-ids
-  [profiles]
-  (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
-                        profiles)]
-    (when (not= pat-ids (distinct pat-ids))
-      (throw (ex-info "Pattern IDs are not unique!"
-                      {:type ::non-unique-pattern-ids
-                       :ids  pat-ids})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Ref Convenience Functions
@@ -134,8 +71,8 @@
    :validate-profile? is default true. If true, `profile->validator`
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
-  (when validate-profile? (assert-profile profile))
-  (let [profile (coerce-profile profile)]
+  (when validate-profile? (assert/assert-profile profile))
+  (let [profile (json/coerce-profile profile)]
     (maps/mapify-coll (:templates profile))))
 
 ;; Doesn't exactly conform to stmt batch requirements since in theory,
@@ -157,8 +94,8 @@
    a validation function, and a predicate function."
   [template & {:keys [statement-ref-fns validate-template?]
                :or   {validate-template? true}}]
-  (let [template (coerce-template template)]
-    (when validate-template? (assert-template template))
+  (let [template (json/coerce-template template)]
+    (when validate-template? (assert/assert-template template))
     {:id           (:id template)
      :validator-fn (t/create-template-validator template statement-ref-fns)
      :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
@@ -220,11 +157,11 @@
                       selected-profiles
                       selected-templates]
                :or   {validate-profiles? true}}]
-  (let [profiles (map coerce-profile profiles)]
+  (let [profiles (map json/coerce-profile profiles)]
     (when validate-profiles?
-      (dorun (map assert-profile profiles))
-      (assert-profile-ids profiles)
-      (assert-template-ids profiles))
+      (dorun (map assert/assert-profile profiles))
+      (assert/assert-profile-ids profiles)
+      (assert/assert-template-ids profiles))
     (let [?prof-id-set    (when selected-profiles (set selected-profiles))
           ?temp-id-set    (when selected-templates (set selected-templates))
           temp->validator (fn [temp]
@@ -265,7 +202,7 @@
    is `true`) in `compiled-profiles`, `false` otherwise."
   [compiled-profiles statement & {:keys [all-valid?]
                                   :or   {all-valid? false}}]
-  (let [stmt    (coerce-statement statement)
+  (let [stmt    (json/coerce-statement statement)
         pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn stmt))]
     (if all-valid?
       (->> compiled-profiles
@@ -313,7 +250,7 @@
   [compiled-profiles statement & {:keys [all-valid? short-circuit?]
                                   :or   {all-valid?     false
                                          short-circuit? false}}]
-  (let [stmt       (coerce-statement statement)
+  (let [stmt       (json/coerce-statement statement)
         err-acc    (if short-circuit?
                      (fn [acc id errs] (reduced (assoc acc id errs)))
                      (fn [acc id errs] (assoc acc id errs)))
@@ -388,7 +325,7 @@
   "Returns a vector of all the Template IDs that `statement` is
    valid against."
   [compiled-profiles statement]
-  (let [stmt          (coerce-statement statement)
+  (let [stmt          (json/coerce-statement statement)
         conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
                         (if (predicate-fn stmt)
                           (conj valid-ids id)
@@ -536,14 +473,14 @@
                       selected-patterns]
                :or   {validate-profiles?     true
                       compile-nfa?           false}}]
-  (let [profiles (map coerce-profile profiles)
+  (let [profiles (map json/coerce-profile profiles)
         opt-map  {:statement-ref-fns statement-ref-fns
                   :compile-nfa?      compile-nfa?
                   :selected-patterns selected-patterns}]
     (when validate-profiles?
-      (dorun (map assert-profile profiles))
-      (assert-profile-ids profiles)
-      (assert-pattern-ids profiles))
+      (dorun (map assert/assert-profile profiles))
+      (assert/assert-profile-ids profiles)
+      (assert/assert-pattern-ids profiles))
     (let [?prof-id-set (when selected-profiles (set selected-profiles))
           profiles     (cond->> profiles
                          ?prof-id-set
@@ -702,7 +639,7 @@
                                                  :or   {print? false}}]
   (if (:error state-info-map) ; TODO: Should errors also be printed?
     state-info-map
-    (let [statement      (coerce-statement statement)
+    (let [statement      (json/coerce-statement statement)
           reg-pat-st-m   (:states-map state-info-map)
           prof-id-set    (set (keys compiled-profiles))
           stmt-prof-ids  (stmt/get-statement-profile-ids statement prof-id-set)

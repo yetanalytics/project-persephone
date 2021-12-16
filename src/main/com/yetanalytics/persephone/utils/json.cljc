@@ -24,6 +24,31 @@
   #?(:clj (json/write-str edn-data)
      :cljs (->> edn-data clj->js (.stringify js/JSON))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common JSON-to-EDN coercion functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn coerce-statement
+  "If `statement` is a JSON string, coerce it to EDN with string keys."
+  [statement]
+  (if (string? statement)
+    (json->edn statement)
+    statement))
+
+(defn coerce-template
+  "If `template` is a JSON string, coerce it to EDN with keyword keys."
+  [template]
+  (if (string? template)
+    (json->edn template :keywordize? true)
+    template))
+
+(defn coerce-profile
+  "If `profile` is a JSON string, coerce it to EDN with keyword keys."
+  [profile]
+  (if (string? profile)
+    (json->edn profile :keywordize? true)
+    profile))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath operations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

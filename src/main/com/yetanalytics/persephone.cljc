@@ -41,7 +41,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- template->validator
-  "Takes `template` and nilable `statement-ref-fns and returns a map
+  "Takes `template` and nilable `statement-ref-fns` and returns a map
    contaiing the Template ID, a validation function, and a predicate
    function."
   [template ?statement-ref-fns]
@@ -145,15 +145,15 @@
 (defn validated-statement?
   "Returns `true` if `statement` is valid against any Template (if
    `:all-valid?` is `false`, default) or all Templates (if it
-   is `true`) in `compiled-profiles`, `false` otherwise."
-  [compiled-profiles statement & {:keys [all-valid?]
-                                  :or   {all-valid? false}}]
+   is `true`) in `compiled-templates`, `false` otherwise."
+  [compiled-templates statement & {:keys [all-valid?]
+                                   :or   {all-valid? false}}]
   (let [stmt    (json/coerce-statement statement)
         pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn stmt))]
     (if all-valid?
-      (->> compiled-profiles
+      (->> compiled-templates
            (every? pred-fn))
-      (->> compiled-profiles
+      (->> compiled-templates
            (some pred-fn)
            boolean))))
 
@@ -167,10 +167,10 @@
 (defn validate-statement-filter
   "Returns `statement` if it is valid against any Template (if
    `:all-valid?` is `true`, default) or all Templates (if it
-   is `false`) in `compiled-profiles`, `nil` otherwise."
-  [compiled-profiles statement & {:keys [all-valid?]
-                                  :or   {all-valid? false}}]
-  (when (validated-statement? compiled-profiles
+   is `false`) in `compiled-templates`, `nil` otherwise."
+  [compiled-templates statement & {:keys [all-valid?]
+                                   :or   {all-valid? false}}]
+  (when (validated-statement? compiled-templates
                               statement
                               :all-valid? all-valid?)
     statement))
@@ -193,9 +193,9 @@
    `nil` if any (default) or all Templates are valid against `statement`;
    the latter determines whether to return the first error (if `true`)
    or all errors (if `false`, default)."
-  [compiled-profiles statement & {:keys [all-valid? short-circuit?]
-                                  :or   {all-valid?     false
-                                         short-circuit? false}}]
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
   (let [stmt       (json/coerce-statement statement)
         err-acc    (if short-circuit?
                      (fn [acc id errs] (reduced (assoc acc id errs)))
@@ -207,7 +207,7 @@
                      (if-some [errs (validator-fn stmt)]
                        (err-acc acc id errs)
                        (valid-acc acc)))]
-    (->> compiled-profiles
+    (->> compiled-templates
          (reduce conj-error {})
          ;; no bad templates => vacuously true
          not-empty)))
@@ -225,10 +225,10 @@
    against Templates in `compiled-profiles`, returns `nil` otherwise.
    `:all-valid?` and `:short-circuit?` are the same as in the
    `validate-statement-errors` function."
-  [compiled-profiles statement & {:keys [all-valid? short-circuit?]
-                                  :or   {all-valid?     false
-                                         short-circuit? false}}]
-  (when-some [errs (validate-statement-errors compiled-profiles
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
+  (when-some [errs (validate-statement-errors compiled-templates
                                               statement
                                               :all-valid? all-valid?
                                               :short-circuit? short-circuit?)]
@@ -247,10 +247,10 @@
   "Prints errors for each Template that `statement` is invalid
    against. `:all-valid?` and `:short-circuit?` are the same as
    in the `validate-statement-errors` function."
-  [compiled-profiles statement & {:keys [all-valid? short-circuit?]
-                                  :or   {all-valid?     false
-                                         short-circuit? false}}]
-  (when-some [errs (validate-statement-errors compiled-profiles
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
+  (when-some [errs (validate-statement-errors compiled-templates
                                               statement
                                               :all-valid? all-valid?
                                               :short-circuit? short-circuit?)]
@@ -269,13 +269,13 @@
 (defn validate-statement-template-ids
   "Returns a vector of all the Template IDs that `statement` is
    valid against."
-  [compiled-profiles statement]
+  [compiled-templates statement]
   (let [stmt          (json/coerce-statement statement)
         conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
                         (if (predicate-fn stmt)
                           (conj valid-ids id)
                           valid-ids))]
-    (reduce conj-valid-id [] compiled-profiles)))
+    (reduce conj-valid-id [] compiled-templates)))
 
 ;; Generic validation
 
@@ -294,7 +294,7 @@
              :assertion nil?))
 
 (defn validate-statement
-  "Takes `compiled-profiles` and `statement` where `compiled-profile`
+  "Takes `compiled-templates` and `statement` where `compiled-templates`
    is the result of `compile-profiles->validators`, and validates
    `statement` against the Statement Templates in the Profile.
 
@@ -326,34 +326,34 @@
      `true` unless all Templates are valid against `statement`.
      If `:short-circuit?` is `true`, then only the error data for the
      first invalid Template is returned."
-  [compiled-profiles statement & {:keys [fn-type all-valid? short-circuit?]
-                                  :or   {fn-type        :predicate
-                                         all-valid?     false
-                                         short-circuit? false}}]
+  [compiled-templates statement & {:keys [fn-type all-valid? short-circuit?]
+                                   :or   {fn-type        :predicate
+                                          all-valid?     false
+                                          short-circuit? false}}]
   (case fn-type
     :predicate
-    (validated-statement? compiled-profiles
+    (validated-statement? compiled-templates
                           statement
                           :all-valid? all-valid?)
     :filter
-    (validate-statement-filter compiled-profiles
+    (validate-statement-filter compiled-templates
                                statement
                                :all-valid? all-valid?)
     :errors
-    (validate-statement-errors compiled-profiles
+    (validate-statement-errors compiled-templates
                                statement
                                :all-valid? all-valid?
                                :short-circuit? short-circuit?)
     :templates
-    (validate-statement-template-ids compiled-profiles
+    (validate-statement-template-ids compiled-templates
                                      statement)
     :printer
-    (validate-statement-print compiled-profiles
+    (validate-statement-print compiled-templates
                               statement
                               :all-valid? all-valid?
                               :short-circuit? short-circuit?)
     :assertion
-    (validate-statement-assert compiled-profiles
+    (validate-statement-assert compiled-templates
                                statement
                                :all-valid? all-valid?
                                :short-circuit? short-circuit?)
@@ -661,8 +661,8 @@
       (if-let [stmt (first stmt-coll)]
         (let [match-res (match-statement st-info-map stmt)]
           (if (:error match-res)
-          ;; Error keyword - early termination
+            ;; Error keyword - early termination
             match-res
-          ;; Valid state info map - continue
+            ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
         st-info-map))))

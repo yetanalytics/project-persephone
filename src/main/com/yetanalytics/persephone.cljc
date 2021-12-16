@@ -393,8 +393,9 @@
 
      :statement-ref-fns  takes the key-value pairs described in
      `template->validator`.
-     :validate-profiles? if true checks that all profiles conform to the
-     xAPI Profile spec and throws an exception if not. Default false.
+     :validate-profiles? if true checks that all Profiles conform to the
+     xAPI Profile spec and that all Profile, Template, and Pattern IDs
+     do not clash. Throws exception if validation fails. Default true.
      :compile-nfa?       if true compiles an additional NFA that is used
      for composing detailed error traces. Default false.
      :selected-profiles  if present filters out any profiles whose IDs
@@ -412,6 +413,7 @@
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
+    (assert/assert-template-ids profiles)
     (assert/assert-pattern-ids profiles))
   (let [opt-map      {:statement-ref-fns statement-ref-fns
                       :compile-nfa?      compile-nfa?

@@ -285,11 +285,11 @@
              (p/validate-statement
               cmi-tmpl-0
               ex-statement
-              :fn-type :option)))
+              :fn-type :filter)))
       (is (nil? (p/validate-statement
                  cmi-tmpl-0
                  ex-statement
-                 :fn-type :result)))
+                 :fn-type :errors)))
       (is (nil? (p/validate-statement
                  cmi-tmpl-0
                  ex-statement
@@ -307,11 +307,11 @@
       (is (nil? (p/validate-statement
                  cmi-tmpl-1
                  ex-statement
-                 :fn-type :option)))
+                 :fn-type :filter)))
       (is (some? (p/validate-statement
                   cmi-tmpl-1
                   ex-statement
-                  :fn-type :result)))
+                  :fn-type :errors)))
       (is (= {:pred :every-val-present?
               :vals ["https://example.com/scores"]
               :prop {:location   "$.verb.id"
@@ -322,37 +322,37 @@
              (-> (p/validate-statement
                   cmi-tmpl-1
                   ex-statement
-                  :fn-type :result)
+                  :fn-type :errors)
                  (get "https://w3id.org/xapi/cmi5#launched")
                  first)))
       (testing "(any-valid vs all-valid)"
         (is (nil? (p/validate-statement
                    (concat cmi-tmpl-0 cmi-tmpl-1)
                    ex-statement
-                   :fn-type :result)))
+                   :fn-type :errors)))
         (is (some? (p/validate-statement
                     (concat cmi-tmpl-0 cmi-tmpl-1)
                     ex-statement
-                    :fn-type :result
+                    :fn-type :errors
                     :all-valid? true))))
       (testing "(short-circuit vs non-short-circuit)"
         (is (= 2 (-> (p/validate-statement
                       (concat cmi-tmpl-1 cmi-tmpl-2)
                       ex-statement
-                      :fn-type :result)
+                      :fn-type :errors)
                      vals
                      count)))
         (is (= 1 (-> (p/validate-statement
                       (concat cmi-tmpl-1 cmi-tmpl-2)
                       ex-statement
-                      :fn-type :result
+                      :fn-type :errors
                       :short-circuit? true)
                      vals
                      count))))
       (is (= (p/validate-statement
               cmi-tmpl-1
               ex-statement
-              :fn-type :result)
+              :fn-type :errors)
              (try (p/validate-statement
                    cmi-tmpl-1
                    ex-statement
@@ -389,10 +389,10 @@
     (is (= ex-statement
            (p/validate-statement cmi-validator
                                  ex-statement
-                                 :fn-type :option)))
+                                 :fn-type :filter)))
     (is (nil? (p/validate-statement cmi-validator
                                     ex-statement
-                                    :fn-type :result)))
+                                    :fn-type :errors)))
     (is (nil? (p/validate-statement cmi-validator
                                     ex-statement
                                     :fn-type :assertion)))
@@ -406,14 +406,14 @@
                                    :fn-type :predicate)))
     (is (nil? (p/validate-statement cmi-validator
                                     {}
-                                    :fn-type :option)))
+                                    :fn-type :filter)))
     (is (= [] (p/validate-statement cmi-validator
                                     {}
                                     :fn-type :templates)))
     (is (= 10 (count
                (p/validate-statement cmi-validator
                                      {}
-                                     :fn-type :result))))
+                                     :fn-type :errors))))
     (is (= {:pred :any-matchable?
             :vals [nil]
             :rule {:location "$.id"
@@ -422,15 +422,15 @@
             :stmt nil}
            (-> (p/validate-statement cmi-validator
                                      {}
-                                     :fn-type :result)
+                                     :fn-type :errors)
                (get "https://w3id.org/xapi/cmi5#generalrestrictions")
                first)))
     (is (= (p/validate-statement cmi-validator
                                  {}
-                                 :fn-type :result)
+                                 :fn-type :errors)
            (try (p/validate-statement cmi-validator
                                       {}
-                                      :fn-type :result)
+                                      :fn-type :errors)
                 (catch #?(:clj Exception :cljs js/Error) e (-> e ex-data :errors)))))))
 
 ;; Pattern Matching Tests

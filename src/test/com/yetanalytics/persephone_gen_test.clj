@@ -34,7 +34,7 @@
                  tc3-validator
                  next-stmt
                  ;; Return error on invalid stmt
-                 :fn-type :result)]
+                 :fn-type :errors)]
         (if (some? err)
           (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
                           {:kind      :datasim-template-test-failed

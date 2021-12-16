@@ -142,8 +142,8 @@
 (s/def ::all-valid? boolean?)
 (s/def ::short-circuit boolean?)
 (s/def ::fn-type #{:predicate
-                   :option
-                   :result
+                   :filter
+                   :errors
                    :templates
                    :printer
                    :assertion})
@@ -301,8 +301,8 @@
                                           ::all-valid?
                                           ::short-circuit?]))
   :ret (s/or :predicate boolean?
-             :option    (s/nilable statement-spec)
-             :result    (s/nilable (s/coll-of t/validation-result-spec
+             :filter    (s/nilable statement-spec)
+             :errors    (s/nilable (s/coll-of t/validation-result-spec
                                               :min-count 1))
              :templates (s/every ::pan-template/id)
              :printer   nil?
@@ -318,9 +318,9 @@
 
      :predicate  Returns `true` if `statement` is valid for any
                  Statement Template, else `false`. Default.
-     :option     Returns `statement` if it is valid against any
+     :filter     Returns `statement` if it is valid against any
                  Template, else `nil`.
-     :result     Returns validation error data on every Template
+     :errors     Returns validation error data on every Template
                  the Statement is invalid against, `nil` if any
                  Template is valid for `statement`. The error
                  data is a map from Template ID to error data.
@@ -350,11 +350,11 @@
     (validated-statement? compiled-profiles
                           statement
                           :all-valid? all-valid?)
-    :option
+    :filter
     (validate-statement-filter compiled-profiles
                                statement
                                :all-valid? all-valid?)
-    :result
+    :errors
     (validate-statement-errors compiled-profiles
                                statement
                                :all-valid? all-valid?

@@ -41,9 +41,9 @@ The compilation function `compile-profiles->validators` takes a collection of Pr
 
 The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
 
-- `:predicate` - Returns `true` for a valid Statement, `false` otherwise. Default for both functions.
-- `:option` - Returns the statement if it's valid, `nil` otherwise. (This is similar to the Option type in OCaml or the Just type in Haskell.)
-- `:result` - Returns the validation error data if the Statement is invalid, `nil` otherwise. (This is similar to the Result type in OCaml.)
+- `:predicate` - Returns `true` for a valid Statement, `false` otherwise. Default.
+- `:filter` - Returns the Statement if it's valid, `nil` otherwise.
+- `:errors` - Returns the validation error data if the Statement is invalid, `nil` otherwise.
 - `:assertion` - Throws an exception if the Statement is invalid, returns `nil` otherwise.
 - `:printer` - Prints an error message when the Statement is invalid. Always returns `nil`.
 - `:templates` - Returns a vector of the IDs of the Statement Templates the Statement is valid for.

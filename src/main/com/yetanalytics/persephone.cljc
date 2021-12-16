@@ -46,9 +46,12 @@
                                 ::pan-profile/profile)
                    :edn ::pan-profile/profile)))
 
-;; TODO: More sophisticated function specs
-(s/def ::get-template-fn fn?)
-(s/def ::get-statement-fn fn?)
+(s/def ::get-template-fn
+  (s/fspec :args (s/cat :template-id ::pan-template/id)
+           :ret ::pan-template/template))
+(s/def ::get-statement-fn
+  (s/fspec :args (s/cat :statement-id :statement/id)
+           :ret ::xs/statement))
 (s/def ::statement-ref-fns
   (s/keys :req-un [::get-template-fn
                    ::get-statement-fn]))

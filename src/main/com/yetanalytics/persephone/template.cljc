@@ -275,7 +275,7 @@
 
 (def validator-spec
   (s/fspec
-   :args ::xs/statement
+   :args (s/cat :statement ::xs/statement)
    :ret validation-result-spec))
 
 ;; TODO: Spec this function
@@ -360,7 +360,7 @@
 
 (def predicate-spec
   (s/fspec
-   :args ::xs/statement
+   :args (s/cat :statement ::xs/statement)
    :ret boolean?))
 
 ;; TODO: Spec this function

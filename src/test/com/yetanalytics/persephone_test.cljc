@@ -365,7 +365,15 @@
                      (p/validate-statement
                       cmi-tmpl-1
                       ex-statement
-                      :fn-type :printer)))))))
+                      :fn-type :printer)))))
+    (testing "invalid :fn-type"
+      (is (try (ex-statement
+                (p/validate-statement
+                 cmi-tmpl-0
+                 ex-statement
+                 :fn-type :bad-type))
+               true
+               (catch #?(:clj Exception :cljs js/Error) _ true))))))
 
 (deftest cmi-statement-test-3
   (testing "validating statements from cmi5 profile that exclude moveon"
@@ -1002,19 +1010,22 @@ Pattern path:
 (def evidence-advocacy-provide-irl
   "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
 
+;; Add extra cmi-profile to test :selected-profiles
 (def catch-compiled-profile-1
   (p/compile-profiles->validators
-   [catch-profile]
-   :statement-ref-fns {:get-statement-fn catch-id-stmt-map
-                       :get-template-fn  catch-id-temp-map}
-   :validate-profile? false
+   [cmi-profile catch-profile]
+   :statement-ref-fns  {:get-statement-fn catch-id-stmt-map
+                        :get-template-fn  catch-id-temp-map}
+   :validate-profile?  false
+   :selected-profiles  [catch-profile-id]
    :selected-templates [evidence-advocacy-provide-irl]))
 
 (def catch-compiled-profile-2
   (p/compile-profiles->validators
-   [catch-profile]
+   [cmi-profile catch-profile]
    :statement-ref-fns {:get-statement-fn catch-id-stmt-map
                        :get-template-fn  catch-id-temp-map}
+   :selected-profiles [catch-profile-id]
    :validate-profile? false))
 
 (deftest statement-ref-test

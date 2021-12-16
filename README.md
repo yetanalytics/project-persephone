@@ -8,22 +8,13 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 
 ## Usage 
 
-The `persephone` namespace contains functions that perform two main tasks. The first is to validate Statements against Statement Templates, which is accomplished via these two functions:
+The `persephone` namespace contains functions that perform two main tasks, which is accomplished via these functions:
 
-- `validate-statement-vs-template`: Taking a compiled Statement Template and a Statement as arguments, validates the Statement against the properties and rules of the Template (as described in the [xAPI Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#statment-templates)).
+- `validate-statement` takes a Statement and validates it against the properties and rules of compiled Statement Templates, as described in the [xAPI Statement Template specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#statment-templates).
 
-- `validate-statement-vs-profile`: Taking a compiled xAPI Profile and a Statement as arguments, validates the Statement against all the Statement Templates of the Profile. The Statement is considered valid for the whole Profile if it is valid for at least one Template.
+- `match-statement` and `match-statement-batch` takes a Statement or collection of Statements, respectively, and matches them against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 
-To compile a Statement Template or Profile for use with these functions, the `template->validator` and `profile->validator` functions are used, respectively.
-
-The other task is to validate streams/collections of Statements against
-Patterns, which are compiled into so-called _finite-state machines (FSMs)_. That is accomplished by the following functions:
-
-- `match-statement`: Taking a compiled Pattern collection, a map containing the current FSM state info, and a Statement, matches the Statement against that Pattern according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns) and returns updated state info.
-
-- `match-statement-batch`: Same as `match-statement`, but takes a batch (i.e. collection) of Statements as an argument, automatically sorting them by timestamp.
-
-To compile Profiles into FSMs, use the `compile-profiles->fsms` function. This will return a map from Profile IDs to Pattern IDs to Pattern FSM maps, which can then be passed in as the first argument to `match-statement`.
+To compile Profiles to be used as arguments to these functions, the `compile-profiles->validators` and `compile-profiles->fsms` functions are used, respectively.
 
 ### Validation on Statement Template
 
@@ -35,26 +26,34 @@ Validating a Statement against a Statement Template involves three aspects:
 
 - Validating against StatementRefs (object and context StatementRefTemplates). These are arrays of StatementTemplate IRIs, which  point to _more_ Statement Templates that we need to validate against in a  recursive manner. These additional Statements are referenced by  StatementRefs in the original Statement. This can potentially require querying this and other Profiles; thus, that aspect of validation is, for now, unimplemented.
 
-The `validate-statement-vs-template` and `validate-statement-vs-profile` functions take the optional argument `:fn-type`, which can be set to the
-following:
+The compilation function `compile-profiles->validators` takes a collection of Profiles and returns a collection of maps of the following:
+
+- `:id` - The Statement Template ID.
+- `:predicate-fn` - A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
+- `:validator-fn` - A function that takes a Statement and returns `nil` if that Statement is valid against it, a map of error data otherwise.
+
+`compile-profiles->validators` takes the following keyword args:
+
+- `:statement-ref-fns` - A map of `:get-template-fn` and `:get-statement-fn`, which take a Template and Statement ID and returns a Template and Statement, respectively. This is used for Statement Ref validation; if `:statement-ref-fns` is `nil`, then Statement Refs are ignored.
+- `:validate-profile?` - Validates the profiles against the xAPI Profile spec and checks for Profile and Template ID clashes. Default `true`.
+- `:selected-profiles` - Which Profiles in the collection should be compiled.
+- `:selected-patterns` - Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
+
+The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
 
 - `:predicate` - Returns `true` for a valid Statement, `false` otherwise. Default for both functions.
-
 - `:option` - Returns the statement if it's valid, `nil` otherwise. (This is similar to the Option type in OCaml or the Just type in Haskell.)
-
 - `:result` - Returns the validation error data if the Statement is invalid, `nil` otherwise. (This is similar to the Result type in OCaml.)
-
 - `:assertion` - Throws an exception if the Statement is invalid, returns `nil` otherwise.
-
-`validation-statement-vs-template` takes an addition option for `:fn-type`:
-
 - `:printer` - Prints an error message when the Statement is invalid. Always returns `nil`.
-
-`validation-statement-vs-profile` takes an additional option for `:fn-type`:
-
 - `:templates` - Returns a vector of the IDs of the Statement Templates the Statement is valid for.
 
-Both compilation functions, `template->validator` and `profile->validator`, have an additional optional argument: `validate-template?` and `validate-profile?`, respectively. By default they are set to `true`, in which case they validate the syntax of the Template/Profile. Set this to `false` only when you know what you're doing!
+`validate-statement` also takes the following two keyword args:
+
+- `:all-valid?` - If `false` (default), the Statement is considered valid if _any_ of the Statement Template is valid for it. If `true`, validity is if _all_ of the Templates are valid for it. Applicable to all function types except `:templates`.
+- `:short-circuit?` - If `false` (default), returns error data for all invalid Templates; if `true`, returns data for only the first invalid Template found. Applicable to `:result`, `:assertion`, and `:printer`.
+
+In addition to the main `valid-statement` function, there are additional validation functions that perform a specific type of validation, e.g. `validated-statement?` is always a predicate (and is in fact what `validate-statement` calls in `:predicate` mode).
 
 The following is an example error message from `validate-statement-vs-template`, when `:fn-type` is set to `:printer`:
 

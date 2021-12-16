@@ -41,15 +41,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- template->validator
-  "Takes `template` and returns a map contaiing the Template ID,
-   a validation function, and a predicate function."
-  [template & {:keys [statement-ref-fns validate-template?]
-               :or   {validate-template? true}}]
-  (let [template (json/coerce-template template)]
-    (when validate-template? (assert/assert-template template))
-    {:id           (:id template)
-     :validator-fn (t/create-template-validator template statement-ref-fns)
-     :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
+  "Takes `template` and nilable `statement-ref-fns and returns a map
+   contaiing the Template ID, a validation function, and a predicate
+   function."
+  [template ?statement-ref-fns]
+  {:id           (:id template)
+   :validator-fn (t/create-template-validator template ?statement-ref-fns)
+   :predicate-fn (t/create-template-predicate template ?statement-ref-fns)})
 
 (s/def ::validator t/validator-spec)
 (s/def ::predicate t/predicate-spec)
@@ -116,10 +114,7 @@
     (let [?prof-id-set    (when selected-profiles (set selected-profiles))
           ?temp-id-set    (when selected-templates (set selected-templates))
           temp->validator (fn [temp]
-                            (template->validator
-                             temp
-                             :statement-ref-fns statement-ref-fns
-                             :validate-template? false))]
+                            (template->validator temp statement-ref-fns))]
       (cond->> profiles
         ?prof-id-set
         (filter (fn [{:keys [id]}] (?prof-id-set id)))

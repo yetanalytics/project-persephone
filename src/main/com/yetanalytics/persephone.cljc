@@ -11,8 +11,9 @@
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
-            [com.yetanalytics.persephone.template.errors :as err-printer]
-            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]))
+            [com.yetanalytics.persephone.template.errors :as terr-printer]
+            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]
+            [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Specs
@@ -22,16 +23,6 @@
   (s/coll-of (s/or :json (s/and (s/conformer json/coerce-profile)
                                 ::pan-profile/profile)
                    :edn ::pan-profile/profile)))
-
-(s/def ::get-template-fn
-  (s/fspec :args (s/cat :template-id ::pan-template/id)
-           :ret ::pan-template/template))
-(s/def ::get-statement-fn
-  (s/fspec :args (s/cat :statement-id :statement/id)
-           :ret ::xs/statement))
-(s/def ::statement-ref-fns
-  (s/keys :req-un [::get-template-fn
-                   ::get-statement-fn]))
 
 (s/def ::validate-profiles? boolean?)
 (s/def ::compile-nfa? boolean?)
@@ -73,7 +64,7 @@
 
 (s/fdef compile-profiles->validators
   :args (s/cat :profiles ::profiles
-               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
                                            ::validate-profiles?
                                            ::selected-profiles
                                            ::selected-templates]))
@@ -271,14 +262,13 @@
     (dorun (->> errs
                 vals
                 (apply concat)
-                err-printer/print-errors))))
+                terr-printer/print-errors))))
 
 ;; Other
 
 (s/fdef validate-statement-template-ids
   :args (s/cat :compiled-templates compiled-templates-spec
                :statement statement-spec)
-  ;; Spec doesn't test side effects - only catch nil return
   :ret (s/every ::pan-template/id))
 
 (defn validate-statement-template-ids
@@ -392,7 +382,7 @@
 
 (s/fdef compile-profiles->fsms
   :args (s/cat :profiles ::profiles
-               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
                                            ::validate-profiles?
                                            ::compile-nfa?
                                            ::selected-profiles

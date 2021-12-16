@@ -3,6 +3,9 @@
             [com.yetanalytics.pan :as pan]
             [com.yetanalytics.pan.objects.template :as pan-template]))
 
+;; FIXME: We need to set the :relation? key to true, but currently this will
+;; cause errors because external IRIs are not supported yet in project-pan.
+
 (defn assert-profile
   "Assert that `profile` conforms to the xAPI spec, or else throw an
    exception."

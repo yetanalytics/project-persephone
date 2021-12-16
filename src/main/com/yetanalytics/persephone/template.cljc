@@ -1,11 +1,12 @@
 (ns com.yetanalytics.persephone.template
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [xapi-schema.spec :as xs] ; for :statement/id
+            [xapi-schema.spec :as xs]
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.objects.template :as pan-temp]
             [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
             [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.template.predicates
              :refer [create-rule-pred]]))
 
@@ -278,7 +279,11 @@
    :args (s/cat :statement ::xs/statement)
    :ret validation-result-spec))
 
-;; TODO: Spec this function
+(s/fdef create-template-validator
+  :args (s/cat :template ::pan-temp/template
+               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+  :ret validator-spec)
+
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
@@ -363,7 +368,11 @@
    :args (s/cat :statement ::xs/statement)
    :ret boolean?))
 
-;; TODO: Spec this function
+(s/fdef create-template-predicate
+  :args (s/cat :template ::pan-temp/template
+               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+  :ret predicate-spec)
+
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."

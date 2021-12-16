@@ -8,7 +8,6 @@
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.asserts   :as assert]
             [com.yetanalytics.persephone.utils.json      :as json]
-            [com.yetanalytics.persephone.utils.maps      :as maps]
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
@@ -45,45 +44,6 @@
   (s/or :json (s/and (s/conformer json/coerce-statement)
                      ::xs/statement)
         :edn ::xs/statement))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Assertions (Project Pan integration)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- throw-unknown-opt [opt-keyword]
-  (let [msg (str "Unknown option: :" (name opt-keyword))]
-    #?(:clj (throw (IllegalArgumentException. msg))
-       :cljs (throw (js/Error. msg)))))
-
-;; FIXME: We need to set the :relation? key to true, but currently this will
-;; cause errors because external IRIs are not supported yet in project-pan.
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Statement Ref Convenience Functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn profile->id-template-map
-  "Takes `profile` and returns a map between Statement Template IDs
-   and the Templates themselves. Used for Statement Ref Template
-   resolution.
-   
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
-  (when validate-profile? (assert/assert-profile profile))
-  (let [profile (json/coerce-profile profile)]
-    (maps/mapify-coll (:templates profile))))
-
-;; Doesn't exactly conform to stmt batch requirements since in theory,
-;; a statement ref ID can refer to a FUTURE statement in the batch.
-;; However, this shouldn't really matter in practice.
-(defn statement-batch->id-statement-map
-  "Takes the coll `statement-batch` and returns a map between
-   Statement IDs and the Statement themselves. Used for Statement
-   Ref resolution, particularly in statement batch matching."
-  [statement-batch]
-  (maps/mapify-coll statement-batch :string? true))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -413,7 +373,9 @@
                                :all-valid? all-valid?
                                :short-circuit? short-circuit?)
     ;; else
-    (throw-unknown-opt fn-type)))
+    (let [msg (str "Unknown option: :" (name fn-type))]
+      #?(:clj (throw (IllegalArgumentException. msg))
+         :cljs (throw (js/Error. msg))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions

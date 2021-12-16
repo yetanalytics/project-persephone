@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as p]
+            [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
             [com.yetanalytics.persephone.utils.json :as jsn]
             [com.yetanalytics.persephone.utils.statement :as stmt]))
@@ -991,8 +992,8 @@ Pattern path:
    test-stmt-2
    test-stmt-3])
 
-(def catch-id-temp-map (p/profile->id-template-map catch-profile))
-(def catch-id-stmt-map (p/statement-batch->id-statement-map catch-stmt-batch))
+(def catch-id-temp-map (sref/profile->id-template-map catch-profile))
+(def catch-id-stmt-map (sref/statement-batch->id-statement-map catch-stmt-batch))
 
 (def evidence-advocacy-provide-irl
   "https://w3id.org/xapi/catch/templates#evidence-advocacy-provide")
@@ -1171,7 +1172,7 @@ Pattern path:
    checkin-complete-stmt])
 
 (def catch-id-stmt-map-2
-  (p/statement-batch->id-statement-map catch-stmt-batch-2))
+  (sref/statement-batch->id-statement-map catch-stmt-batch-2))
 
 ;; Add extra profile to test `:selected-profiles`
 (def catch-fsm

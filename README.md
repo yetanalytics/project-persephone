@@ -147,7 +147,7 @@ By default, Statement Ref Template validation is not supported; however, to allo
 - `:get-statement-fn`: A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 - `:get-template-fn`: A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
 
-This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, the API provides two functions for use with `statement-ref-fns`:
+This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, two functions are provided in the `persephone.template.statement-ref` namespace for use with `statement-ref-fns`:
 - `profile->id-template-map`: Takes a Profile and returns a map between Template IDs and Templates.
 - `statement-batch->id-statement-map`: Takes a Statement batch and returns a map between Statement IDs and Statements.
 

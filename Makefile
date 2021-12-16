@@ -10,6 +10,6 @@ test-cljs:
 	clojure -A:test:runner-cljs
 
 coverage:
-	clojure -A:test:runner-cov
+	clojure -A:test:runner-coverage
 
 ci: clean test-clj test-cljs

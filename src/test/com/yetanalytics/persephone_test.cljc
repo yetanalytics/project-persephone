@@ -3,11 +3,12 @@
             [com.yetanalytics.persephone :as p]
             [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
-            [com.yetanalytics.persephone.utils.json :as jsn]
-            [com.yetanalytics.persephone.utils.statement :as stmt]))
+            [com.yetanalytics.persephone.utils.statement :as stmt]
+            [com.yetanalytics.persephone-test.test-utils :as test-u]))
 
 ;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
 
+;; TODO: Move to test-utils
 #?(:cljs
    (defn slurp [path]
      (let [fs (js/require "fs")]
@@ -149,8 +150,10 @@
 
 ;; To avoid the above issue with string-valued keys, we made all such rules
 ;; with these kinds of JSONPath strings 'recommended' instead of 'included'
-(def cmi-profile (slurp "test-resources/sample_profiles/cmi5.json"))
-(def cmi-templates (:templates (jsn/json->edn cmi-profile :keywordize? true)))
+(def cmi-profile (-> (slurp "test-resources/sample_profiles/cmi5.json")
+                     (test-u/json->edn :keywordize? true)))
+
+(def cmi-templates (:templates cmi-profile))
 
 (def cmi-profile-id "https://w3id.org/xapi/cmi5")
 (def cmi-version-id "https://w3id.org/xapi/cmi5/v1.0")
@@ -903,7 +906,8 @@ Pattern path:
 ;; CATCH Profile
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def catch-profile (slurp "test-resources/sample_profiles/catch.json"))
+(def catch-profile (-> (slurp "test-resources/sample_profiles/catch.json")
+                       (test-u/json->edn :keywordize? true)))
 (def catch-profile-id "https://w3id.org/xapi/catch")
 
 (def statement-basics

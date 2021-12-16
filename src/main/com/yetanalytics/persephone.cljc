@@ -7,7 +7,6 @@
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
             [com.yetanalytics.persephone.utils.asserts   :as assert]
-            [com.yetanalytics.persephone.utils.json      :as json]
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
@@ -19,10 +18,7 @@
 ;; Specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(s/def ::profiles
-  (s/coll-of (s/or :json (s/and (s/conformer json/coerce-profile)
-                                ::pan-profile/profile)
-                   :edn ::pan-profile/profile)))
+(s/def ::profiles (s/coll-of ::pan-profile/profile))
 
 (s/def ::validate-profiles? boolean?)
 (s/def ::compile-nfa? boolean?)
@@ -31,10 +27,7 @@
 (s/def ::selected-templates (s/every ::pan-template/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(def statement-spec
-  (s/or :json (s/and (s/conformer json/coerce-statement)
-                     ::xs/statement)
-        :edn ::xs/statement))
+(def statement-spec ::xs/statement)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -106,24 +99,23 @@
                       selected-profiles
                       selected-templates]
                :or   {validate-profiles? true}}]
-  (let [profiles (map json/coerce-profile profiles)]
-    (when validate-profiles?
-      (dorun (map assert/assert-profile profiles))
-      (assert/assert-profile-ids profiles)
-      (assert/assert-template-ids profiles))
-    (let [?prof-id-set    (when selected-profiles (set selected-profiles))
-          ?temp-id-set    (when selected-templates (set selected-templates))
-          temp->validator (fn [temp]
-                            (template->validator temp statement-ref-fns))]
-      (cond->> profiles
-        ?prof-id-set
-        (filter (fn [{:keys [id]}] (?prof-id-set id)))
-        true
-        (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
-        ?temp-id-set
-        (filter (fn [{:keys [id]}] (?temp-id-set id)))
-        true
-        (map temp->validator)))))
+  (when validate-profiles?
+    (dorun (map assert/assert-profile profiles))
+    (assert/assert-profile-ids profiles)
+    (assert/assert-template-ids profiles))
+  (let [?prof-id-set    (when selected-profiles (set selected-profiles))
+        ?temp-id-set    (when selected-templates (set selected-templates))
+        temp->validator (fn [temp]
+                          (template->validator temp statement-ref-fns))]
+    (cond->> profiles
+      ?prof-id-set
+      (filter (fn [{:keys [id]}] (?prof-id-set id)))
+      true
+      (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
+      ?temp-id-set
+      (filter (fn [{:keys [id]}] (?temp-id-set id)))
+      true
+      (map temp->validator))))
 
 (s/def ::all-valid? boolean?)
 (s/def ::short-circuit boolean?)
@@ -148,8 +140,7 @@
    is `true`) in `compiled-templates`, `false` otherwise."
   [compiled-templates statement & {:keys [all-valid?]
                                    :or   {all-valid? false}}]
-  (let [stmt    (json/coerce-statement statement)
-        pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn stmt))]
+  (let [pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn statement))]
     (if all-valid?
       (->> compiled-templates
            (every? pred-fn))
@@ -196,15 +187,14 @@
   [compiled-templates statement & {:keys [all-valid? short-circuit?]
                                    :or   {all-valid?     false
                                           short-circuit? false}}]
-  (let [stmt       (json/coerce-statement statement)
-        err-acc    (if short-circuit?
+  (let [err-acc    (if short-circuit?
                      (fn [acc id errs] (reduced (assoc acc id errs)))
                      (fn [acc id errs] (assoc acc id errs)))
         valid-acc  (if all-valid?
                      identity
                      (constantly (reduced nil)))
         conj-error (fn [acc {:keys [id validator-fn]}]
-                     (if-some [errs (validator-fn stmt)]
+                     (if-some [errs (validator-fn statement)]
                        (err-acc acc id errs)
                        (valid-acc acc)))]
     (->> compiled-templates
@@ -270,9 +260,8 @@
   "Returns a vector of all the Template IDs that `statement` is
    valid against."
   [compiled-templates statement]
-  (let [stmt          (json/coerce-statement statement)
-        conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
-                        (if (predicate-fn stmt)
+  (let [conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
+                        (if (predicate-fn statement)
                           (conj valid-ids id)
                           valid-ids))]
     (reduce conj-valid-id [] compiled-templates)))
@@ -418,27 +407,26 @@
                       compile-nfa?
                       selected-profiles
                       selected-patterns]
-               :or   {validate-profiles?     true
-                      compile-nfa?           false}}]
-  (let [profiles (map json/coerce-profile profiles)
-        opt-map  {:statement-ref-fns statement-ref-fns
-                  :compile-nfa?      compile-nfa?
-                  :selected-patterns selected-patterns}]
-    (when validate-profiles?
-      (dorun (map assert/assert-profile profiles))
-      (assert/assert-profile-ids profiles)
-      (assert/assert-pattern-ids profiles))
-    (let [?prof-id-set (when selected-profiles (set selected-profiles))
-          profiles     (cond->> profiles
-                         ?prof-id-set
-                         (filter (fn [{:keys [id]}] (?prof-id-set id))))
-          prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
-                            profiles)
-          pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
-                            profiles)]
-      (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
-                    prof-id-seq
-                    pat-fsm-seq)))))
+               :or   {validate-profiles? true
+                      compile-nfa?       false}}]
+  (when validate-profiles?
+    (dorun (map assert/assert-profile profiles))
+    (assert/assert-profile-ids profiles)
+    (assert/assert-pattern-ids profiles))
+  (let [opt-map      {:statement-ref-fns statement-ref-fns
+                      :compile-nfa?      compile-nfa?
+                      :selected-patterns selected-patterns}
+        ?prof-id-set (when selected-profiles (set selected-profiles))
+        profiles     (cond->> profiles
+                       ?prof-id-set
+                       (filter (fn [{:keys [id]}] (?prof-id-set id))))
+        prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
+                          profiles)
+        pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
+                          profiles)]
+    (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                  prof-id-seq
+                  pat-fsm-seq))))
 
 ;; Registration Key Construction
 
@@ -586,12 +574,11 @@
                                                  :or   {print? false}}]
   (if (:error state-info-map) ; TODO: Should errors also be printed?
     state-info-map
-    (let [statement      (json/coerce-statement statement)
-          reg-pat-st-m   (:states-map state-info-map)
-          prof-id-set    (set (keys compiled-profiles))
-          stmt-prof-ids  (stmt/get-statement-profile-ids statement prof-id-set)
-          stmt-reg       (stmt/get-statement-registration statement)
-          ?stmt-subreg   (stmt/get-statement-subregistration statement stmt-reg)]
+    (let [reg-pat-st-m  (:states-map state-info-map)
+          prof-id-set   (set (keys compiled-profiles))
+          stmt-prof-ids (stmt/get-statement-profile-ids statement prof-id-set)
+          stmt-reg      (stmt/get-statement-registration statement)
+          ?stmt-subreg  (stmt/get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
                           (when (keyword? ?stmt-subreg) ?stmt-subreg))]
         {:error {:type      err-kw

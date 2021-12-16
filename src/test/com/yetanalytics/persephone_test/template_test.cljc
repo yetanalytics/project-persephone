@@ -1,25 +1,26 @@
 (ns com.yetanalytics.persephone-test.template-test
   (:require [clojure.test :refer [deftest testing is]]
-            [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template.errors :as print-errs]
-            [com.yetanalytics.persephone.template :as tv]))
+            [com.yetanalytics.persephone.template :as tv]
+            [com.yetanalytics.persephone-test.test-utils :as test-u]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: Move to test-utils
 #?(:cljs (defn slurp [path]
            (let [fs (js/require "fs")]
              (.readFileSync fs path "utf8"))))
 
 (def ex-statement-1
-  (json/json->edn (slurp "test-resources/sample_statements/adl_1.json")))
+  (test-u/json->edn (slurp "test-resources/sample_statements/adl_1.json")))
 (def ex-statement-2
-  (json/json->edn (slurp "test-resources/sample_statements/adl_2.json")))
+  (test-u/json->edn (slurp "test-resources/sample_statements/adl_2.json")))
 (def ex-statement-3
-  (json/json->edn (slurp "test-resources/sample_statements/adl_3.json")))
+  (test-u/json->edn (slurp "test-resources/sample_statements/adl_3.json")))
 (def ex-statement-4
-  (json/json->edn (slurp "test-resources/sample_statements/adl_4.json")))
+  (test-u/json->edn (slurp "test-resources/sample_statements/adl_4.json")))
 
 ;; Statement that conforms to ex-template
 ;; Not a complete Statement, but has the minimum for validation

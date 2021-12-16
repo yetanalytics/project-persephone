@@ -3,7 +3,6 @@
             [xapi-schema.spec   :as xs]
             [com.yetanalytics.pan.objects.template     :as pan-template]
             [com.yetanalytics.persephone.utils.asserts :as assert]
-            [com.yetanalytics.persephone.utils.json    :as json]
             [com.yetanalytics.persephone.utils.maps    :as maps]))
 
 ;; TODO: Move some sref-related functions from `template` ns to here?
@@ -35,8 +34,7 @@
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (when validate-profile? (assert/assert-profile profile))
-  (let [profile (json/coerce-profile profile)]
-    (maps/mapify-coll (:templates profile))))
+  (maps/mapify-coll (:templates profile)))
 
 ;; Doesn't exactly conform to stmt batch requirements since in theory,
 ;; a statement ref ID can refer to a FUTURE statement in the batch.

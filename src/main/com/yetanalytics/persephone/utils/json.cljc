@@ -1,48 +1,5 @@
 (ns com.yetanalytics.persephone.utils.json
-  (:require [com.yetanalytics.pathetic :as pathetic]
-            [com.yetanalytics.pan.utils.json :refer [convert-json]]
-            #?(:clj [clojure.data.json :as json])))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; JSON-EDN conversion
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn json->edn
-  "Convert a JSON data structure to EDN. By default, keys will
-   remain strings. If `keywordize?` is true then all keys are
-   turned into keywords, with all instances `@` replaced with
-   `_` (this is not recommended for IRI keys)."
-  [json-str & {:keys [keywordize?] :or {keywordize? false}}]
-  (if keywordize?
-    (convert-json json-str "_")
-    #?(:clj (json/read-str json-str)
-       :cljs (js->clj (.parse js/JSON json-str)))))
-
-(defn edn->json
-  "Convert an EDN data structure to a JSON string."
-  [edn-data]
-  #?(:clj (json/write-str edn-data)
-     :cljs (->> edn-data clj->js (.stringify js/JSON))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Common JSON-to-EDN coercion functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn coerce-statement
-  "If `statement` is a JSON string, coerce it to EDN with string keys.
-   Throws if a parse failure occurs."
-  [statement]
-  (if (string? statement)
-    (json->edn statement)
-    statement))
-
-(defn coerce-profile
-  "If `profile` is a JSON string, coerce it to EDN with keyword keys.
-   Throws if a parse failure occurs."
-  [profile]
-  (if (string? profile)
-    (json->edn profile :keywordize? true)
-    profile))
+  (:require [com.yetanalytics.pathetic :as pathetic]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath operations

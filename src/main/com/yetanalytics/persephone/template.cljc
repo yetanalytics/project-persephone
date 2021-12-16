@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone.template
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [xapi-schema.spec] ; for :statement/id
+            [xapi-schema.spec :as xs] ; for :statement/id
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.objects.template :as pan-temp]
             [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
@@ -68,11 +68,10 @@
   (s/keys :req-un [::stmt
                    ::temp
                    ::pred
-                   ::vals]
-          ;; TODO: Make this a "only one of these" spec
-          :opt-un [::pan-rules/rule
-                   ::prop
-                   ::sref]))
+                   ::vals
+                   (or ::pan-rules/rule
+                       ::prop
+                       ::sref)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -180,9 +179,6 @@
 ;; A validator returns a seq of errors upon failure, nil otherwise
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: More sophisticated fn spec
-(def validator-spec fn?)
-
 (defn- create-statement-ref-validator
   "The arguments are as follows:
    `stmt-ref-templates`  The Statement Ref Template array
@@ -277,6 +273,12 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
+(def validator-spec
+  (s/fspec
+   :args ::xs/statement
+   :ret validation-result-spec))
+
+;; TODO: Spec this function
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
@@ -304,9 +306,6 @@
 ;; Predicates
 ;; A predicate returns true on success, false on failure
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO: More sophisticated fn spec
-(def predicate-spec fn?)
 
 (defn- create-statement-ref-predicate
   "Same arguments as `create-statement-ref-validator`.
@@ -359,6 +358,12 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
+(def predicate-spec
+  (s/fspec
+   :args ::xs/statement
+   :ret boolean?))
+
+;; TODO: Spec this function
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."

@@ -27,7 +27,9 @@
 (s/def ::selected-templates (s/every ::pan-template/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(def statement-spec ::xs/statement)
+(s/def ::error #{::stmt/missing-profile-reference
+                 ::stmt/invalid-subreg-no-registration
+                 ::stmt/invalid-subreg-nonconformant})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -130,7 +132,7 @@
 
 (s/fdef validated-statement?
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?]))
   :ret boolean?)
 
@@ -151,9 +153,9 @@
 ;; c.f. Just/Option (Some/None) types
 (s/fdef validate-statement-filter
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?]))
-  :ret (s/nilable statement-spec))
+  :ret (s/nilable ::xs/statement))
 
 (defn validate-statement-filter
   "Returns `statement` if it is valid against any Template (if
@@ -171,7 +173,7 @@
 ;; c.f. Result (Ok/Error) types
 (s/fdef validate-statement-errors
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?
                                           ::short-circuit?]))
   :ret (s/nilable (s/coll-of t/validation-result-spec
@@ -204,7 +206,7 @@
 
 (s/fdef validate-statement-assert
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?
                                           ::short-circuit?]))
   ;; Spec doesn't test side effects - only catch nil case
@@ -227,7 +229,7 @@
 
 (s/fdef validate-statement-print
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?
                                           ::short-circuit?]))
   ;; Spec doesn't test side effects - only catch nil return
@@ -253,7 +255,7 @@
 
 (s/fdef validate-statement-template-ids
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec)
+               :statement ::xs/statement)
   :ret (s/every ::pan-template/id))
 
 (defn validate-statement-template-ids
@@ -268,14 +270,14 @@
 
 ;; Generic validation
 
-(s/fdef validate-statement-template-ids
+(s/fdef validate-statement
   :args (s/cat :compiled-templates compiled-templates-spec
-               :statement statement-spec
+               :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::fn-type
                                           ::all-valid?
                                           ::short-circuit?]))
   :ret (s/or :predicate boolean?
-             :filter    (s/nilable statement-spec)
+             :filter    (s/nilable ::xs/statement)
              :errors    (s/nilable (s/coll-of t/validation-result-spec
                                               :min-count 1))
              :templates (s/every ::pan-template/id)
@@ -464,11 +466,6 @@
                                    ::rejects
                                    ::states-map])))
 
-;; TODO: Move to top of namespace
-(s/def ::error #{::stmt/missing-profile-reference
-                 ::stmt/invalid-subreg-no-registration
-                 ::stmt/invalid-subreg-nonconformant})
-
 (def match-stmt-error-spec
   (s/keys :req-un [::error ::xs/statement]))
 
@@ -519,7 +516,7 @@
   :args (s/cat :compiled-profiles compiled-profiles-spec
                :state-info-map    state-info-map-spec
                :statement         (s/or :error match-stmt-error-spec
-                                        :ok statement-spec))
+                                        :ok ::xs/statement))
   :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 
@@ -629,7 +626,7 @@
   :args (s/cat :compiled-profiles compiled-profiles-spec
                :state-info-map    state-info-map-spec
                :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
-                                                   :ok statement-spec)))
+                                                   :ok ::xs/statement)))
   :ret (s/or :error match-stmt-error-spec
              :ok state-info-map-spec))
 

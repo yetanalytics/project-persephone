@@ -225,10 +225,14 @@
 ;; Putting it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(s/def ::nfa-meta
+  (s/keys :opt-un [:meta/states]))
+
 (def fsm-map-spec
   (s/keys :req-un [::pan-pattern/id
                    ::fs/dfa]
-          :opt-un [::fs/nfa]))
+          :opt-un [::fs/nfa
+                   ::fs/nfa-meta]))
 
 (def state-info-spec fs/state-info-spec)
 

@@ -2,7 +2,6 @@
  :deps {org.clojure/clojure       {:mvn/version "1.10.2"}
         org.clojure/clojurescript {:mvn/version "1.10.764"
                                    :exclusions  [org.clojure/data.json]}
-        org.clojure/data.json     {:mvn/version "1.0.0"} ; clj only
         com.yetanalytics/xapi-schema ; Latest commit: 3/26/21
         {:git/url    "https://github.com/yetanalytics/xapi-schema.git"
          :sha        "77f78d1713e50e7b8610f58b5137695b0fccddaa"
@@ -33,6 +32,7 @@
   :test
   {:extra-paths ["src/test" "src/gen" "test-resources"]
    :extra-deps  {org.clojure/test.check  {:mvn/version "1.1.0"}
+                 org.clojure/data.json   {:mvn/version "1.0.0"} ; clj only
                  olical/cljs-test-runner {:mvn/version "3.8.0"
                                           :exclusions  [org.clojure/clojurescript
                                                         org.clojure/data.json]}

@@ -14,7 +14,8 @@
 ;; Specs 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(s/def ::stmt :statement/id)
+;; Statement IDs are technically optional
+(s/def ::stmt (s/nilable :statement/id))
 (s/def ::temp ::pan-temp/id)
 
 (s/def ::vals (s/coll-of any?))
@@ -26,8 +27,9 @@
     :any-matchable?
     :some-any-values?
     :only-all-values?
-    :no-unmatch-vals?
-    :no-none-values?})
+    :no-none-values?
+    :every-val-present?
+    :no-unmatch-vals?})
 
 (s/def ::location ::pan-rules/location)
 
@@ -277,11 +279,11 @@
 (def validator-spec
   (s/fspec
    :args (s/cat :statement ::xs/statement)
-   :ret validation-result-spec))
+   :ret (s/nilable (s/coll-of validation-result-spec))))
 
 (s/fdef create-template-validator
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
   :ret validator-spec)
 
 (defn create-template-validator
@@ -368,9 +370,10 @@
    :args (s/cat :statement ::xs/statement)
    :ret boolean?))
 
+;; TODO: Seems kind of dumb to have a nilable opt arg?
 (s/fdef create-template-predicate
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
   :ret predicate-spec)
 
 (defn create-template-predicate

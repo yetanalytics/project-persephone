@@ -219,22 +219,22 @@
         (cond
           (not sref)
           [{:pred :statement-ref?
-            :vals statement
+            :vals [statement]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-not-found}}]
           (not sref-type?)
           [{:pred :statement-ref?
-            :vals sref
+            :vals [sref]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-object-type-invalid}}]
           (not sref-id)
           [{:pred :statement-ref?
-            :vals sref
+            :vals [sref]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-id-missing}}]
           (not sref-stmt)
           [{:pred :statement-ref?
-            :vals sref-id
+            :vals [sref-id]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-stmt-not-found}}]
           ;; TODO: Add additional errors for referencing future statements?

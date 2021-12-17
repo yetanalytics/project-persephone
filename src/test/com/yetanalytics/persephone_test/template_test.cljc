@@ -23,18 +23,23 @@
   (test-u/json->edn (slurp "test-resources/sample_statements/adl_4.json")))
 
 ;; Statement that conforms to ex-template
-;; Not a complete Statement, but has the minimum for validation
 (def ex-statement-0
-  {"id"          "some-uuid"
-   "actor"       {"objectType" "Agent"
+  {"id"          "281398bd-152d-4cf5-a73c-5b7afeb8c584"
+   "actor"       {"objectType" "Group"
                   "name"       "Yet Analytics Dev Team"
                   "mbox"       "mailto:email@yetanalytics.io"
-                  "member"     [{"name" "Will Hoyt"}
-                                {"name" "Milt Reder"}
-                                {"name" "John Newman"}
-                                {"name" "Henk Reder"}
-                                {"name" "Erika Lee"}
-                                {"name" "Boris Boiko"}]}
+                  "member"     [{"name" "Will Hoyt"
+                                 "mbox" "mailto:whoyt@yetanalytics.io"}
+                                {"name" "Milt Reder"
+                                 "mbox" "mailto:mreder@yetanalytics.io"}
+                                {"name" "John Newman"
+                                 "mbox" "mailto:jnewman@yetanalytics.io"}
+                                {"name" "Henk Reder"
+                                 "mbox" "mailto:hreder@yetanalytics.io"}
+                                {"name" "Erika Lee"
+                                 "mbox" "mailto:elee@yetanalytics.io"}
+                                {"name" "Boris Boiko"
+                                 "mbox" "mailto:bboiko@yetanalytics.io"}]}
    "verb"        {"id" "http://foo.org/verb"}
    "object"      {"id"          "http://www.example.com/object"
                   "objectType" "Activity"
@@ -65,8 +70,16 @@
                               {"id"         "http://foo.org/ca8"
                                "objectType" "Activity"
                                "definition" {"type" "http://foo.org/coat2"}}]}}
-   "attachments" [{"usageType" "http://foo.org/aut1"}
-                  {"usageType" "http://foo.org/aut2"}]})
+   "attachments" [{"usageType"   "http://foo.org/aut1"
+                   "display"     {"en" "Attachment 1"}
+                   "length"      100
+                   "contentType" "application/octet-stream"
+                   "sha2"        "SomeSHA2"}
+                  {"usageType" "http://foo.org/aut2"
+                   "display"     {"en" "Attachment 2"}
+                   "length"      200
+                   "contentType" "application/octet-stream"
+                   "sha2"        "SomeSHA3"}]})
 
 ;; Example template
 ;; Note how while Statement keys are strings, Statement Template keys are
@@ -110,6 +123,13 @@
             :presence "included"
             :all      ["Activity"]}]})
 
+(def base-template
+  {:id         "http://foo.org/example/template"
+   :type       "StatementTemplate"
+   :inScheme   "http://foo.org/profile/v1"
+   :prefLabel  {:en "Example Template"}
+   :definition {:en "This template is an example template for test cases."}})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -120,7 +140,7 @@
     (is (= ["http://foo.org/verb"]
            (tv/find-values ex-statement-0
                            (tv/parse-locator "$.verb.id"))))
-    (is (= ["Agent"]
+    (is (= ["Group"]
            (tv/find-values ex-statement-0
                            (tv/parse-locator "$.actor.objectType"))))
     (is (= ["Will Hoyt" "Milt Reder" "John Newman" "Henk Reder" "Erika Lee" "Boris Boiko"]
@@ -327,24 +347,34 @@
             validator function that accepts Statements."
     (is (nil? ((tv/create-template-validator ex-template) ex-statement-0)))
     (is (nil? ((tv/create-template-validator
-                {:verb "http://example.com/xapi/verbs#sent-a-statement"})
+                (merge
+                 base-template
+                 {:verb "http://example.com/xapi/verbs#sent-a-statement"}))
                ex-statement-1)))
     (is (nil? ((tv/create-template-validator
-                {:verb "http://adlnet.gov/expapi/verbs/attempted"})
+                (merge
+                 base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/attempted"}))
                ex-statement-2)))
     (is (nil? ((tv/create-template-validator
-                {:verb "http://adlnet.gov/expapi/verbs/attended"
-                 :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-                 :contextCategoryActivityType
-                 ["http://example.com/expapi/activities/meetingcategory"]})
+                (merge
+                 base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/attended"
+                  :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+                  :contextCategoryActivityType
+                  ["http://example.com/expapi/activities/meetingcategory"]}))
                ex-statement-3)))
     (is (nil? ((tv/create-template-validator
-                {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+                (merge
+                 base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/experienced"}))
                ex-statement-4)))
-    (is (nil? ((tv/create-template-validator {})
+    (is (nil? ((tv/create-template-validator base-template)
                ex-statement-4)))
     (is (some? ((tv/create-template-validator
-                {:verb "http://adlnet.gov/expapi/verbs/experienced-not"})
+                 (merge
+                  base-template
+                  {:verb "http://adlnet.gov/expapi/verbs/experienced-not"}))
                ex-statement-4)))))
 
 (deftest create-template-predicate-test
@@ -352,24 +382,29 @@
             predicate that accepts Statements."
     (is ((tv/create-template-predicate ex-template) ex-statement-0))
     (is ((tv/create-template-predicate
-          {:verb "http://example.com/xapi/verbs#sent-a-statement"})
+          (merge base-template
+                 {:verb "http://example.com/xapi/verbs#sent-a-statement"}))
          ex-statement-1))
     (is ((tv/create-template-predicate
-          {:verb "http://adlnet.gov/expapi/verbs/attempted"})
+          (merge base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/attempted"}))
          ex-statement-2))
     (is ((tv/create-template-predicate
-          {:verb "http://adlnet.gov/expapi/verbs/attended"
-           :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
-           :contextCategoryActivityType
-           ["http://example.com/expapi/activities/meetingcategory"]})
+          (merge base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/attended"
+                  :objectActivityType "http://adlnet.gov/expapi/activities/meeting"
+                  :contextCategoryActivityType
+                  ["http://example.com/expapi/activities/meetingcategory"]}))
          ex-statement-3))
     (is ((tv/create-template-predicate
-          {:verb "http://adlnet.gov/expapi/verbs/experienced"})
+          (merge base-template
+                 {:verb "http://adlnet.gov/expapi/verbs/experienced"}))
          ex-statement-4))
-    (is ((tv/create-template-predicate {})
+    (is ((tv/create-template-predicate base-template)
          ex-statement-4))
     (is (not ((tv/create-template-predicate
-               {:verb "http://adlnet.gov/expapi/verbs/experienced-not"})
+               (merge base-template
+                      {:verb "http://adlnet.gov/expapi/verbs/experienced-not"}))
               ex-statement-4)))))
 
 (deftest create-template-validator-test-2
@@ -521,76 +556,107 @@
               ((tv/create-template-validator ex-template) ex-statement-1)))))))
 
 (deftest statement-ref-templates-test
-  (let [id-template-map
-        {"stmt-ref-template-0" {:id "stmt-ref-template-0"
-                                :objectStatementRefTemplate
-                                ["stmt-ref-template-1"
-                                 "stmt-template-a"]
-                                :contextStatementRefTemplate
-                                ["stmt-template-a"
-                                 "stmt-ref-template-1"]}
-         "stmt-ref-template-1" {:id "stmt-ref-template-1"
-                                :objectStatementRefTemplate
-                                ["stmt-ref-template-2"]
-                                :contextStatementRefTemplate
-                                ["stmt-ref-template-2"]}
-         "stmt-ref-template-2" {:id "stmt-ref-template-2"
-                                :objectStatementRefTemplate
-                                ["stmt-ref-template-3"]
-                                :contextStatementRefTemplate
-                                ["stmt-ref-template-3"]}
-         "stmt-ref-template-3" {:id "stmt-ref-template-3"
-                                :objectStatementRefTemplate
-                                ["stmt-template-a"]
-                                :contextStatementRefTemplate
-                                ["stmt-template-a"]}
-         "stmt-ref-template-4" {:id "stmt-ref-template-4"
-                                :objectStatementRefTemplate
-                                ["stmt-template-b"
-                                 "stmt-ref-template-5"]
-                                :contextStatementRefTemplate
-                                ["stmt-ref-template-5"]}
-         "stmt-ref-template-5" {:id "stmt-ref-template-5"
-                                :verb "http://foo.org/verb-bar"
-                                :contextStatementRefTemplate
-                                ["stmt-template-c"]}
-         "stmt-template-a" {:id   "stmt-template-a"
-                            :verb "http://foo.org/verb"}
-         "stmt-template-b" {:id   "stmt-template-b"
-                            :verb "http://foo.org/verb-2"}
-         "stmt-template-c" {:id   "stmt-template-c"
-                            :verb "http://foo.org/verb-3"}}
+  (let [;; Templates
+        sref-template-id-0 "http://example.org/stmt-ref-template-0"
+        sref-template-id-1 "http://example.org/stmt-ref-template-1"
+        sref-template-id-2 "http://example.org/stmt-ref-template-2"
+        sref-template-id-3 "http://example.org/stmt-ref-template-3"
+        sref-template-id-4 "http://example.org/stmt-ref-template-4"
+        sref-template-id-5 "http://example.org/stmt-ref-template-5"
+        sref-template-id-a "http://example.org/stmt-template-a"
+        sref-template-id-b "http://example.org/stmt-template-b"
+        sref-template-id-c "http://example.org/stmt-template-c"
+        id-template-map
+        {sref-template-id-0 (merge
+                             base-template
+                             {:id sref-template-id-0
+                              :objectStatementRefTemplate
+                              [sref-template-id-1
+                               sref-template-id-a]
+                              :contextStatementRefTemplate
+                              [sref-template-id-a
+                               sref-template-id-1]})
+         sref-template-id-1 (merge
+                             base-template
+                             {:id sref-template-id-1
+                              :objectStatementRefTemplate
+                              [sref-template-id-2]
+                              :contextStatementRefTemplate
+                              [sref-template-id-2]})
+         sref-template-id-2 (merge
+                             base-template
+                             {:id sref-template-id-2
+                              :objectStatementRefTemplate
+                              [sref-template-id-3]
+                              :contextStatementRefTemplate
+                              [sref-template-id-3]})
+         sref-template-id-3 (merge
+                             base-template
+                             {:id sref-template-id-3
+                              :objectStatementRefTemplate
+                              [sref-template-id-a]
+                              :contextStatementRefTemplate
+                              [sref-template-id-a]})
+         sref-template-id-4 (merge
+                             base-template
+                             {:id sref-template-id-4
+                              :objectStatementRefTemplate
+                              [sref-template-id-b
+                               sref-template-id-5]
+                              :contextStatementRefTemplate
+                              [sref-template-id-5]})
+         sref-template-id-5 (merge
+                             base-template
+                             {:id sref-template-id-5
+                              :verb "http://foo.org/verb-bar"
+                              :contextStatementRefTemplate
+                              [sref-template-id-c]})
+         sref-template-id-a (merge base-template
+                                   {:id   sref-template-id-a
+                                    :verb "http://foo.org/verb"})
+         sref-template-id-b (merge base-template
+                                   {:id   sref-template-id-b
+                                    :verb "http://foo.org/verb-2"})
+         sref-template-id-c (merge base-template
+                                   {:id   sref-template-id-c
+                                    :verb "http://foo.org/verb-3"})}
+        ;; Statements
+        stmt-id-0 "00000000-0000-4000-a000-000000000000"
+        stmt-id-1 "00000000-0000-4000-a000-000000000001"
+        stmt-id-2 "00000000-0000-4000-a000-000000000002"
+        stmt-id-3 "00000000-0000-4000-a000-000000000003"
+        stmt-id-4 "00000000-0000-4000-a000-000000000004"
         stmt-map
-        {"stmt-0" (-> ex-statement-0
-                      (assoc "id" "stmt-0")
-                      (assoc "object" {"id" "stmt-1"
-                                       "objectType" "StatementRef"})
-                      (assoc-in ["context" "statement"]
-                                {"id" "stmt-1"
-                                 "objectType" "StatementRef"}))
-         "stmt-1" (-> ex-statement-0
-                      (assoc "id" "stmt-1")
-                      (assoc "object" {"id" "stmt-2"
-                                       "objectType" "StatementRef"})
-                      (assoc-in ["context" "statement"]
-                                {"id" "stmt-2"
-                                 "objectType" "StatementRef"}))
-         "stmt-2" (-> ex-statement-0
-                      (assoc "id" "stmt-2")
-                      (assoc "object" {"id" "stmt-3"
-                                       "objectType" "StatementRef"})
-                      (assoc-in ["context" "statement"]
-                                {"id" "stmt-3"
-                                 "objectType" "StatementRef"}))
-         "stmt-3" (-> ex-statement-0
-                      (assoc "id" "stmt-3")
-                      (assoc "object" {"id" "stmt-4"
-                                       "objectType" "StatementRef"})
-                      (assoc-in ["context" "statement"]
-                                {"id" "stmt-4"
-                                 "objectType" "StatementRef"}))
-         "stmt-4" (-> ex-statement-0
-                      (assoc "id" "stmt-4"))}
+        {stmt-id-0 (-> ex-statement-0
+                       (assoc "id" stmt-id-0)
+                       (assoc "object" {"id" stmt-id-1
+                                        "objectType" "StatementRef"})
+                       (assoc-in ["context" "statement"]
+                                 {"id" stmt-id-1
+                                  "objectType" "StatementRef"}))
+         stmt-id-1 (-> ex-statement-0
+                       (assoc "id" stmt-id-1)
+                       (assoc "object" {"id" stmt-id-2
+                                        "objectType" "StatementRef"})
+                       (assoc-in ["context" "statement"]
+                                 {"id" stmt-id-2
+                                  "objectType" "StatementRef"}))
+         stmt-id-2 (-> ex-statement-0
+                       (assoc "id" stmt-id-2)
+                       (assoc "object" {"id" stmt-id-3
+                                        "objectType" "StatementRef"})
+                       (assoc-in ["context" "statement"]
+                                 {"id" stmt-id-3
+                                  "objectType" "StatementRef"}))
+         stmt-id-3 (-> ex-statement-0
+                       (assoc "id" stmt-id-3)
+                       (assoc "object" {"id" stmt-id-4
+                                        "objectType" "StatementRef"})
+                       (assoc-in ["context" "statement"]
+                                 {"id" stmt-id-4
+                                  "objectType" "StatementRef"}))
+         stmt-id-4 (-> ex-statement-0
+                       (assoc "id" stmt-id-4))}
         make-validator
         (fn [id]
           (tv/create-template-validator
@@ -604,151 +670,151 @@
            {:get-template-fn  id-template-map
             :get-statement-fn stmt-map}))]
     (testing "statement ref template validators - valid"
-      (is (nil? ((make-validator "stmt-ref-template-0")
-                 (get stmt-map "stmt-0"))))
-      (is (nil? ((make-validator "stmt-ref-template-1")
-                 (get stmt-map "stmt-1"))))
-      (is (nil? ((make-validator "stmt-ref-template-2")
-                 (get stmt-map "stmt-2"))))
-      (is (nil? ((make-validator "stmt-ref-template-3")
-                 (get stmt-map "stmt-3")))))
+      (is (nil? ((make-validator sref-template-id-0)
+                 (get stmt-map stmt-id-0))))
+      (is (nil? ((make-validator sref-template-id-1)
+                 (get stmt-map stmt-id-1))))
+      (is (nil? ((make-validator sref-template-id-2)
+                 (get stmt-map stmt-id-2))))
+      (is (nil? ((make-validator sref-template-id-3)
+                 (get stmt-map stmt-id-3)))))
     (testing "statement ref template predicates - valid"
-      (is ((make-predicate "stmt-ref-template-0")
-           (get stmt-map "stmt-0")))
-      (is ((make-predicate "stmt-ref-template-1")
-           (get stmt-map "stmt-1")))
-      (is ((make-predicate "stmt-ref-template-2")
-           (get stmt-map "stmt-2")))
-      (is ((make-predicate "stmt-ref-template-3")
-           (get stmt-map "stmt-3"))))
+      (is ((make-predicate sref-template-id-0)
+           (get stmt-map stmt-id-0)))
+      (is ((make-predicate sref-template-id-1)
+           (get stmt-map stmt-id-1)))
+      (is ((make-predicate sref-template-id-2)
+           (get stmt-map stmt-id-2)))
+      (is ((make-predicate sref-template-id-3)
+           (get stmt-map stmt-id-3))))
     (testing "statement ref template validator - invalid"
       (let [stmt (-> ex-statement-0
                       (dissoc "object")
                       (dissoc "context"))]
         (is (= [{:pred :statement-ref?
-                 :vals stmt
+                 :vals [stmt]
                  :sref {:location     "$.object"
                         :sref-failure :sref-not-found}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
-                 :vals stmt
+                 :vals [stmt]
                  :sref {:location     "$.context.statement"
                         :sref-failure :sref-not-found}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}]
-               ((make-validator "stmt-ref-template-3") stmt))))
+               ((make-validator sref-template-id-3) stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
                                {"objectType" "Foo" "id" "bar"})
                      (assoc-in ["context" "statement"]
                                {"objectType" "Foo" "id" "bar"}))]
         (is (= [{:pred :statement-ref?
-                 :vals (get-in stmt ["object"])
+                 :vals [(get-in stmt ["object"])]
                  :sref {:location     "$.object"
                         :sref-failure :sref-object-type-invalid}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
-                 :vals (get-in stmt ["context" "statement"])
+                 :vals [(get-in stmt ["context" "statement"])]
                  :sref {:location     "$.context.statement"
                         :sref-failure :sref-object-type-invalid}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}]
-               ((make-validator "stmt-ref-template-3") stmt))))
+               ((make-validator sref-template-id-3) stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
                                {"objectType" "StatementRef"})
                      (assoc-in ["context" "statement"]
                                {"objectType" "StatementRef"}))]
         (is (= [{:pred :statement-ref?
-                 :vals (get-in stmt ["object"])
+                 :vals [(get-in stmt ["object"])]
                  :sref {:location     "$.object"
                         :sref-failure :sref-id-missing}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
-                 :vals (get-in stmt ["context" "statement"])
+                 :vals [(get-in stmt ["context" "statement"])]
                  :sref {:location     "$.context.statement"
                         :sref-failure :sref-id-missing}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}]
-               ((make-validator "stmt-ref-template-3") stmt))))
+               ((make-validator sref-template-id-3) stmt))))
       (let [stmt (-> ex-statement-0
                      (assoc-in ["object"]
                                {"objectType" "StatementRef" "id" "baz"})
                      (assoc-in ["context" "statement"]
                                {"objectType" "StatementRef" "id" "qux"}))]
         (is (= [{:pred :statement-ref?
-                 :vals (get-in stmt ["object" "id"])
+                 :vals [(get-in stmt ["object" "id"])]
                  :sref {:location     "$.object"
                         :sref-failure :sref-stmt-not-found}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}
                 {:pred :statement-ref?
-                 :vals (get-in stmt ["context" "statement" "id"])
+                 :vals [(get-in stmt ["context" "statement" "id"])]
                  :sref {:location     "$.context.statement"
                         :sref-failure :sref-stmt-not-found}
-                 :temp "stmt-ref-template-3"
+                 :temp sref-template-id-3
                  :stmt (get stmt "id")}]
-               ((make-validator "stmt-ref-template-3") stmt))))
+               ((make-validator sref-template-id-3) stmt))))
       (is (= [{:pred :every-val-present?
                :vals ["http://foo.org/verb"]
                :prop {:location   "$.verb.id"
                       :match-vals ["http://foo.org/verb-bar"]
                       :det-prop   "Verb"}
-               :temp "stmt-ref-template-5"
-               :stmt "stmt-4"}
+               :temp sref-template-id-5
+               :stmt stmt-id-4}
               {:pred :statement-ref?
-               :vals (get stmt-map "stmt-4")
+               :vals [(get stmt-map stmt-id-4)]
                :sref {:location     "$.context.statement"
                       :sref-failure :sref-not-found}
-               :temp "stmt-ref-template-5"
-               :stmt "stmt-4"}]
-             ((make-validator "stmt-ref-template-5")
-              (get stmt-map "stmt-4"))))
+               :temp sref-template-id-5
+               :stmt stmt-id-4}]
+             ((make-validator sref-template-id-5)
+              (get stmt-map stmt-id-4))))
       (is (= [;; stmt-template-b
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
                :prop {:location   "$.verb.id"
                       :match-vals ["http://foo.org/verb-2"]
                       :det-prop   "Verb"}
-               :temp "stmt-template-b"
-               :stmt "stmt-4"}
+               :temp sref-template-id-b
+               :stmt stmt-id-4}
               ;; stmt-ref-template-5 - object
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
                :prop {:location   "$.verb.id"
                       :match-vals ["http://foo.org/verb-bar"]
                       :det-prop   "Verb"}
-               :temp "stmt-ref-template-5"
-               :stmt "stmt-4"}
+               :temp sref-template-id-5
+               :stmt stmt-id-4}
               {:pred :statement-ref?
-               :vals (get stmt-map "stmt-4")
+               :vals [(get stmt-map stmt-id-4)]
                :sref {:location     "$.context.statement"
                       :sref-failure :sref-not-found}
-               :temp "stmt-ref-template-5"
-               :stmt "stmt-4"}
+               :temp sref-template-id-5
+               :stmt stmt-id-4}
               ;; stmt-ref-template-5 - context
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
                :prop {:location   "$.verb.id"
                       :match-vals ["http://foo.org/verb-bar"]
                       :det-prop   "Verb"}
-               :temp "stmt-ref-template-5"
-               :stmt "stmt-3"}
+               :temp sref-template-id-5
+               :stmt stmt-id-3}
               {:pred :every-val-present?
                :vals ["http://foo.org/verb"]
                :prop {:location   "$.verb.id"
                       :match-vals ["http://foo.org/verb-3"]
                       :det-prop   "Verb"}
-               :temp "stmt-template-c"
-               :stmt "stmt-4"}]
-             ((make-validator "stmt-ref-template-4")
-              (assoc-in (get stmt-map "stmt-3")
+               :temp sref-template-id-c
+               :stmt stmt-id-4}]
+             ((make-validator sref-template-id-4)
+              (assoc-in (get stmt-map stmt-id-3)
                         ["context" "statement"]
                         {"objectType" "StatementRef"
-                         "id"         "stmt-3"})))))
+                         "id"         stmt-id-3})))))
     (testing "statement ref template predicate - invalid"
-        (is (not ((make-predicate "stmt-ref-template-4")
-                  (get stmt-map "stmt-3")))))))
+        (is (not ((make-predicate sref-template-id-4)
+                  (get stmt-map stmt-id-3)))))))

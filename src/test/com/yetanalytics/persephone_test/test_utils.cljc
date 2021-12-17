@@ -50,3 +50,10 @@
   (instrument-persephone)
   (f)
   (unstrument-persephone))
+
+(comment
+  ;; Keep instrumentation off by default since
+  ;; 1. some tests will fail (e.g. because they test invalid inputs on purpose)
+  ;; 2. it is insanely slow
+  (instrument-persephone)
+  (unstrument-persephone))

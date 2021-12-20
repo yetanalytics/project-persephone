@@ -1,7 +1,6 @@
 (ns com.yetanalytics.persephone.template
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [xapi-schema.spec :as xs]
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.objects.template :as pan-temp]
             [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
@@ -276,10 +275,15 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
-(def validator-spec
-  (s/fspec
-   :args (s/cat :statement ::xs/statement)
-   :ret (s/nilable (s/coll-of validation-result-spec))))
+(def validator-spec fn?)
+
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def validator-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret (s/nilable (s/coll-of validation-result-spec))))
 
 (s/fdef create-template-validator
   :args (s/cat :template ::pan-temp/template
@@ -366,9 +370,15 @@
                                             ?stmt-ref-opts)))))
 
 (def predicate-spec
-  (s/fspec
-   :args (s/cat :statement ::xs/statement)
-   :ret boolean?))
+  fn?)
+
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def predicate-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret boolean?))
 
 ;; TODO: Seems kind of dumb to have a nilable opt arg?
 (s/fdef create-template-predicate

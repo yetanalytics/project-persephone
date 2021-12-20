@@ -15,9 +15,11 @@
 (s/def ::get-template-fn
   (s/fspec :args (s/cat :template-id ::xs/iri)
            :ret (s/nilable ::pan-template/template)))
+
 (s/def ::get-statement-fn
   (s/fspec :args (s/cat :statement-id :statement/id)
            :ret (s/nilable ::xs/statement)))
+
 (s/def ::statement-ref-fns
   (s/keys :req-un [::get-template-fn
                    ::get-statement-fn]))

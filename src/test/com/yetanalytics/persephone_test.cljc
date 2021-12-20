@@ -846,6 +846,7 @@ Pattern path:
                 :error
                 :type))))
   (testing "error input returns the same"
+    ;; THESE TESTS WILL FAIL WHEN INSTRUMENTATION IS TURNED ON
     (is (= {:error {:type      ::stmt/missing-profile-reference
                     :statement {}}}
            (match-cmi {:error {:type ::stmt/missing-profile-reference

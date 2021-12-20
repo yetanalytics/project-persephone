@@ -423,20 +423,19 @@
              (p/validate-statement cmi-validator
                                    ex-statement
                                    :fn-type :templates))))
-    (testing "- invalid Statement (just an empty map)"
-      ;; THESE TESTS WILL FAIL IF INSTRUMENTATION IS ON
+    (testing "- invalid Statement"
       (is (not (p/validate-statement cmi-validator
-                                     {}
+                                     (dissoc ex-statement "id" "result")
                                      :fn-type :predicate)))
       (is (nil? (p/validate-statement cmi-validator
-                                      {}
+                                      (dissoc ex-statement "id" "result")
                                       :fn-type :filter)))
       (is (= [] (p/validate-statement cmi-validator
-                                      {}
+                                      (dissoc ex-statement "id" "result")
                                       :fn-type :templates)))
       (is (= 10 (count
                  (p/validate-statement cmi-validator
-                                       {}
+                                       (dissoc ex-statement "id" "result")
                                        :fn-type :errors))))
       (is (= {:pred :any-matchable?
               :vals [nil]
@@ -445,15 +444,15 @@
               :temp "https://w3id.org/xapi/cmi5#generalrestrictions"
               :stmt nil}
              (-> (p/validate-statement cmi-validator
-                                       {}
+                                       (dissoc ex-statement "id" "result")
                                        :fn-type :errors)
                  (get "https://w3id.org/xapi/cmi5#generalrestrictions")
                  first)))
       (is (= (p/validate-statement cmi-validator
-                                   {}
+                                   (dissoc ex-statement "id" "result")
                                    :fn-type :errors)
              (try (p/validate-statement cmi-validator
-                                        {}
+                                        (dissoc ex-statement "id" "result")
                                         :fn-type :errors)
                   (catch #?(:clj Exception :cljs js/Error) e
                     (-> e ex-data :errors))))))))
@@ -846,17 +845,16 @@ Pattern path:
                 :error
                 :type))))
   (testing "error input returns the same"
-    ;; THESE TESTS WILL FAIL WHEN INSTRUMENTATION IS TURNED ON
     (is (= {:error {:type      ::stmt/missing-profile-reference
-                    :statement {}}}
+                    :statement ex-statement}}
            (match-cmi {:error {:type ::stmt/missing-profile-reference
-                               :statement {}}}
-                      {})))
+                               :statement ex-statement}}
+                      ex-statement)))
     (is (= {:error {:type      ::stmt/missing-profile-reference
-                    :statement {}}}
+                    :statement ex-statement}}
            (match-cmi-2 {:error {:type      ::stmt/missing-profile-reference
-                                 :statement {}}}
-                        {})))))
+                                 :statement ex-statement}}
+                        ex-statement)))))
 
 ;; Batch Matching Tests
 

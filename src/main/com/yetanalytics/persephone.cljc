@@ -522,9 +522,9 @@
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement         (s/or :error stmt-error-spec
-                                        :ok ::xs/statement)
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement         ::xs/statement
                :kwargs            (s/keys* :opt-un [::print?]))
   :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
@@ -633,9 +633,9 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement-batch   (s/coll-of (s/or :error stmt-error-spec
-                                                   :ok ::xs/statement)))
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement-batch   (s/coll-of ::xs/statement))
   :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 

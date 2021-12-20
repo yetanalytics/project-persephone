@@ -380,7 +380,8 @@
                       ex-statement
                       :fn-type :printer)))))
     (testing "invalid :fn-type"
-      ;; THIS TEST WILL FAIL IF INSTRUMENTATION IS ON
+      ;; This test will throw different exceptions depending on if
+      ;; instrumentation is turned on or not, but should still pass.
       (is (try (ex-statement
                 (p/validate-statement
                  cmi-tmpl-0

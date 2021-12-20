@@ -1,8 +1,13 @@
 (ns com.yetanalytics.persephone-test.test-utils
   (:require [com.yetanalytics.pan.utils.json :refer [convert-json]]
+            [clojure.spec.test.alpha :as stest]
+            ;; To make instrumentation work in cljs
+            [clojure.test.check]
+            [clojure.test.check.generators]
+            [clojure.test.check.properties :include-macros true]
             #?@(:clj [[clojure.data.json :as json]
-                      [clojure.spec.test.alpha :as stest]
-                      [orchestra.spec.test     :as otest]])))
+                      [orchestra.spec.test     :as otest]])
+            #?@(:cljs [[orchestra-cljs.spec.test :as otest]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON Parsing
@@ -21,45 +26,39 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Instrumentation
-;; CLJ-only, since for some reason the dep throws an ExceptionInfo in cljs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#?(:clj
-   (defn- persephone-sym-filter
-     [sym]
-     (->> sym
-          namespace
-          (re-matches #"com\.yetanalytics\.persephone.*"))))
+(defn- persephone-sym-filter
+  [sym]
+  (->> sym
+       namespace
+       (re-matches #"com\.yetanalytics\.persephone.*")))
 
-#?(:clj
-   (defn- persephone-syms
-     []
-     (->> (stest/instrumentable-syms)
-          (filter persephone-sym-filter)
-          set)))
+(defn- persephone-syms
+  []
+  (->> (stest/instrumentable-syms)
+       (filter persephone-sym-filter)
+       set))
 
-#?(:clj
-   (defn instrument-persephone
-     "Instrument all instrumentable functions defined in persephone."
-     []
-     (otest/instrument (persephone-syms))))
+(defn instrument-persephone
+  "Instrument all instrumentable functions defined in persephone."
+  []
+  (otest/instrument (persephone-syms)))
 
-#?(:clj
-   (defn unstrument-persephone
-     "Instrument all instrumentable functions defined in persephone."
-     []
-     (otest/unstrument (persephone-syms))))
+(defn unstrument-persephone
+  "Instrument all instrumentable functions defined in persephone."
+  []
+  (otest/unstrument (persephone-syms)))
 
-#?(:clj
-   (defn instrumentation-fixture
-     [f]
-     (instrument-persephone)
-     (f)
-     (unstrument-persephone)))
+(defn instrumentation-fixture
+  [f]
+  (instrument-persephone)
+  (f)
+  (unstrument-persephone))
 
 (comment
   ;; Keep instrumentation off by default since
   ;; 1. some tests will fail (e.g. because they test invalid inputs on purpose)
   ;; 2. it is insanely slow
-  #?(:clj (instrument-persephone))
-  #?(:clj (unstrument-persephone)))
+  (instrument-persephone)
+  (unstrument-persephone))

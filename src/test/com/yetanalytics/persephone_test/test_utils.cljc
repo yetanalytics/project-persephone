@@ -56,8 +56,7 @@
            set)))
 
 (comment
-  ;; Keep instrumentation off by default since
-  ;; 1. some tests will fail (e.g. because they test invalid inputs on purpose)
-  ;; 2. it is insanely slow
+  ;; TODO: Add the instrumentation as a fixture
+  ;; (including in ClojureScript, somehow)
   (otest/instrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro)))
   (otest/unstrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro))))

@@ -846,13 +846,16 @@ Pattern path:
                 :error
                 :type))))
   (testing "error input returns the same"
-    ;; THESE TESTS FAIL WHEN INSTRUMENTATION IS ON
     (is (= {:error {:type      ::stmt/missing-profile-reference
-                    :statement nil}}
-           (match-cmi {:error ::stmt/missing-profile-reference} nil)))
+                    :statement {}}}
+           (match-cmi {:error {:type ::stmt/missing-profile-reference
+                               :statement {}}}
+                      {})))
     (is (= {:error {:type      ::stmt/missing-profile-reference
-                    :statement nil}}
-           (match-cmi-2 {:error ::stmt/missing-profile-reference} nil)))))
+                    :statement {}}}
+           (match-cmi-2 {:error {:type      ::stmt/missing-profile-reference
+                                 :statement {}}}
+                        {})))))
 
 ;; Batch Matching Tests
 

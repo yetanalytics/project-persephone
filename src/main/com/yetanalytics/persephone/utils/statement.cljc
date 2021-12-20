@@ -31,8 +31,8 @@
 (s/fdef get-statement-profile-ids
   :args (s/cat :statement ::xs/statement
                :profile-id-set (s/every ::pan-prof/id :kind set?))
-  :ret (s/or :error #{::missing-profile-reference}
-             :ok (s/every ::pan-prof/id :kind set?)))
+  :ret (s/or :ok (s/every ::pan-prof/id :kind set?)
+             :error #{::missing-profile-reference}))
 
 (defn get-statement-profile-ids
   "Get the category context activity IDs that are also profile IDs, or
@@ -81,7 +81,9 @@
 (s/fdef get-statement-subregistration
   :args (s/cat :statement ::xs/statement
                :registration ::registration)
-  :ret subregistration-spec)
+  :ret (s/or :ok (s/nilable subregistration-spec)
+             :error #{::invalid-subreg-no-registration
+                      ::invalid-subreg-nonconformant}))
 
 (defn get-statement-subregistration
   "Given `statement` and `registration`, return the subregistration

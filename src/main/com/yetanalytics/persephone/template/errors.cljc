@@ -118,7 +118,7 @@
     ;; Statement Ref Templates
     sref
     (let [{fail :sref-failure sref :location} sref]
-      (sref-error-str fail sref vals))
+      (sref-error-str fail sref (first vals)))
     ;; Determining Properties
     prop
     (let [{prop :det-prop mvals :match-vals} prop]

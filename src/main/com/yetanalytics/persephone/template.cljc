@@ -1,7 +1,6 @@
 (ns com.yetanalytics.persephone.template
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [xapi-schema.spec :as xs]
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.objects.template :as pan-temp]
             [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
@@ -14,7 +13,8 @@
 ;; Specs 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(s/def ::stmt :statement/id)
+;; Statement IDs are technically optional
+(s/def ::stmt (s/nilable :statement/id))
 (s/def ::temp ::pan-temp/id)
 
 (s/def ::vals (s/coll-of any?))
@@ -26,8 +26,9 @@
     :any-matchable?
     :some-any-values?
     :only-all-values?
-    :no-unmatch-vals?
-    :no-none-values?})
+    :no-none-values?
+    :every-val-present?
+    :no-unmatch-vals?})
 
 (s/def ::location ::pan-rules/location)
 
@@ -217,22 +218,22 @@
         (cond
           (not sref)
           [{:pred :statement-ref?
-            :vals statement
+            :vals [statement]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-not-found}}]
           (not sref-type?)
           [{:pred :statement-ref?
-            :vals sref
+            :vals [sref]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-object-type-invalid}}]
           (not sref-id)
           [{:pred :statement-ref?
-            :vals sref
+            :vals [sref]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-id-missing}}]
           (not sref-stmt)
           [{:pred :statement-ref?
-            :vals sref-id
+            :vals [sref-id]
             :sref {:location     stmt-ref-path
                    :sref-failure :sref-stmt-not-found}}]
           ;; TODO: Add additional errors for referencing future statements?
@@ -274,14 +275,19 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
-(def validator-spec
-  (s/fspec
-   :args (s/cat :statement ::xs/statement)
-   :ret validation-result-spec))
+(def validator-spec fn?)
+
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def validator-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret (s/nilable (s/coll-of validation-result-spec))))
 
 (s/fdef create-template-validator
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
   :ret validator-spec)
 
 (defn create-template-validator
@@ -364,13 +370,20 @@
                                             ?stmt-ref-opts)))))
 
 (def predicate-spec
-  (s/fspec
-   :args (s/cat :statement ::xs/statement)
-   :ret boolean?))
+  fn?)
 
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def predicate-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret boolean?))
+
+;; TODO: Seems kind of dumb to have a nilable opt arg?
 (s/fdef create-template-predicate
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? ::sref/statement-ref-fns))
+               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
   :ret predicate-spec)
 
 (defn create-template-predicate

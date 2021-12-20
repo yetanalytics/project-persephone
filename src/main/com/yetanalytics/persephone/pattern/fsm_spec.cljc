@@ -33,7 +33,7 @@
   (let [trans-srcs (reduce-kv (fn [acc src _] (conj acc src))
                               #{}
                               transitions)]
-    (= states trans-srcs)))
+    (cset/subset? trans-srcs states)))
 
 (defn- valid-transition-dest-states?
   [collect-dest-fn {:keys [states transitions] :as _fsm}]

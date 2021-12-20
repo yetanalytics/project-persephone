@@ -27,9 +27,15 @@
 (s/def ::selected-templates (s/every ::pan-template/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(s/def ::error #{::stmt/missing-profile-reference
-                 ::stmt/invalid-subreg-no-registration
-                 ::stmt/invalid-subreg-nonconformant})
+(s/def ::type #{::stmt/missing-profile-reference
+                ::stmt/invalid-subreg-no-registration
+                ::stmt/invalid-subreg-nonconformant})
+
+(s/def ::error
+  (s/keys :req-un [::type ::xs/statement]))
+
+(def stmt-error-spec
+  (s/keys :req-un [::error]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -44,13 +50,13 @@
    :validator-fn (t/create-template-validator template ?statement-ref-fns)
    :predicate-fn (t/create-template-predicate template ?statement-ref-fns)})
 
-(s/def ::validator t/validator-spec)
-(s/def ::predicate t/predicate-spec)
+(s/def ::validator-fn t/validator-spec)
+(s/def ::predicate-fn t/predicate-spec)
 
 (def compiled-template-spec
   (s/keys :req-un [::pan-template/id
-                   ::validator
-                   ::predicate]))
+                   ::validator-fn
+                   ::predicate-fn]))
 
 (def compiled-templates-spec
   (s/every compiled-template-spec))
@@ -171,13 +177,17 @@
 ;; `validate-statement-errors` based
 
 ;; c.f. Result (Ok/Error) types
+
+(def validation-error-map-spec
+  (s/map-of ::pan-template/id
+            (s/coll-of t/validation-result-spec :min-count 1)))
+
 (s/fdef validate-statement-errors
   :args (s/cat :compiled-templates compiled-templates-spec
                :statement ::xs/statement
                :kw-args (s/keys* :opt-un [::all-valid?
                                           ::short-circuit?]))
-  :ret (s/nilable (s/coll-of t/validation-result-spec
-                             :min-count 1)))
+  :ret (s/nilable validation-error-map-spec))
 
 (defn validate-statement-errors
   "Returns map from Template IDs to error data maps for each Template
@@ -278,8 +288,7 @@
                                           ::short-circuit?]))
   :ret (s/or :predicate boolean?
              :filter    (s/nilable ::xs/statement)
-             :errors    (s/nilable (s/coll-of t/validation-result-spec
-                                              :min-count 1))
+             :errors    (s/nilable validation-error-map-spec)
              :templates (s/every ::pan-template/id)
              :printer   nil?
              :assertion nil?))
@@ -466,9 +475,6 @@
                                    ::rejects
                                    ::states-map])))
 
-(def match-stmt-error-spec
-  (s/keys :req-un [::error ::xs/statement]))
-
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
@@ -512,12 +518,15 @@
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
+(s/def ::print? boolean?)
+
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement         (s/or :error match-stmt-error-spec
-                                        :ok ::xs/statement))
-  :ret (s/or :error match-stmt-error-spec
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement         ::xs/statement
+               :kwargs            (s/keys* :opt-un [::print?]))
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
@@ -624,10 +633,10 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
-                                                   :ok ::xs/statement)))
-  :ret (s/or :error match-stmt-error-spec
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement-batch   (s/coll-of ::xs/statement))
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch

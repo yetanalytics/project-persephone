@@ -287,31 +287,29 @@
 
 (s/fdef create-template-validator
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
+               :statement-ref-fns (s/nilable ::sref/statement-ref-fns))
   :ret validator-spec)
 
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
-  ([template]
-   (create-template-validator template nil))
-  ([template statement-ref-fns]
-   (let [{temp-id :id} template
-         rules         (add-determining-properties template)
-         validators    (create-rule-validators template
-                                               rules
-                                               statement-ref-fns)]
-     (fn [statement]
-       (let [stmt-id (get statement "id")
-             up-stmt (fn [e] (update e :stmt #(if-not % stmt-id %)))
-             up-temp (fn [e] (update e :temp #(if-not % temp-id %)))
-             errors  (->> validators
-                          (map (fn [validator] (validator statement)))
-                          flatten ; concat err colls from different validators
-                          (filter some?)
-                          (map up-stmt)
-                          (map up-temp))]
-         (not-empty errors))))))
+  [template ?statement-ref-fns]
+  (let [{temp-id :id} template
+        rules         (add-determining-properties template)
+        validators    (create-rule-validators template
+                                              rules
+                                              ?statement-ref-fns)]
+    (fn [statement]
+      (let [stmt-id (get statement "id")
+            up-stmt (fn [e] (update e :stmt #(if-not % stmt-id %)))
+            up-temp (fn [e] (update e :temp #(if-not % temp-id %)))
+            errors  (->> validators
+                         (map (fn [validator] (validator statement)))
+                         flatten ; concat err colls from different validators
+                         (filter some?)
+                         (map up-stmt)
+                         (map up-temp))]
+        (not-empty errors)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Predicates
@@ -380,19 +378,16 @@
 ;;    :args (s/cat :statement ::xs/statement)
 ;;    :ret boolean?))
 
-;; TODO: Seems kind of dumb to have a nilable opt arg?
 (s/fdef create-template-predicate
   :args (s/cat :template ::pan-temp/template
-               :statement-ref-fns (s/? (s/nilable ::sref/statement-ref-fns)))
+               :statement-ref-fns (s/nilable ::sref/statement-ref-fns))
   :ret predicate-spec)
 
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."
-  ([template]
-   (create-template-predicate template nil))
-  ([template statement-ref-fns]
-   (let [rules (add-determining-properties template)
-         preds (create-rule-predicates template rules statement-ref-fns)]
-     (fn [statement]
-       (every? (fn [pred] (pred statement)) preds)))))
+  [template ?statement-ref-fns]
+  (let [rules (add-determining-properties template)
+        preds (create-rule-predicates template rules ?statement-ref-fns)]
+    (fn [statement]
+      (every? (fn [pred] (pred statement)) preds))))

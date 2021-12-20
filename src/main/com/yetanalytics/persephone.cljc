@@ -27,9 +27,15 @@
 (s/def ::selected-templates (s/every ::pan-template/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(s/def ::error #{::stmt/missing-profile-reference
-                 ::stmt/invalid-subreg-no-registration
-                 ::stmt/invalid-subreg-nonconformant})
+(s/def ::type #{::stmt/missing-profile-reference
+                ::stmt/invalid-subreg-no-registration
+                ::stmt/invalid-subreg-nonconformant})
+
+(s/def ::error
+  (s/keys :req-un [::type ::xs/statement]))
+
+(def stmt-error-spec
+  (s/keys :req-un [::error]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
@@ -469,9 +475,6 @@
                                    ::rejects
                                    ::states-map])))
 
-(def match-stmt-error-spec
-  (s/keys :req-un [::error ::xs/statement]))
-
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
@@ -520,10 +523,10 @@
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
                :state-info-map    state-info-map-spec
-               :statement         (s/or :error match-stmt-error-spec
+               :statement         (s/or :error stmt-error-spec
                                         :ok ::xs/statement)
                :kwargs            (s/keys* :opt-un [::print?]))
-  :ret (s/or :error match-stmt-error-spec
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
@@ -631,9 +634,9 @@
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
                :state-info-map    state-info-map-spec
-               :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
+               :statement-batch   (s/coll-of (s/or :error stmt-error-spec
                                                    :ok ::xs/statement)))
-  :ret (s/or :error match-stmt-error-spec
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch

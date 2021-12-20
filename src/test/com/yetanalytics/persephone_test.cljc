@@ -165,9 +165,6 @@
 (def cmi-profile (-> (slurp "test-resources/sample_profiles/cmi5.json")
                      (test-u/json->edn :keywordize? true)))
 
-(def cmi-templates (:templates cmi-profile))
-
-(def cmi-profile-id "https://w3id.org/xapi/cmi5")
 (def cmi-version-id "https://w3id.org/xapi/cmi5/v1.0")
 (def cmi-pattern-id "https://w3id.org/xapi/cmi5#toplevel")
 
@@ -294,7 +291,7 @@
     (is (p/validate-statement cmi-tmpl-9 satisfied-stmt))))
 
 (deftest cmi-statement-test-2
-  (testing "calling validate-statement-vs-template with different modes"
+  (testing "calling validate-statement with different modes"
     (testing "on valid statements"
       (is (= ex-statement
              (p/validate-statement
@@ -766,7 +763,7 @@ Pattern path:
                     (match-cmi-2 abandoned-stmt)
                     (match-cmi-2 satisfied-stmt-2)
                     (get-in [:states-map registration-2 cmi-pattern-id])))))
-  (testing "the match-statement-vs-profile function w/ sub-registrations."
+  (testing "the match-statement function w/ sub-registrations."
     (is (= 4 (-> {}
                  (match-cmi-2 satisfied-stmt)
                  (match-cmi-2 satisfied-stmt-2)
@@ -849,9 +846,12 @@ Pattern path:
                 :error
                 :type))))
   (testing "error input returns the same"
-    (is (= {:error ::stmt/missing-profile-reference}
+    ;; THESE TESTS FAIL WHEN INSTRUMENTATION IS ON
+    (is (= {:error {:type      ::stmt/missing-profile-reference
+                    :statement nil}}
            (match-cmi {:error ::stmt/missing-profile-reference} nil)))
-    (is (= {:error ::stmt/missing-profile-reference}
+    (is (= {:error {:type      ::stmt/missing-profile-reference
+                    :statement nil}}
            (match-cmi-2 {:error ::stmt/missing-profile-reference} nil)))))
 
 ;; Batch Matching Tests

@@ -14,7 +14,10 @@ The `persephone` namespace contains functions that perform two main tasks, which
 
 - `match-statement` and `match-statement-batch` takes a Statement or collection of Statements, respectively, and matches them against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 
-To compile Profiles to be used as arguments to these functions, the `compile-profiles->validators` and `compile-profiles->fsms` functions are used, respectively.
+The following functions are provided for Template/Profile compilation:
+- `compile-templates->validators` compiles a coll of Statement Templates into validators.
+- `compile-profiles->validators` compiles a coll of Profiles into validators.
+- `compile-profiles->fsms` compiles a coll of Profiles into an FSM map.
 
 NOTE: All Profiles and Statements must be already parsed into EDN format. Profiles must have keyword keys, while Statements must have string keys (to match the expected formats of [project-pan](https://github.com/yetanalytics/project-pan) and [xapi-schema](https://github.com/yetanalytics/xapi-schema), respectively). As convenience functions, Persephone provides the functions `coerce-profile` and `coerce-statement` in `utils/json.cljc` in order to guarantee correct coercion from JSON strings to EDN.
 
@@ -28,18 +31,19 @@ Validating a Statement against a Statement Template involves three aspects:
 
 - Validating against StatementRefs (object and context StatementRefTemplates). These are arrays of StatementTemplate IRIs, which  point to _more_ Statement Templates that we need to validate against in a  recursive manner. These additional Statements are referenced by  StatementRefs in the original Statement. This can potentially require querying this and other Profiles; thus, that aspect of validation is, for now, unimplemented.
 
-The compilation function `compile-profiles->validators` takes a collection of Profiles and returns a collection of maps of the following:
+The compilation functions `compile-templates->validators` and `compile-profiles->validators` return a collection of maps of the following:
 
 - `:id` - The Statement Template ID.
 - `:predicate-fn` - A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
 - `:validator-fn` - A function that takes a Statement and returns `nil` if that Statement is valid against it, a map of error data otherwise.
 
-`compile-profiles->validators` takes the following keyword args:
+`compile-templates->validators` takes the following keyword args:
 
 - `:statement-ref-fns` - A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
-- `:validate-profile?` - Validates the profiles against the xAPI Profile spec and checks for Profile and Template ID clashes. Default `true`.
-- `:selected-profiles` - Which Profiles in the collection should be compiled.
+- `:validate-templates?` - Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
 - `:selected-templates` - Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
+
+`compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument.
 
 The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
 

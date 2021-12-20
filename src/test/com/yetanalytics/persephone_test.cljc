@@ -59,19 +59,6 @@
      :presence  "included"
      :scopeNote {:en "the time when the mentor submited the scored rubric"}}]})
 
-(def ex-profile
-  {:id         "https://w3id.org/xapi/catch"
-   :type       "Profile"
-   :_context   "https://w3id.org/xapi/profiles/context"
-   :conformsTo "https://w3id.org/xapi/profiles#1.0"
-   :prefLabel  {:en "Example Profile"}
-   :definition {:en "Example Profile"}
-   :versions   [{:id "https://w3id.org/xapi/catch/v1"
-                 :generatedAtTime "2019-08-09T12:17:00+00:00"}]
-   :author     {:type "Organization"
-                :name "Yet Analytics"}
-   :templates  [ex-template]})
-
 (def ex-statement
   {"id" "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
    "timestamp" "2019-08-09T12:17:00+00:00"
@@ -113,9 +100,9 @@
 
 (deftest statement-validation-test
   (testing "validate statement using an example Template and Statement"
-    (let [comp-profile (p/compile-profiles->validators
-                        [ex-profile]
-                        :validate-profiles? true)]
+    (let [comp-profile (p/compile-templates->validators
+                        [ex-template]
+                        :validate-templates? true)]
       (is (not (p/validate-statement comp-profile
                                      ex-statement))))))
 

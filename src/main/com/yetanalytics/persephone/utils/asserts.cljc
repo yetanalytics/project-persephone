@@ -35,8 +35,9 @@
                       {:type ::non-unique-profile-ids
                        :ids  prof-ids})))))
 
-(defn assert-template-ids
-  "Assert that the Template IDs do not clash, or else throw an exception."
+(defn assert-profile-template-ids
+  "Assert that the Profiles' Template IDs do not clash,
+   or else throw an exception."
   [profiles]
   (let [temp-ids (mapcat (fn [{:keys [templates]}] (map :id templates))
                          profiles)]
@@ -45,8 +46,9 @@
                       {:type ::non-unique-template-ids
                        :ids  temp-ids})))))
 
-(defn assert-pattern-ids
-  "Assert that the Pattern IDs do not clash, or else throw an exception."
+(defn assert-profile-pattern-ids
+  "Assert that the Profiles' Pattern IDs do not clash,
+   or else throw an exception."
   [profiles]
   (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
                         profiles)]
@@ -54,3 +56,12 @@
       (throw (ex-info "Pattern IDs are not unique!"
                       {:type ::non-unique-pattern-ids
                        :ids  pat-ids})))))
+
+(defn assert-template-ids
+  "Assert that the Template IDs do not clash, or else throw an exception."
+  [templates]
+  (let [temp-ids (map :id templates)]
+    (when (not= temp-ids (distinct temp-ids))
+      (throw (ex-info "Template IDs are not unique!"
+                      {:type ::non-unique-template-ids
+                       :ids  temp-ids})))))

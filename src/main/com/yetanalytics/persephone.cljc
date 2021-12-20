@@ -62,15 +62,14 @@
   (s/every compiled-template-spec))
 
 (s/fdef compile-profiles->validators
-  :args (s/cat :profiles ::profiles
+  :args (s/cat :templates ::pan-template/templates
                :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
-                                           ::validate-profiles?
-                                           ::selected-profiles
+                                           ::validate-templates?
                                            ::selected-templates]))
   :ret compiled-templates-spec)
 
-(defn compile-profiles->validators
-  "Takes a `profiles` coll and returns a coll of maps of:
+(defn compile-templates->validators
+  "Takes a `templates` coll and returns a coll of maps of:
    
      :id           The Statement Template ID
      :validator-fn A function that returns error data if a Statement
@@ -78,19 +77,19 @@
      :predicate-fn A function that returns `true` if a Statement
                    is valid against the Template, else `false`.
    
-   `compile-profiles->validators` takes the following kwargs:
+   `compile-templates->validators` takes the following kwargs:
 
      :statement-ref-fns  A map with two fields: `:get-template-fn`
                          and `get-statement-fn`. If not present,
                          then any Template's StatementRef props
                          are ignored.
-     :validate-profiles? Whether to validate against the Profile
+     :validate-template? Whether to validate against the Template
                          spec and check for ID clashes before
                          compilation; default `true`.
      :selected-profiles  if present filters out any Profiles whose
                          IDs are not in the coll. (Note that these
                          should be profile IDs, not version IDs.)
-     :selected-patterns  if present filters out any Templates
+     :selected-templates if present filters out any Templates
                          whose IDs are not in the coll.
    
    The following are the fields of the `:statement-ref-fns` map:
@@ -102,6 +101,44 @@
      :get-statement-fn  Function that takes a Statement ID and
                         returns the corresponding Statement. Must
                         return `nil` if the Statement is not found."
+  [templates & {:keys [statement-ref-fns
+                       validate-templates?
+                       selected-templates]
+                :or   {validate-templates? true}}]
+  (when validate-templates?
+    (dorun (map assert/assert-template templates))
+    (assert/assert-template-ids templates))
+  (let [?temp-id-set    (when selected-templates (set selected-templates))
+        temp->validator (fn [temp]
+                          (template->validator temp statement-ref-fns))]
+    (cond->> templates
+      ?temp-id-set
+      (filter (fn [{:keys [id]}] (?temp-id-set id)))
+      true
+      (map temp->validator))))
+
+(s/fdef compile-profiles->validators
+  :args (s/cat :profiles ::profiles
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
+                                           ::validate-profiles?
+                                           ::selected-profiles
+                                           ::selected-templates]))
+  :ret compiled-templates-spec)
+
+(defn compile-profiles->validators
+  "Takes a `profiles` coll and returns a coll of maps of `:id`,
+   `:validator-fn`, and `:predicate-fn`, just like with
+   `compile-templates->validators`. Takes the following kwargs:
+
+     :statement-ref-fns  Same as in `compile-templates->validators`.
+     :validate-profiles? Whether to validate against the Profile
+                         spec and check for ID clashes before
+                         compilation; default `true`.
+     :selected-profiles  if present filters out any Profiles whose
+                         IDs are not in the coll. (Note that these
+                         should be profile IDs, not version IDs.)
+     :selected-templates if present filters out any Templates
+                         whose IDs are not in the coll."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
                       selected-profiles
@@ -110,20 +147,20 @@
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
-    (assert/assert-template-ids profiles))
-  (let [?prof-id-set    (when selected-profiles (set selected-profiles))
-        ?temp-id-set    (when selected-templates (set selected-templates))
-        temp->validator (fn [temp]
-                          (template->validator temp statement-ref-fns))]
-    (cond->> profiles
-      ?prof-id-set
-      (filter (fn [{:keys [id]}] (?prof-id-set id)))
-      true
-      (reduce (fn [acc {:keys [templates]}] (concat acc templates)) [])
-      ?temp-id-set
-      (filter (fn [{:keys [id]}] (?temp-id-set id)))
-      true
-      (map temp->validator))))
+    (assert/assert-profile-template-ids profiles))
+  (let [?prof-id-set  (when selected-profiles (set selected-profiles))
+        template-coll (cond->> profiles
+                        ?prof-id-set
+                        (filter (fn [{:keys [id]}]
+                                  (?prof-id-set id)))
+                        true
+                        (reduce (fn [acc {:keys [templates]}]
+                                  (concat acc templates))
+                                []))]
+    (compile-templates->validators template-coll
+                                   :statement-ref-fns statement-ref-fns
+                                   :selected-templates selected-templates
+                                   :validate-templates? false)))
 
 (s/def ::all-valid? boolean?)
 (s/def ::short-circuit boolean?)
@@ -424,8 +461,8 @@
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
-    (assert/assert-template-ids profiles)
-    (assert/assert-pattern-ids profiles))
+    (assert/assert-profile-template-ids profiles)
+    (assert/assert-profile-pattern-ids profiles))
   (let [opt-map      {:statement-ref-fns statement-ref-fns
                       :compile-nfa?      compile-nfa?
                       :selected-patterns selected-patterns}

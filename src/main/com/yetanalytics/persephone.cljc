@@ -41,6 +41,8 @@
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; ***** Template/Pattern -> Validator *****
+
 (defn- template->validator
   "Takes `template` and nilable `statement-ref-fns` and returns a map
    contaiing the Template ID, a validation function, and a predicate
@@ -161,6 +163,8 @@
                                    :statement-ref-fns statement-ref-fns
                                    :selected-templates selected-templates
                                    :validate-templates? false)))
+
+;; ***** Statement Validation *****
 
 (s/def ::all-valid? boolean?)
 (s/def ::short-circuit boolean?)
@@ -403,10 +407,9 @@
 ;; Pattern Matching Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: Work with XML and Turtle Profiles
-;; TODO: Add Exception messages when Patterns are rejected
+;; ***** Profile to FSM Compilation *****
 
-;; Profile -> FSM Compilation
+;; TODO: Work with XML and Turtle Profiles
 
 (def compiled-profiles-spec
   (s/every-kv ::pan-profile/id
@@ -493,7 +496,7 @@
     [registration subregistration]
     registration))
 
-;; Pattern Matching
+;; ***** Statement Pattern Matching *****
 
 (s/def ::states-map
   (s/every-kv registration-key-spec

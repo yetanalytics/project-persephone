@@ -16,7 +16,7 @@ The `persephone` namespace contains functions that perform two main tasks, which
 
 To compile Profiles to be used as arguments to these functions, the `compile-profiles->validators` and `compile-profiles->fsms` functions are used, respectively.
 
-NOTE: All Profiles and Statements must be already parsed into EDN format. Profiles must have keyword keys, while Statements must have string keys (to match the expected formats of [project-pan](https://github.com/yetanalytics/project-pan) and [xapi-schema](https://github.com/yetanalytics/xapi-schema), respectively).
+NOTE: All Profiles and Statements must be already parsed into EDN format. Profiles must have keyword keys, while Statements must have string keys (to match the expected formats of [project-pan](https://github.com/yetanalytics/project-pan) and [xapi-schema](https://github.com/yetanalytics/xapi-schema), respectively). As convenience functions, Persephone provides the functions `coerce-profile` and `coerce-statement` in `utils/json.cljc` in order to guarantee correct coercion from JSON strings to EDN.
 
 ### Validation on Statement Template
 

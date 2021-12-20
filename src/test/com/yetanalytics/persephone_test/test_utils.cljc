@@ -1,13 +1,16 @@
 (ns com.yetanalytics.persephone-test.test-utils
-  (:require [com.yetanalytics.pan.utils.json :refer [convert-json]]
-            [clojure.spec.test.alpha :as stest]
-            ;; To make instrumentation work in cljs
-            [clojure.test.check]
-            [clojure.test.check.generators]
+  (:require [com.yetanalytics.persephone]
+            [com.yetanalytics.pan.utils.json :refer [convert-json]]
             [clojure.test.check.properties :include-macros true]
             #?@(:clj [[clojure.data.json :as json]
+                      [clojure.spec.test.alpha :as stest]
                       [orchestra.spec.test     :as otest]])
-            #?@(:cljs [[orchestra-cljs.spec.test :as otest]])))
+            #?@(:cljs [;; To make instrumentation work in cljs
+                       [clojure.test.check]
+                       [clojure.test.check.generators]
+                       [orchestra-cljs.spec.test :as otest :include-macros true]]))
+  #?(:cljs (:require-macros [com.yetanalytics.persephone-test.test-utils
+                             :refer [persephone-syms-macro]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON Parsing
@@ -28,37 +31,33 @@
 ;; Instrumentation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- persephone-sym-filter
-  [sym]
-  (->> sym
-       namespace
-       (re-matches #"com\.yetanalytics\.persephone.*")))
+#?(:clj
+   (defn- persephone-sym-filter
+     [sym]
+     (->> sym
+          namespace
+          (re-matches #"com\.yetanalytics\.persephone.*"))))
 
-(defn- persephone-syms
-  []
-  (->> (stest/instrumentable-syms)
-       (filter persephone-sym-filter)
-       set))
+#?(:clj
+   (defn- persephone-syms
+     []
+     (->> (stest/instrumentable-syms)
+          (filter persephone-sym-filter)
+          set)))
 
-(defn instrument-persephone
-  "Instrument all instrumentable functions defined in persephone."
-  []
-  (otest/instrument (persephone-syms)))
+;; cljs mode needs a macro since `instrument` in cljs is itself a macro
+;; (unlike clj mode where `instrument` is a function)
 
-(defn unstrument-persephone
-  "Instrument all instrumentable functions defined in persephone."
-  []
-  (otest/unstrument (persephone-syms)))
-
-(defn instrumentation-fixture
-  [f]
-  (instrument-persephone)
-  (f)
-  (unstrument-persephone))
+#?(:clj
+   (defmacro persephone-syms-macro
+     []
+     `(->>(stest/instrumentable-syms)
+           (filter #(->> % namespace (re-matches #"com\.yetanalytics\.persephone.*")))
+           set)))
 
 (comment
   ;; Keep instrumentation off by default since
   ;; 1. some tests will fail (e.g. because they test invalid inputs on purpose)
   ;; 2. it is insanely slow
-  (instrument-persephone)
-  (unstrument-persephone))
+  (otest/instrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro)))
+  (otest/unstrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro))))

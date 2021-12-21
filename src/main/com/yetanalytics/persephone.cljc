@@ -1,291 +1,415 @@
 (ns com.yetanalytics.persephone
   (:require [clojure.spec.alpha   :as s]
             [xapi-schema.spec     :as xs]
-            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.pan.objects.profile  :as pan-profile]
             [com.yetanalytics.pan.objects.template :as pan-template]
             [com.yetanalytics.pan.objects.pattern  :as pan-pattern]
             [com.yetanalytics.persephone.template :as t]
             [com.yetanalytics.persephone.pattern  :as p]
-            [com.yetanalytics.persephone.utils.json      :as json]
-            [com.yetanalytics.persephone.utils.maps      :as maps]
+            [com.yetanalytics.persephone.utils.asserts   :as assert]
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
-            [com.yetanalytics.persephone.template.errors :as err-printer]
-            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]))
+            [com.yetanalytics.persephone.template.errors :as terr-printer]
+            [com.yetanalytics.persephone.pattern.errors  :as perr-printer]
+            [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Coercions
+;; Specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- coerce-statement
-  [statement]
-  (if (string? statement)
-    (json/json->edn statement)
-    statement))
+(s/def ::profiles (s/coll-of ::pan-profile/profile))
 
-(defn- coerce-template
-  [template]
-  (if (string? template)
-    (json/json->edn template :keywordize? true)
-    template))
+(s/def ::validate-profiles? boolean?)
+(s/def ::compile-nfa? boolean?)
 
-(defn- coerce-profile
-  [profile]
-  (if (string? profile)
-    (json/json->edn profile :keywordize? true)
-    profile))
+(s/def ::selected-profiles (s/every ::pan-profile/id))
+(s/def ::selected-templates (s/every ::pan-template/id))
+(s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Assertions (Project Pan integration)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::type #{::stmt/missing-profile-reference
+                ::stmt/invalid-subreg-no-registration
+                ::stmt/invalid-subreg-nonconformant})
 
-(defn- throw-unknown-opt [opt-keyword]
-  (let [msg (str "Unknown option: :" (name opt-keyword))]
-    #?(:clj (throw (IllegalArgumentException. msg))
-       :cljs (throw (js/Error. msg)))))
+(s/def ::error
+  (s/keys :req-un [::type ::xs/statement]))
 
-;; FIXME: We need to set the :relation? key to true, but currently this will
-;; cause errors because external IRIs are not supported yet in project-pan.
-
-(s/def ::profiles
-  (s/coll-of (s/or :json (s/and (s/conformer coerce-profile)
-                                ::pan-profile/profile)
-                   :edn ::pan-profile/profile)))
-
-(defn- assert-profile
-  [profile]
-  (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
-    (throw (ex-info "Invalid Profile!"
-                    {:kind   ::invalid-profile
-                     :errors err}))))
-
-(defn- assert-template
-  [template]
-  (when-some [err (s/explain-data ::pan-template/template template)]
-    (throw (ex-info "Invalid Statement Template!"
-                    {:kind   ::invalid-template
-                     :errors err}))))
-
-;; TODO: Make these asserts Project Pan's responsibility
-
-(defn- assert-profile-ids
-  [profiles]
-  (let [prof-ids (map :id profiles)]
-    (when (not= prof-ids (distinct prof-ids))
-      (throw (ex-info "Profile IDs are not unique!"
-                      {:type ::non-unique-profile-ids
-                       :ids  prof-ids})))))
-
-(defn- assert-pattern-ids
-  [profiles]
-  (let [pat-ids (mapcat (fn [{:keys [patterns]}] (map :id patterns))
-                        profiles)]
-    (when (not= pat-ids (distinct pat-ids))
-      (throw (ex-info "Pattern IDs are not unique!"
-                      {:type ::non-unique-pattern-ids
-                       :ids  pat-ids})))))
+(def stmt-error-spec
+  (s/keys :req-un [::error]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn profile->id-template-map
-  "Takes `profile` and returns a map between Statement Template IDs
-   and the Templates themselves. Used for Statement Ref Template
-   resolution.
+;; ***** Template/Pattern -> Validator *****
+
+(defn- template->validator
+  "Takes `template` and nilable `statement-ref-fns` and returns a map
+   contaiing the Template ID, a validation function, and a predicate
+   function."
+  [template ?statement-ref-fns]
+  {:id           (:id template)
+   :validator-fn (t/create-template-validator template ?statement-ref-fns)
+   :predicate-fn (t/create-template-predicate template ?statement-ref-fns)})
+
+(s/def ::validator-fn t/validator-spec)
+(s/def ::predicate-fn t/predicate-spec)
+
+(def compiled-template-spec
+  (s/keys :req-un [::pan-template/id
+                   ::validator-fn
+                   ::predicate-fn]))
+
+(def compiled-templates-spec
+  (s/every compiled-template-spec))
+
+(s/fdef compile-profiles->validators
+  :args (s/cat :templates ::pan-template/templates
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
+                                           ::validate-templates?
+                                           ::selected-templates]))
+  :ret compiled-templates-spec)
+
+(defn compile-templates->validators
+  "Takes a `templates` coll and returns a coll of maps of:
    
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
-  (when validate-profile? (assert-profile profile))
-  (let [profile (coerce-profile profile)]
-    (maps/mapify-coll (:templates profile))))
+     :id           The Statement Template ID
+     :validator-fn A function that returns error data if a Statement
+                   is invalid against the Template, else `nil`.
+     :predicate-fn A function that returns `true` if a Statement
+                   is valid against the Template, else `false`.
+   
+   `compile-templates->validators` takes the following kwargs:
 
-;; Doesn't exactly conform to stmt batch requirements since in theory,
-;; a statement ref ID can refer to a FUTURE statement in the batch.
-;; However, this shouldn't really matter in practice.
-(defn statement-batch->id-statement-map
-  "Takes the coll `statement-batch` and returns a map between
-   Statement IDs and the Statement themselves. Used for Statement
-   Ref resolution, particularly in statement batch matching."
-  [statement-batch]
-  (maps/mapify-coll statement-batch :string? true))
+     :statement-ref-fns  A map with two fields: `:get-template-fn`
+                         and `get-statement-fn`. If not present,
+                         then any Template's StatementRef props
+                         are ignored.
+     :validate-template? Whether to validate against the Template
+                         spec and check for ID clashes before
+                         compilation; default `true`.
+     :selected-profiles  if present filters out any Profiles whose
+                         IDs are not in the coll. (Note that these
+                         should be profile IDs, not version IDs.)
+     :selected-templates if present filters out any Templates
+                         whose IDs are not in the coll.
+   
+   The following are the fields of the `:statement-ref-fns` map:
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Statement Validation Functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO: More sophisticated function specs
-(s/def ::get-template-fn fn?)
-(s/def ::get-statement-fn fn?)
-
-(s/def ::statement-ref-fns
-  (s/keys :req-un [::get-template-fn
-                   ::get-statement-fn]))
-
-(defn template->validator
-  "Takes `template`, along with an optional :validate-template?
-   arg, and returns a map contaiing the Statement Template ID,
-   a validation function, and a predicate function.
-
-   :statement-ref-fns is a map with the following key-val pairs:
      :get-template-fn   Function that takes a Statement Template ID
                         and returns the corresponding Template. Can be
                         created using `profile->id-template-map`.
-                        Must return `nil` if the Template is not found.
+                        Must return `nil` if the Template isn't found.
      :get-statement-fn  Function that takes a Statement ID and
                         returns the corresponding Statement. Must
-                        return `nil` if the Statement is not found.
-   If :statement-ref-fns is not provided, Statement Ref Template
-   properties are ignored.
+                        return `nil` if the Statement is not found."
+  [templates & {:keys [statement-ref-fns
+                       validate-templates?
+                       selected-templates]
+                :or   {validate-templates? true}}]
+  (when validate-templates?
+    (dorun (map assert/assert-template templates))
+    (assert/assert-template-ids templates))
+  (let [?temp-id-set    (when selected-templates (set selected-templates))
+        temp->validator (fn [temp]
+                          (template->validator temp statement-ref-fns))]
+    (cond->> templates
+      ?temp-id-set
+      (filter (fn [{:keys [id]}] (?temp-id-set id)))
+      true
+      (map temp->validator))))
 
-   :validate-template? is default true. If true, `template->validator`
-   checks that `template` conforms to the xAPI Profile spec."
-  [template & {:keys [statement-ref-fns validate-template?]
-               :or   {validate-template? true}}]
-  (let [template (coerce-template template)]
-    (when validate-template? (assert-template template))
-    {:id           (:id template)
-     :validator-fn (t/create-template-validator template statement-ref-fns)
-     :predicate-fn (t/create-template-predicate template statement-ref-fns)}))
+(s/fdef compile-profiles->validators
+  :args (s/cat :profiles ::profiles
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
+                                           ::validate-profiles?
+                                           ::selected-profiles
+                                           ::selected-templates]))
+  :ret compiled-templates-spec)
 
-(defn profile->validator
-  "Takes `profile`, along with an optional :validate-profile? arg,
-   and returns a vector of tuples of the Statement Template ID and
-   its Statement validation function.
+(defn compile-profiles->validators
+  "Takes a `profiles` coll and returns a coll of maps of `:id`,
+   `:validator-fn`, and `:predicate-fn`, just like with
+   `compile-templates->validators`. Takes the following kwargs:
 
-   :statement-ref-fns takes the key-value pairs described in
-   `template->validator`.
+     :statement-ref-fns  Same as in `compile-templates->validators`.
+     :validate-profiles? Whether to validate against the Profile
+                         spec and check for ID clashes before
+                         compilation; default `true`.
+     :selected-profiles  if present filters out any Profiles whose
+                         IDs are not in the coll. (Note that these
+                         should be profile IDs, not version IDs.)
+     :selected-templates if present filters out any Templates
+                         whose IDs are not in the coll."
+  [profiles & {:keys [statement-ref-fns
+                      validate-profiles?
+                      selected-profiles
+                      selected-templates]
+               :or   {validate-profiles? true}}]
+  (when validate-profiles?
+    (dorun (map assert/assert-profile profiles))
+    (assert/assert-profile-ids profiles)
+    (assert/assert-profile-template-ids profiles))
+  (let [?prof-id-set  (when selected-profiles (set selected-profiles))
+        template-coll (cond->> profiles
+                        ?prof-id-set
+                        (filter (fn [{:keys [id]}]
+                                  (?prof-id-set id)))
+                        true
+                        (reduce (fn [acc {:keys [templates]}]
+                                  (concat acc templates))
+                                []))]
+    (compile-templates->validators template-coll
+                                   :statement-ref-fns statement-ref-fns
+                                   :selected-templates selected-templates
+                                   :validate-templates? false)))
 
-   :validate-profile? is default true. If true, `profile->validator`
-   checks that `profile` conforms to the xAPI Profile spec."
-  [profile & {:keys [statement-ref-fns validate-profile?]
-              :or   {validate-profile? true}}]
-  (when validate-profile? (assert-profile profile))
-  (let [profile (coerce-profile profile)]
-    (reduce
-     (fn [acc template]
-       (conj acc (template->validator template
-                                      :statement-ref-fns statement-ref-fns
-                                      :validate-template? false)))
-     []
-     (:templates profile))))
+;; ***** Statement Validation *****
 
-(defn validate-statement-vs-template
-  "Takes `compiled-template` and `statement` where `compiled-template`
-   is the result of `template->validator`, and validates `statement`
-   against the Statement Template.
+(s/def ::all-valid? boolean?)
+(s/def ::short-circuit boolean?)
+(s/def ::fn-type #{:predicate
+                   :filter
+                   :errors
+                   :templates
+                   :printer
+                   :assertion})
 
-   Takes the :fn-type keyword argument, which sets the return value
-   and side effects of `validate-statement-vs-template. Has the
-   following options:
-     :predicate  Returns true for a valid Statement, false otherwise.
-                 Default.
-     :option     Returns the Statement if it's valid, nil otherwise
-                 (c.f. Option/Maybe types).
-     :result     Returns the validation error data as a seq if the
-                 Statement is invalid, else nil (c.f. Result types).
-     :assertion  Returns nil on a valid Statement, throws an
-                 exception otherwise where the error data can be
-                 extracted using `(-> e ex-data :errors)`.
-     :printer    Prints an error message when the Statement is
-                 invalid. Always returns nil."
-  [compiled-template statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (coerce-statement statement)
-        {:keys [validator-fn predicate-fn]} compiled-template]
-    (case fn-type
-      :predicate
-      (predicate-fn stmt)
-      :option
-      (when (predicate-fn stmt) stmt)
-      :result
-      (validator-fn stmt)
-      :printer
-      (when-some [errs (validator-fn stmt)]
-        (err-printer/print-errors errs))
-      :assertion
-      (when-some [errs (validator-fn stmt)]
-        (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                              :errors errs})))
-      ;; else
-      (throw-unknown-opt fn-type))))
+;; `validated-statement?` based
 
-(defn validate-statement-vs-profile
-  "Takes `compiled-profile` and `statement` where `compiled-profile`
-   is the result of `profile->validator`, and validates `statement`
-   against the Statement Templates in the Profile.
+(s/fdef validated-statement?
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::all-valid?]))
+  :ret boolean?)
 
-   Takes the :fn-type keyword argument, which sets the return value
-   and side effects of `validate-statement-vs-profile.` Has the
-   following options:
-     :predicate  Returns true for a valid Statement, false otherwise.
-                 Default.
-     :option     Returns the Statement if it's valid, nil otherwise
-                 (c.f. Option/Maybe types).
-     :result     Returns the validation error data if the Statement
-                 is invalid, nil otherwise (c.f. Result types). The
-                 data is a map between each Statement Template and
-                 the error data they produced.
-     :templates  Returns the IDs of the Statement Templates the
-                 Statement is valid for.
-     :assertion  Returns nil on a valid Statement, throws an
-                 exception otherwise where the error data can be
-                 extracted using `(-> e ex-data :errors)`."
-  [compiled-profile statement & {:keys [fn-type] :or {fn-type :predicate}}]
-  (let [stmt (coerce-statement statement)]
-    (letfn [(valid-stmt?
-              [stmt]
-              (boolean (some (fn [{:keys [predicate-fn]}] (predicate-fn stmt))
-                             compiled-profile)))
-            (get-valid-ids
-              [stmt]
-              (reduce (fn [valid-ids {:keys [id predicate-fn]}]
-                        (if (predicate-fn stmt)
+(defn validated-statement?
+  "Returns `true` if `statement` is valid against any Template (if
+   `:all-valid?` is `false`, default) or all Templates (if it
+   is `true`) in `compiled-templates`, `false` otherwise."
+  [compiled-templates statement & {:keys [all-valid?]
+                                   :or   {all-valid? false}}]
+  (let [pred-fn (fn [{:keys [predicate-fn]}] (predicate-fn statement))]
+    (if all-valid?
+      (->> compiled-templates
+           (every? pred-fn))
+      (->> compiled-templates
+           (some pred-fn)
+           boolean))))
+
+;; c.f. Just/Option (Some/None) types
+(s/fdef validate-statement-filter
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::all-valid?]))
+  :ret (s/nilable ::xs/statement))
+
+(defn validate-statement-filter
+  "Returns `statement` if it is valid against any Template (if
+   `:all-valid?` is `true`, default) or all Templates (if it
+   is `false`) in `compiled-templates`, `nil` otherwise."
+  [compiled-templates statement & {:keys [all-valid?]
+                                   :or   {all-valid? false}}]
+  (when (validated-statement? compiled-templates
+                              statement
+                              :all-valid? all-valid?)
+    statement))
+
+;; `validate-statement-errors` based
+
+;; c.f. Result (Ok/Error) types
+
+(def validation-error-map-spec
+  (s/map-of ::pan-template/id
+            (s/coll-of t/validation-result-spec :min-count 1)))
+
+(s/fdef validate-statement-errors
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  :ret (s/nilable validation-error-map-spec))
+
+(defn validate-statement-errors
+  "Returns map from Template IDs to error data maps for each Template
+   that `statement` is invalid against. Takes the `:all-valid?` and
+   `:short-circuit?` kwargs; the former denotes whether to return
+   `nil` if any (default) or all Templates are valid against `statement`;
+   the latter determines whether to return the first error (if `true`)
+   or all errors (if `false`, default)."
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
+  (let [err-acc    (if short-circuit?
+                     (fn [acc id errs] (reduced (assoc acc id errs)))
+                     (fn [acc id errs] (assoc acc id errs)))
+        valid-acc  (if all-valid?
+                     identity
+                     (constantly (reduced nil)))
+        conj-error (fn [acc {:keys [id validator-fn]}]
+                     (if-some [errs (validator-fn statement)]
+                       (err-acc acc id errs)
+                       (valid-acc acc)))]
+    (->> compiled-templates
+         (reduce conj-error {})
+         ;; no bad templates => vacuously true
+         not-empty)))
+
+(s/fdef validate-statement-assert
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  ;; Spec doesn't test side effects - only catch nil case
+  :ret nil?)
+
+(defn validate-statement-assert
+  "Throw an ExceptionInfo exception when `statement` is invalid
+   against Templates in `compiled-templates`, returns `nil` otherwise.
+   `:all-valid?` and `:short-circuit?` are the same as in the
+   `validate-statement-errors` function."
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
+  (when-some [errs (validate-statement-errors compiled-templates
+                                              statement
+                                              :all-valid? all-valid?
+                                              :short-circuit? short-circuit?)]
+    (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
+                                          :errors errs}))))
+
+(s/fdef validate-statement-print
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::all-valid?
+                                          ::short-circuit?]))
+  ;; Spec doesn't test side effects - only catch nil return
+  :ret nil?)
+
+(defn validate-statement-print
+  "Prints errors for each Template that `statement` is invalid
+   against. `:all-valid?` and `:short-circuit?` are the same as
+   in the `validate-statement-errors` function."
+  [compiled-templates statement & {:keys [all-valid? short-circuit?]
+                                   :or   {all-valid?     false
+                                          short-circuit? false}}]
+  (when-some [errs (validate-statement-errors compiled-templates
+                                              statement
+                                              :all-valid? all-valid?
+                                              :short-circuit? short-circuit?)]
+    (dorun (->> errs
+                vals
+                (apply concat)
+                terr-printer/print-errors))))
+
+;; Other
+
+(s/fdef validate-statement-template-ids
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement)
+  :ret (s/every ::pan-template/id))
+
+(defn validate-statement-template-ids
+  "Returns a vector of all the Template IDs that `statement` is
+   valid against."
+  [compiled-templates statement]
+  (let [conj-valid-id (fn [valid-ids {:keys [id predicate-fn]}]
+                        (if (predicate-fn statement)
                           (conj valid-ids id)
-                          valid-ids))
-                      []
-                      compiled-profile))
-            (get-errors ; Returns nil if stmt is valid, else the id-error map
-              [stmt]
-              (not-empty ; no templates => vacuously true
-               (reduce (fn [acc {:keys [id validator-fn]}]
-                         (if-some [errs (validator-fn stmt)]
-                           (assoc acc id errs)
-                           (reduced nil)))
-                       {}
-                       compiled-profile)))]
-      (case fn-type
-        :predicate
-        (valid-stmt? stmt)
-        :option
-        (when (valid-stmt? stmt) stmt)
-        :result
-        (get-errors stmt)
-        :templates
-        (get-valid-ids stmt)
-        :assertion
-        (when-some [errs (get-errors stmt)]
-          (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                                :errors errs})))
-        ;; else
-        (throw-unknown-opt fn-type)))))
+                          valid-ids))]
+    (reduce conj-valid-id [] compiled-templates)))
+
+;; Generic validation
+
+(s/fdef validate-statement
+  :args (s/cat :compiled-templates compiled-templates-spec
+               :statement ::xs/statement
+               :kw-args (s/keys* :opt-un [::fn-type
+                                          ::all-valid?
+                                          ::short-circuit?]))
+  :ret (s/or :predicate boolean?
+             :filter    (s/nilable ::xs/statement)
+             :errors    (s/nilable validation-error-map-spec)
+             :templates (s/every ::pan-template/id)
+             :printer   nil?
+             :assertion nil?))
+
+(defn validate-statement
+  "Takes `compiled-templates` and `statement` where `compiled-templates`
+   is the result of `compile-profiles->validators`, and validates
+   `statement` against the Statement Templates in the Profile.
+
+   Takes a `:fn-type` kwarg, which sets the return value and side effects
+   of `validate-statement`. Has the following options:
+
+     :predicate  Returns `true` if `statement` is valid for any
+                 Statement Template, else `false`. Default.
+     :filter     Returns `statement` if it is valid against any
+                 Template, else `nil`.
+     :errors     Returns validation error data on every Template
+                 the Statement is invalid against, `nil` if any
+                 Template is valid for `statement`. The error
+                 data is a map from Template ID to error data.
+     :templates  Returns the IDs of the Templates that `statement`
+                 is valid against.
+     :printer    Prints the error data for all Templates the Statement
+                 fails validation against, if every Template is
+                 invalid for `statement`
+     :assertion  Throws an exception upon validation failure (where
+                 `(-> e ex-data :errors)` returns all error data) if
+                 every Template is invalid for `statement`, else
+                 returns`nil`.
+   
+   Note that the above descriptions are only for when the kwargs
+   `:all-valid?` and `:short-circuit?` are `false` (the default).
+     
+     If `:all-valid?` is `true`, then the validation is not considered
+     `true` unless all Templates are valid against `statement`.
+     If `:short-circuit?` is `true`, then only the error data for the
+     first invalid Template is returned."
+  [compiled-templates statement & {:keys [fn-type all-valid? short-circuit?]
+                                   :or   {fn-type        :predicate
+                                          all-valid?     false
+                                          short-circuit? false}}]
+  (case fn-type
+    :predicate
+    (validated-statement? compiled-templates
+                          statement
+                          :all-valid? all-valid?)
+    :filter
+    (validate-statement-filter compiled-templates
+                               statement
+                               :all-valid? all-valid?)
+    :errors
+    (validate-statement-errors compiled-templates
+                               statement
+                               :all-valid? all-valid?
+                               :short-circuit? short-circuit?)
+    :templates
+    (validate-statement-template-ids compiled-templates
+                                     statement)
+    :printer
+    (validate-statement-print compiled-templates
+                              statement
+                              :all-valid? all-valid?
+                              :short-circuit? short-circuit?)
+    :assertion
+    (validate-statement-assert compiled-templates
+                               statement
+                               :all-valid? all-valid?
+                               :short-circuit? short-circuit?)
+    ;; else
+    (let [msg (str "Unknown option: :" (name fn-type))]
+      #?(:clj (throw (IllegalArgumentException. msg))
+         :cljs (throw (js/Error. msg))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern Matching Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; ***** Profile to FSM Compilation *****
+
 ;; TODO: Work with XML and Turtle Profiles
-;; TODO: Add Exception messages when Patterns are rejected
-
-;; TODO: Move specs to top of namespace
-(s/def ::validate-profiles? boolean?)
-(s/def ::compile-nfa? boolean?)
-(s/def ::selected-profiles (s/every ::pan-profile/id))
-(s/def ::selected-patterns (s/every ::pan-pattern/id))
-
-;; Profile -> FSM Compilation
 
 (def compiled-profiles-spec
   (s/every-kv ::pan-profile/id
@@ -293,7 +417,7 @@
 
 (s/fdef compile-profiles->fsms
   :args (s/cat :profiles ::profiles
-               :kw-args  (s/keys* :opt-un [::statement-ref-fns
+               :kw-args  (s/keys* :opt-un [::sref/statement-ref-fns
                                            ::validate-profiles?
                                            ::compile-nfa?
                                            ::selected-profiles
@@ -320,8 +444,9 @@
 
      :statement-ref-fns  takes the key-value pairs described in
      `template->validator`.
-     :validate-profiles? if true checks that all profiles conform to the
-     xAPI Profile spec and throws an exception if not. Default false.
+     :validate-profiles? if true checks that all Profiles conform to the
+     xAPI Profile spec and that all Profile, Template, and Pattern IDs
+     do not clash. Throws exception if validation fails. Default true.
      :compile-nfa?       if true compiles an additional NFA that is used
      for composing detailed error traces. Default false.
      :selected-profiles  if present filters out any profiles whose IDs
@@ -334,27 +459,27 @@
                       compile-nfa?
                       selected-profiles
                       selected-patterns]
-               :or   {validate-profiles?     true
-                      compile-nfa?           false}}]
-  (let [profiles (map coerce-profile profiles)
-        opt-map  {:statement-ref-fns statement-ref-fns
-                  :compile-nfa?      compile-nfa?
-                  :selected-patterns selected-patterns}]
-    (when validate-profiles?
-      (dorun (map assert-profile profiles))
-      (assert-profile-ids profiles)
-      (assert-pattern-ids profiles))
-    (let [?prof-id-set (when selected-profiles (set selected-profiles))
-          profiles     (cond->> profiles
-                         ?prof-id-set
-                         (filter (fn [{:keys [id]}] (?prof-id-set id))))
-          prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
-                            profiles)
-          pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
-                            profiles)]
-      (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
-                    prof-id-seq
-                    pat-fsm-seq)))))
+               :or   {validate-profiles? true
+                      compile-nfa?       false}}]
+  (when validate-profiles?
+    (dorun (map assert/assert-profile profiles))
+    (assert/assert-profile-ids profiles)
+    (assert/assert-profile-template-ids profiles)
+    (assert/assert-profile-pattern-ids profiles))
+  (let [opt-map      {:statement-ref-fns statement-ref-fns
+                      :compile-nfa?      compile-nfa?
+                      :selected-patterns selected-patterns}
+        ?prof-id-set (when selected-profiles (set selected-profiles))
+        profiles     (cond->> profiles
+                       ?prof-id-set
+                       (filter (fn [{:keys [id]}] (?prof-id-set id))))
+        prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
+                          profiles)
+        pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
+                          profiles)]
+    (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                  prof-id-seq
+                  pat-fsm-seq))))
 
 ;; Registration Key Construction
 
@@ -371,7 +496,7 @@
     [registration subregistration]
     registration))
 
-;; Pattern Matching
+;; ***** Statement Pattern Matching *****
 
 (s/def ::states-map
   (s/every-kv registration-key-spec
@@ -389,20 +514,6 @@
         :continue (s/keys :req-un [::accepts
                                    ::rejects
                                    ::states-map])))
-
-;; TODO: Move to top of namespace
-(s/def ::error #{::stmt/missing-profile-reference
-                 ::stmt/invalid-subreg-no-registration
-                 ::stmt/invalid-subreg-nonconformant})
-
-(def match-stmt-error-spec
-  (s/keys :req-un [::error ::xs/statement]))
-
-;; TODO: Move to top of ns
-(def statement-spec
-  (s/or :json (s/and (s/conformer coerce-statement)
-                     ::xs/statement)
-        :edn ::xs/statement))
 
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
@@ -447,12 +558,15 @@
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
+(s/def ::print? boolean?)
+
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement         (s/or :error match-stmt-error-spec
-                                        :ok statement-spec))
-  :ret (s/or :error match-stmt-error-spec
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement         ::xs/statement
+               :kwargs            (s/keys* :opt-un [::print?]))
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
@@ -508,12 +622,11 @@
                                                  :or   {print? false}}]
   (if (:error state-info-map) ; TODO: Should errors also be printed?
     state-info-map
-    (let [statement      (coerce-statement statement)
-          reg-pat-st-m   (:states-map state-info-map)
-          prof-id-set    (set (keys compiled-profiles))
-          stmt-prof-ids  (stmt/get-statement-profile-ids statement prof-id-set)
-          stmt-reg       (stmt/get-statement-registration statement)
-          ?stmt-subreg   (stmt/get-statement-subregistration statement stmt-reg)]
+    (let [reg-pat-st-m  (:states-map state-info-map)
+          prof-id-set   (set (keys compiled-profiles))
+          stmt-prof-ids (stmt/get-statement-profile-ids statement prof-id-set)
+          stmt-reg      (stmt/get-statement-registration statement)
+          ?stmt-subreg  (stmt/get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
                           (when (keyword? ?stmt-subreg) ?stmt-subreg))]
         {:error {:type      err-kw
@@ -560,10 +673,10 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    state-info-map-spec
-               :statement-batch   (s/coll-of (s/or :error match-stmt-error-spec
-                                                   :ok statement-spec)))
-  :ret (s/or :error match-stmt-error-spec
+               :state-info-map    (s/or :error stmt-error-spec
+                                        :ok state-info-map-spec)
+               :statement-batch   (s/coll-of ::xs/statement))
+  :ret (s/or :error stmt-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch
@@ -583,8 +696,8 @@
       (if-let [stmt (first stmt-coll)]
         (let [match-res (match-statement st-info-map stmt)]
           (if (:error match-res)
-          ;; Error keyword - early termination
+            ;; Error keyword - early termination
             match-res
-          ;; Valid state info map - continue
+            ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
         st-info-map))))

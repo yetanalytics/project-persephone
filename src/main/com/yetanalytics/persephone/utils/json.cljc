@@ -1,28 +1,44 @@
 (ns com.yetanalytics.persephone.utils.json
-  (:require [com.yetanalytics.pathetic :as pathetic]
+  (:require [clojure.spec.alpha :as s]
+            [xapi-schema.spec :as xs]
+            [com.yetanalytics.pathetic :as pathetic]
+            [com.yetanalytics.pan.objects.profile :as pan-profile]
             [com.yetanalytics.pan.utils.json :refer [convert-json]]
             #?(:clj [clojure.data.json :as json])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; JSON-EDN conversion
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSON to EDN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn json->edn
+(defn- json->edn
   "Convert a JSON data structure to EDN. By default, keys will
    remain strings. If `keywordize?` is true then all keys are
    turned into keywords, with all instances `@` replaced with
    `_` (this is not recommended for IRI keys)."
-  [json-str & {:keys [keywordize?] :or {keywordize? false}}]
+  [json-str keywordize?]
   (if keywordize?
     (convert-json json-str "_")
     #?(:clj (json/read-str json-str)
        :cljs (js->clj (.parse js/JSON json-str)))))
 
-(defn edn->json
-  "Convert an EDN data structure to a JSON string."
-  [edn-data]
-  #?(:clj (json/write-str edn-data)
-     :cljs (->> edn-data clj->js (.stringify js/JSON))))
+(s/fdef coerce-profile
+  :args string?
+  :ret ::pan-profile/profile)
+
+(defn coerce-profile
+  "Coerce a Profile JSON string into EDN, keywordizing keys and converting
+   \"@context\" into `:_context`."
+  [profile-json]
+  (json->edn profile-json true))
+
+(s/fdef coerce-statement
+  :args string?
+  :ret ::xs/statement)
+
+(defn coerce-statement
+  "Coerce a Statement JSON string into EDN, stringifying keys."
+  [statement-json]
+  (json->edn statement-json false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath operations

@@ -20,7 +20,7 @@
 ;; First profile contains all the Statement Templates and Patterns
 (def tc3-profile (get-in tc3-inputs [:profiles 0]))
 
-(def tc3-validator (per/profile->validator tc3-profile))
+(def tc3-validator (per/compile-profiles->validators [tc3-profile]))
 
 (def tc3-dfas (per/compile-profiles->fsms [tc3-profile]))
 
@@ -30,11 +30,11 @@
   [n]
   (loop [stmts (take n (sim/sim-seq tc3-inputs))]
     (if-let [next-stmt (first stmts)]
-      (let [err (per/validate-statement-vs-profile
+      (let [err (per/validate-statement
                  tc3-validator
                  next-stmt
-                 :fn-type :result ;; Return error on invalid stmt
-                 :validate-profile? false)]
+                 ;; Return error on invalid stmt
+                 :fn-type :errors)]
         (if (some? err)
           (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
                           {:kind      :datasim-template-test-failed

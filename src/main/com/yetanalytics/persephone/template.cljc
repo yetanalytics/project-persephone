@@ -1,8 +1,79 @@
 (ns com.yetanalytics.persephone.template
-  (:require [clojure.string :as string]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as string]
+            [com.yetanalytics.pan.axioms :as ax]
+            [com.yetanalytics.pan.objects.template :as pan-temp]
+            [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
             [com.yetanalytics.persephone.utils.json :as json]
+            [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.template.predicates
              :refer [create-rule-pred]]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Specs 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Statement IDs are technically optional
+(s/def ::stmt (s/nilable :statement/id))
+(s/def ::temp ::pan-temp/id)
+
+(s/def ::vals (s/coll-of any?))
+
+(s/def ::pred
+  #{:statement-ref?
+    :all-matchable?
+    :none-matchable?
+    :any-matchable?
+    :some-any-values?
+    :only-all-values?
+    :no-none-values?
+    :every-val-present?
+    :no-unmatch-vals?})
+
+(s/def ::location ::pan-rules/location)
+
+;; Determining Properties
+
+(s/def ::det-prop
+  #{"Verb"
+    "objectActivityType"
+    "contextParentActivityType"
+    "contextGroupingActivityType"
+    "contextCategoryActivityType"
+    "contextOtherActivityType"
+    "attachmentUsageType"})
+
+(s/def ::match-vals ::ax/array-of-iri)
+
+(s/def ::prop
+  (s/keys :req-un [::location
+                   ::det-prop
+                   ::match-vals]))
+
+;; Statement Refs
+
+(s/def ::sref-failure
+  #{:sref-not-found
+    :sref-object-type-invalid
+    :sref-id-missing
+    :sref-stmt-not-found})
+
+(s/def ::sref
+  (s/keys :req-un [::location
+                   ::sref-failure]))
+
+;; :pred             - the predicate that failed, causing this error
+;; :vals             - the values that the predicate failed on
+;; :rule/:prop/:sref - the Statement Template info associated with the error
+
+(def validation-result-spec
+  (s/keys :req-un [::stmt
+                   ::temp
+                   ::pred
+                   ::vals
+                   (or ::pan-rules/rule
+                       ::prop
+                       ::sref)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSONPath 
@@ -55,37 +126,33 @@
   (letfn [(build-det-props [accum]
             (cond-> accum
               verb
-              (conj {:location  "$.verb.id"
-                     :prop-vals [verb]
-                     :determining-property "Verb"})
+              (conj {:location   "$.verb.id"
+                     :match-vals [verb]
+                     :det-prop   "Verb"})
               objectActivityType
-              (conj {:location  "$.object.definition.type"
-                     :prop-vals [objectActivityType]
-                     :determining-property "objectActivityType"})
+              (conj {:location   "$.object.definition.type"
+                     :match-vals [objectActivityType]
+                     :det-prop   "objectActivityType"})
               contextParentActivityType
-              (conj {:location
-                     "$.context.contextActivities.parent[*].definition.type"
-                     :prop-vals contextParentActivityType
-                     :determining-property "contextParentActivityType"})
+              (conj {:location   "$.context.contextActivities.parent[*].definition.type"
+                     :match-vals contextParentActivityType
+                     :det-prop   "contextParentActivityType"})
               contextGroupingActivityType
-              (conj {:location
-                     "$.context.contextActivities.grouping[*].definition.type"
-                     :prop-vals contextGroupingActivityType
-                     :determining-property "contextGroupingActivityType"})
+              (conj {:location   "$.context.contextActivities.grouping[*].definition.type"
+                     :match-vals contextGroupingActivityType
+                     :det-prop   "contextGroupingActivityType"})
               contextCategoryActivityType
-              (conj {:location
-                     "$.context.contextActivities.category[*].definition.type"
-                     :prop-vals contextCategoryActivityType
-                     :determining-property "contextCategoryActivityType"})
+              (conj {:location   "$.context.contextActivities.category[*].definition.type"
+                     :match-vals contextCategoryActivityType
+                     :det-prop   "contextCategoryActivityType"})
               contextOtherActivityType
-              (conj {:location
-                     "$.context.contextActivities.other[*].definition.type"
-                     :prop-vals contextOtherActivityType
-                     :determining-property "contextOtherActivityType"})
+              (conj {:location   "$.context.contextActivities.other[*].definition.type"
+                     :match-vals contextOtherActivityType
+                     :det-prop   "contextOtherActivityType"})
               attachmentUsageType
-              (conj {:location  "$.attachments[*].usageType"
-                     :prop-vals attachmentUsageType
-                     :determining-property "attachmentUsageType"})))]
+              (conj {:location   "$.attachments[*].usageType"
+                     :match-vals attachmentUsageType
+                     :det-prop   "attachmentUsageType"})))]
     ;; refactor makes the process more clear, via seperation of concerns
     ;; - build rule config from template definition
     ;; - aggregate all rules together into a single coll
@@ -151,24 +218,24 @@
         (cond
           (not sref)
           [{:pred :statement-ref?
-            :vals statement
-            :rule {:location stmt-ref-path
-                   :failure  :sref-not-found}}]
+            :vals [statement]
+            :sref {:location     stmt-ref-path
+                   :sref-failure :sref-not-found}}]
           (not sref-type?)
           [{:pred :statement-ref?
-            :vals sref
-            :rule {:location stmt-ref-path
-                   :failure  :sref-object-type-invalid}}]
+            :vals [sref]
+            :sref {:location     stmt-ref-path
+                   :sref-failure :sref-object-type-invalid}}]
           (not sref-id)
           [{:pred :statement-ref?
-            :vals sref
-            :rule {:location stmt-ref-path
-                   :failure  :sref-id-missing}}]
+            :vals [sref]
+            :sref {:location     stmt-ref-path
+                   :sref-failure :sref-id-missing}}]
           (not sref-stmt)
           [{:pred :statement-ref?
-            :vals sref-id
-            :rule {:location stmt-ref-path
-                   :failure  :sref-stmt-not-found}}]
+            :vals [sref-id]
+            :sref {:location     stmt-ref-path
+                   :sref-failure :sref-stmt-not-found}}]
           ;; TODO: Add additional errors for referencing future statements?
           :else
           (validate-stmt-fn sref-stmt))))))
@@ -177,7 +244,11 @@
   "Given `rule`, create a function that will validate new Statements
    against the rule."
   [{:keys [location selector] :as rule}]
-  (let [rule-validator (create-rule-pred rule)
+  (let [rule-type      (cond
+                         (:sref-failure rule) :sref
+                         (:det-prop rule)     :prop
+                         :else                :rule)
+        rule-validator (create-rule-pred rule)
         location-path  (parse-locator location)
         selector-path  (when selector (parse-selector selector))]
     (fn [statement]
@@ -185,12 +256,9 @@
             fail-pred (rule-validator values)]
         ;; nil indicates success
         (when-not (nil? fail-pred)
-          ;; :pred - the predicate that failed, causing this error
-          ;; :values - the values that the predicate failed on
-          ;; :rule - the Statement Template rule associated with the error
-          {:pred fail-pred
-           :vals values
-           :rule rule})))))
+          {:pred     fail-pred
+           :vals     values
+           rule-type rule})))))
 
 (defn- create-rule-validators
   [template rules ?stmt-ref-opts]
@@ -207,26 +275,41 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
+(def validator-spec fn?)
+
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def validator-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret (s/nilable (s/coll-of validation-result-spec))))
+
+(s/fdef create-template-validator
+  :args (s/cat :template ::pan-temp/template
+               :statement-ref-fns (s/nilable ::sref/statement-ref-fns))
+  :ret validator-spec)
+
 (defn create-template-validator
   "Given `template`, return a validator function that takes a
    Statement as an argument and returns an nilable seq of error data."
-  ([template]
-   (create-template-validator template nil))
-  ([template statement-ref-fns]
-   (let [{temp-id :id} template
-         rules         (add-determining-properties template)
-         validators    (create-rule-validators template
-                                               rules
-                                               statement-ref-fns)]
-     (fn [statement]
-       (let [stmt-id (get statement "id")
-             errors  (->> validators
-                          (map (fn [validator] (validator statement)))
-                          flatten ; concat error colls from different validators
-                          (filter some?)
-                          (map (fn [e] (update e :stmt #(if-not % stmt-id %))))
-                          (map (fn [e] (update e :temp #(if-not % temp-id %)))))]
-         (not-empty errors))))))
+  [template ?statement-ref-fns]
+  (let [{temp-id :id} template
+        rules         (add-determining-properties template)
+        validators    (create-rule-validators template
+                                              rules
+                                              ?statement-ref-fns)]
+    (fn [statement]
+      (let [stmt-id (get statement "id")
+            up-stmt (fn [e] (update e :stmt #(if-not % stmt-id %)))
+            up-temp (fn [e] (update e :temp #(if-not % temp-id %)))
+            errors  (->> validators
+                         (map (fn [validator] (validator statement)))
+                         flatten ; concat err colls from different validators
+                         (filter some?)
+                         (map up-stmt)
+                         (map up-temp))]
+        (not-empty errors)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Predicates
@@ -284,13 +367,27 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
+(def predicate-spec
+  fn?)
+
+;; The fspec is the detailed spec, but is commented out or else
+;; instrumented fns slow to a crawl.
+
+;; (def predicate-spec
+;;   (s/fspec
+;;    :args (s/cat :statement ::xs/statement)
+;;    :ret boolean?))
+
+(s/fdef create-template-predicate
+  :args (s/cat :template ::pan-temp/template
+               :statement-ref-fns (s/nilable ::sref/statement-ref-fns))
+  :ret predicate-spec)
+
 (defn create-template-predicate
   "Like `create-template-validator`, but returns a predicate that takes
    a Statement as an argument and returns a boolean."
-  ([template]
-   (create-template-predicate template nil))
-  ([template statement-ref-fns]
-   (let [rules (add-determining-properties template)
-         preds (create-rule-predicates template rules statement-ref-fns)]
-     (fn [statement]
-       (every? (fn [pred] (pred statement)) preds)))))
+  [template ?statement-ref-fns]
+  (let [rules (add-determining-properties template)
+        preds (create-rule-predicates template rules ?statement-ref-fns)]
+    (fn [statement]
+      (every? (fn [pred] (pred statement)) preds))))

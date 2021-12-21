@@ -391,7 +391,8 @@
 ;; -> q --> s ==> s --> f
 
 (s/fdef plus-nfa
-  :args (s/cat :nfa fs/thompsons-nfa-spec)
+  :args (s/cat :nfa fs/thompsons-nfa-spec
+               :meta? (s/? boolean?))
   :ret fs/thompsons-nfa-spec)
 
 (defn plus-nfa
@@ -687,7 +688,7 @@
 (s/def ::start-opts (s/keys :opt-un [::record-visits?]))
 
 (s/fdef read-next
-  :args (s/cat :dfa fs/dfa-spec
+  :args (s/cat :fsm (s/or :nfa fs/nfa-spec :dfa fs/dfa-spec)
                :start-opts (s/? ::start-opts)
                :state-info (s/nilable fs/state-info-spec)
                :input any?)

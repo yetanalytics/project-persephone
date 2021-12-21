@@ -1,5 +1,44 @@
 # Change Log
 
+## 0.8.0 - 2021-12-21
+- Main idea: Update the Template API in order to match the Pattern API updates
+- Update Template API functions
+  - Remove `validate-statement-vs-template` functions
+  - Change `template->validator` to `compile-templates->validators`
+    - Accepts multiple templates; can filter using `:selected-templates`
+  - Change `profile->validator` to `compile-profiles->validators`
+    - Accepts multiple profiles; can filter using `:selected-profiles` and `:selected-templates`
+   - Change `validate-statement-vs-profile` to just `validate-statement`
+     - Add multiple public validation helper functions that `validate-statement` calls
+     - Rename kwargs: `:option` and `:result` OCaml-isms to `:filter` and `:errors`, respectively
+     - Add `:all-valid?` kwarg to specify that ALL templates have to match for the statement
+     - Add `:short-circuit?` kwarg to specify that only the first validation error should be returned
+- Remove automatic JSON string to EDN coercion (**note:** affects Pattern API also)
+- Apply Template ID clash check to `compile-patterns->fsms` (**note:** affects Pattern API)
+- Update template validation result map
+  - `:rule` can now also be `:prop` or `:sref` to distinguish between different types of errors/failures better
+  - `:vals` field in template error map is now _always_ be a vector, even for Statement Ref errors
+  - Change`:determining-property` and `:prop-vals` to `:det-prop` and `:match-vals`, respectively
+  - Change `:failure` to `:sref-failure`
+ - Move profile, template, and statement asserts and coercions to util namespaces.
+ - Move `profile->id-template-map` and `statement-batch->id-statement-map` convenience fns to the new `template.statement-ref` namespace.
+ - Make `?statement-ref-opts` a non-optional (albeit nilable) arg for `template/create-template-predicate` and `template/create-template-validator`.
+ - Spec fixes:
+   - FSMs/Patterns:
+     - Update `fsm-spec/valid-transition-src-states?` such that source states only have to be a _subset_, not equals to, the total states.
+     - Add `:meta?` to spec for `fsm/plus-nfa`.
+     - Correct instrumentation for `read-next` to work with NFAs as well as DFAs.
+     - Fix subregistration specs in `utils/statement`.
+   - Templates:
+     - Let `statement-ref/get-template-fn` and `statement-ref/get-statement-fn` specs to allow for `nil` returns and fix arg generation.
+      - Add missing `:every-val-present?` entry to `::template/pred` spec.
+     - Fix `validator-spec`, `create-template-validator` and `create-template-predicate` template specs.
+   - Persephone API
+     - Fix typo in `::persephone/validator-fn` and `::persephone/predicate-fn` spec names.
+     - Align specs for `validate-statement-errors` and `validate-statement` (for `:fn-type :errors`).
+     - Add missing `::persephone/print?` spec for `match-statement`.
+     - Fix bugs relating to the `::persephone/error` spec.
+
 ## 0.7.4 - 2021-12-15
 - Fix bug where the `:selected-profiles` kwarg for `compile-profiles->fsms` did not work.
 

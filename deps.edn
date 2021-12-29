@@ -9,19 +9,18 @@
                       org.clojure/clojurescript
                       org.clojure/data.json]}
         com.yetanalytics/project-pan ; Latest commit: 4/7/21
-        {:git/url    "https://github.com/yetanalytics/project-pan.git" 
+        {:git/url    "https://github.com/yetanalytics/project-pan.git"
          :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
          :exclusions [org.clojure/clojure
                       org.clojure/clojurescript
                       org.clojure/data.json
                       com.yetanalytics/xapi-schema]}
-        com.yetanalytics/pathetic ; Latest commit: 3/8/21
-        {:git/url "https://github.com/yetanalytics/pathetic.git"
-         :sha     "3c710577a4de918c3d0af13acfeb5b23d99c13bf"
-         :exclusions [org.clojure/clojure
-                      org.clojure/clojurescript
-                      org.clojure/data.json
-                      com.yetanalytics/xapi-schema]}}
+        com.yetanalytics/pathetic {:mvn/version "0.3.2"
+                                   :exclusions
+                                   [org.clojure/clojure
+                                    org.clojure/clojurescript
+                                    org.clojure/data.json
+                                    com.yetanalytics/xapi-schema]}}
  :aliases
  {:dev
   {:extra-paths ["src/dev"]

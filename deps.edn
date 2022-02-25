@@ -2,12 +2,11 @@
  :deps {org.clojure/clojure       {:mvn/version "1.10.2"}
         org.clojure/clojurescript {:mvn/version "1.10.764"
                                    :exclusions  [org.clojure/data.json]}
-        com.yetanalytics/xapi-schema ; Latest commit: 3/26/21
-        {:git/url    "https://github.com/yetanalytics/xapi-schema.git"
-         :sha        "77f78d1713e50e7b8610f58b5137695b0fccddaa"
-         :exclusions [org.clojure/clojure
-                      org.clojure/clojurescript
-                      org.clojure/data.json]}
+        com.yetanalytics/xapi-schema {:mvn/version "1.2.0"
+                                      :exclusions
+                                      [org.clojure/clojure
+                                       org.clojure/clojurescript
+                                       org.clojure/data.json]}
         com.yetanalytics/project-pan ; Latest commit: 4/7/21
         {:git/url    "https://github.com/yetanalytics/project-pan.git"
          :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
@@ -15,12 +14,12 @@
                       org.clojure/clojurescript
                       org.clojure/data.json
                       com.yetanalytics/xapi-schema]}
-        com.yetanalytics/pathetic {:mvn/version "0.3.2"
-                                   :exclusions
-                                   [org.clojure/clojure
-                                    org.clojure/clojurescript
-                                    org.clojure/data.json
-                                    com.yetanalytics/xapi-schema]}}
+        com.yetanalytics/pathetic    {:mvn/version "0.4.0"
+                                      :exclusions
+                                      [org.clojure/clojure
+                                       org.clojure/clojurescript
+                                       org.clojure/data.json
+                                       com.yetanalytics/xapi-schema]}}
  :aliases
  {:dev
   {:extra-paths ["src/dev"]

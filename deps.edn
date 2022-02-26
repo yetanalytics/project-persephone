@@ -27,7 +27,7 @@
                  criterium/criterium {:mvn/version "0.4.6"} ; clj only
                  com.taoensso/tufte  {:mvn/version "2.2.0"}}}
   :test
-  {:extra-paths ["src/test" "src/gen" "test-resources"]
+  {:extra-paths ["src/test" "test-resources"]
    :extra-deps  {org.clojure/test.check  {:mvn/version "1.1.0"}
                  org.clojure/data.json   {:mvn/version "1.0.0"} ; clj only
                  orchestra/orchestra     {:mvn/version "2021.01.01-1"}
@@ -36,22 +36,23 @@
                                                         org.clojure/data.json]}
                  com.cognitect/test-runner
                  {:git/url "https://github.com/cognitect-labs/test-runner"
-                  :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}
-                 com.yetanalytics/datasim
+                  :sha     "b6b3193fcc42659d7e46ecd1884a228993441182"}}}
+  ;; TODO: Re-incorporate into main :test alias when datasim is updated
+  :gen-test
+  {:extra-paths ["src/gen"]
+   :extra-deps  {com.yetanalytics/datasim
                  {:git/url    "https://github.com/yetanalytics/datasim.git"
                   :sha        "9a4fb7926981b1282cc72aa093bd66a1c57abbd1"
                   :exclusions [org.clojure/test.check
                                com.yetanalytics/project-pan
                                com.yetanalytics/xapi-schema]}}
-   ;; TODO: Temporary until datasim's Pan dep is updated
-   :override-deps
-   {com.yetanalytics/project-pan
-    {:git/url    "https://github.com/yetanalytics/project-pan.git"
-     :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
-     :exclusions [org.clojure/clojure
-                  org.clojure/clojurescript
-                  org.clojure/data.json
-                  com.yetanalytics/xapi-schema]}}}
+   :override-deps {com.yetanalytics/project-pan
+                   {:git/url    "https://github.com/yetanalytics/project-pan.git"
+                    :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
+                    :exclusions [org.clojure/clojure
+                                 org.clojure/clojurescript
+                                 org.clojure/data.json
+                                 com.yetanalytics/xapi-schema]}}}
   :runner-clj
   {:main-opts  ["-m" "cognitect.test-runner"
                 "-d" "src/test"]}
@@ -59,6 +60,13 @@
   {:main-opts   ["-m" "cljs-test-runner.main"
                  "-d" "src/test"
                  "-c" "build.test.edn"]}
+  :runner-clj-gen
+  {:main-opts  ["-m" "cognitect.test-runner"
+                "-d" "src/gen"]}
+  :runner-cljs-gen
+  {:main-opts  ["-m" "cljs-test-runner.main"
+                "-d" "src/gen"
+                "-c" "build.test.edn"]}
   :runner-coverage
   {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}
    :main-opts  ["-m" "cloverage.coverage"

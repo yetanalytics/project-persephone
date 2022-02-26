@@ -1,3 +1,5 @@
+(ns com.yetanalytics.perseophne-gen-test)
+
 (ns com.yetanalytics.persephone-gen-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone :as per]

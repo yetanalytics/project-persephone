@@ -7,12 +7,13 @@
                                       [org.clojure/clojure
                                        org.clojure/clojurescript
                                        org.clojure/data.json]}
-        com.yetanalytics/project-pan {:mvn/version "0.4.1"
-                                      :exclusions
-                                      [org.clojure/clojure
-                                       org.clojure/clojurescript
-                                       org.clojure/data.json
-                                       com.yetanalytics/xapi-schema]}
+        com.yetanalytics/project-pan ; Latest commit: 4/7/21
+        {:git/url    "https://github.com/yetanalytics/project-pan.git"
+         :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
+         :exclusions [org.clojure/clojure
+                      org.clojure/clojurescript
+                      org.clojure/data.json
+                      com.yetanalytics/xapi-schema]}
         com.yetanalytics/pathetic    {:mvn/version "0.4.0"
                                       :exclusions
                                       [org.clojure/clojure
@@ -42,16 +43,7 @@
                   :sha        "9a4fb7926981b1282cc72aa093bd66a1c57abbd1"
                   :exclusions [org.clojure/test.check
                                com.yetanalytics/project-pan
-                               com.yetanalytics/xapi-schema]}}
-   ;; TODO: Temporary until datasim's Pan dep is updated
-   :override-deps
-   {com.yetanalytics/project-pan
-    {:git/url    "https://github.com/yetanalytics/project-pan.git"
-     :sha        "db90b60f90908de6c2a66928ea59654a8abeaead"
-     :exclusions [org.clojure/clojure
-                  org.clojure/clojurescript
-                  org.clojure/data.json
-                  com.yetanalytics/xapi-schema]}}}
+                               com.yetanalytics/xapi-schema]}}}
   :runner-clj
   {:main-opts  ["-m" "cognitect.test-runner"
                 "-d" "src/test"]}

@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone.utils.profile
   (:require [clojure.spec.alpha :as s]
             [com.yetanalytics.pan.objects.profile :as pan-profile]
-            [com.yetanalytics.pan.objects.profiles.version :as pan-versions]
+            [com.yetanalytics.pan.objects.profiles.versions :as pan-versions]
             [com.yetanalytics.persephone.utils.time :as time]))
 
 ;; TODO: Move other util functions like `pat/mapify-all` or

@@ -3,7 +3,7 @@
             [clojure.string :as string]
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.objects.template :as pan-temp]
-            [com.yetanalytics.pan.objects.templates.rule :as pan-rules]
+            [com.yetanalytics.pan.objects.templates.rules :as pan-rules]
             [com.yetanalytics.persephone.utils.json :as json]
             [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.template.predicates

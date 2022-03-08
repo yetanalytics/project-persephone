@@ -9,14 +9,6 @@ test-clj:
 test-cljs:
 	clojure -A:test:runner-cljs
 
-# TODO: Re-incorporate into main test targets once Datasim is updated
-
-test-clj-gen:
-	clojure -A:test:gen:runner-clj
-
-test-cljs-gen:
-	clojure -A:test:gen:runner-cljs
-
 coverage:
 	clojure -A:test:runner-coverage
 

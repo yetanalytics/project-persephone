@@ -6,6 +6,15 @@ _"Only Persephone, daughter of Zeus and wife of Hades, could travel between the 
 
 A Clojure library for validating xAPI Statements against xAPI Profiles. 
 
+## Installation
+
+Add the following to the `:deps` map in your `deps.edn` file:
+```clojure
+com.yetanalytics/project-persephone {:mvn/version "0.8.1"
+                                     :exclusions [org.clojure/clojure
+                                                  org.clojure/clojurescript]}
+```
+
 ## Usage 
 
 The `persephone` namespace contains functions that perform two main tasks, which is accomplished via these functions:

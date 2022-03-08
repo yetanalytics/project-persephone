@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.8.1 - 2022-03-08
+- Implement Clojars deployment
+- Update dependencies
+
 ## 0.8.0 - 2021-12-21
 - Main idea: Update the Template API in order to match the Pattern API updates
 - Update Template API functions

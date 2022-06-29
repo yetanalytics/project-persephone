@@ -167,7 +167,7 @@
 ;; ***** Statement Validation *****
 
 (s/def ::all-valid? boolean?)
-(s/def ::short-circuit boolean?)
+(s/def ::short-circuit? boolean?)
 (s/def ::fn-type #{:predicate
                    :filter
                    :errors

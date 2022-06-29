@@ -12,6 +12,7 @@
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
             [com.yetanalytics.persephone.template.errors :as terr-printer]
             [com.yetanalytics.persephone.pattern.errors  :as perr-printer]
+            [com.yetanalytics.persephone.utils.spec      :refer [lazy-seq?]]
             [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -498,10 +499,40 @@
 
 ;; ***** Statement Pattern Matching *****
 
+;; Meta specs
+
+(s/def :com.yetanalytics.persephone.meta/statement :statement/id)
+(s/def :com.yetanalytics.persephone.meta/pattern ::pan-pattern/id)
+
+;; The templates that were visited during matching
+(s/def :com.yetanalytics.persephone.meta/templates
+  (s/coll-of ::pan-template/id :kind vector?))
+
+;; The different paths of patterns that were taken during matching
+(s/def :com.yetanalytics.persephone.meta/patterns
+  (s/coll-of (s/coll-of ::pan-pattern/id :kind vector?) :kind lazy-seq?))
+
+(s/def :com.yetanalytics.persephone.meta/traces
+  (s/coll-of (s/keys :req-un [:com.yetanalytics.persephone.meta/templates
+                              :com.yetanalytics.persephone.meta/patterns])
+             :kind lazy-seq?))
+
+(s/def :com.yetanalytics.persephone.meta/failure
+  (s/keys :req-un [:com.yetanalytics.persephone.meta/statement
+                   :com.yetanalytics.persephone.meta/pattern]
+          :opt-un [:com.yetanalytics.persephone.meta/traces]))
+
+(def state-info-meta-spec
+  (s/nilable (s/keys :req-un [:com.yetanalytics.persephone.meta/failure])))
+
+;; Non-meta specs
+
 (s/def ::states-map
   (s/every-kv registration-key-spec
               (s/every-kv ::pan-pattern/id
-                          p/state-info-spec)))
+                          (s/and p/state-info-spec
+                                 (s/conformer meta)
+                                 state-info-meta-spec))))
 
 (s/def ::accepts
   (s/every (s/tuple registration-key-spec ::pan-pattern/id)))

@@ -1,18 +1,15 @@
 (ns com.yetanalytics.persephone-test
-  (:require [clojure.test :refer [deftest testing is]]
+  (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [com.yetanalytics.persephone :as p]
             [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
             [com.yetanalytics.persephone.utils.statement :as stmt]
-            [com.yetanalytics.persephone-test.test-utils :as test-u]))
+            #?(:clj
+               [com.yetanalytics.persephone-test.test-utils :as test-u]
+               :cljs
+               [com.yetanalytics.persephone-test.test-utils :as test-u :refer [slurp]])))
 
-;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
-
-;; TODO: Move to test-utils
-#?(:cljs
-   (defn slurp [path]
-     (let [fs (js/require "fs")]
-       (.readFileSync fs path "utf8"))))
+(use-fixtures :once test-u/instrumentation-fixture)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definitions + Basic test
@@ -684,14 +681,14 @@ Pattern path:
 (def satisfied-stmt-3
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" stmt/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subregistration-iri]
                 [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" stmt/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subregistration-iri]
                 [{"profile"         "https://example.org/profile"
                   "subregistration" sub-reg-3}
                  {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
@@ -818,7 +815,7 @@ Pattern path:
   (testing "subregistration errors"
     (is (= ::stmt/invalid-subreg-nonconformant
            (->> (assoc-in satisfied-stmt-3
-                          ["context" "extensions" stmt/subreg-iri]
+                          ["context" "extensions" stmt/subregistration-iri]
                           [])
                 (match-cmi-2 nil)
                 :error

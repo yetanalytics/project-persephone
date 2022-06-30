@@ -10,16 +10,18 @@
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
+            [com.yetanalytics.persephone.pattern.failure :as fmeta]
             [com.yetanalytics.persephone.template.errors :as terr-printer]
             [com.yetanalytics.persephone.pattern.errors  :as perr-printer]
             [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Specs
+;; Common Specs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/def ::profiles (s/coll-of ::pan-profile/profile))
 
+;; Function kwargs
 (s/def ::validate-profiles? boolean?)
 (s/def ::compile-nfa? boolean?)
 
@@ -27,21 +29,44 @@
 (s/def ::selected-templates (s/every ::pan-template/id))
 (s/def ::selected-patterns (s/every ::pan-pattern/id))
 
-(s/def ::type #{::stmt/missing-profile-reference
-                ::stmt/invalid-subreg-no-registration
-                ::stmt/invalid-subreg-nonconformant})
-
-(s/def ::error
-  (s/keys :req-un [::type ::xs/statement]))
-
-(def stmt-error-spec
-  (s/keys :req-un [::error]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Validation Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; ***** Template/Pattern -> Validator *****
+;; Specs ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(s/def ::validator-fn t/validator-spec)
+(s/def ::predicate-fn t/predicate-spec)
+
+(def compiled-template-spec
+  "Spec for a compiled template: a map of the template `:id`, a `:validator-fn`,
+   and a `:predicate-fn`."
+  (s/keys :req-un [::pan-template/id
+                   ::validator-fn
+                   ::predicate-fn]))
+
+(def compiled-templates-spec
+  "Spec for a coll of compiled template maps."
+  (s/every compiled-template-spec))
+
+;; Validation function kwargs
+(s/def ::all-valid? boolean?)
+(s/def ::short-circuit? boolean?)
+(s/def ::fn-type #{:predicate
+                   :filter
+                   :errors
+                   :templates
+                   :printer
+                   :assertion})
+
+(def validation-error-map-spec
+  "Spec for validation error: a map from the template ID to a validation
+   result map containing `:stmt`, `:temp`, `:pred`, `:vals`, and either
+   `:prop` or `:sref`."
+  (s/map-of ::pan-template/id
+            (s/coll-of t/validation-result-spec :min-count 1)))
+
+;; Template/Pattern -> Validator ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- template->validator
   "Takes `template` and nilable `statement-ref-fns` and returns a map
@@ -51,17 +76,6 @@
   {:id           (:id template)
    :validator-fn (t/create-template-validator template ?statement-ref-fns)
    :predicate-fn (t/create-template-predicate template ?statement-ref-fns)})
-
-(s/def ::validator-fn t/validator-spec)
-(s/def ::predicate-fn t/predicate-spec)
-
-(def compiled-template-spec
-  (s/keys :req-un [::pan-template/id
-                   ::validator-fn
-                   ::predicate-fn]))
-
-(def compiled-templates-spec
-  (s/every compiled-template-spec))
 
 (s/fdef compile-profiles->validators
   :args (s/cat :templates ::pan-template/templates
@@ -164,16 +178,7 @@
                                    :selected-templates selected-templates
                                    :validate-templates? false)))
 
-;; ***** Statement Validation *****
-
-(s/def ::all-valid? boolean?)
-(s/def ::short-circuit boolean?)
-(s/def ::fn-type #{:predicate
-                   :filter
-                   :errors
-                   :templates
-                   :printer
-                   :assertion})
+;; Statement Validation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; `validated-statement?` based
 
@@ -218,11 +223,6 @@
 ;; `validate-statement-errors` based
 
 ;; c.f. Result (Ok/Error) types
-
-(def validation-error-map-spec
-  (s/map-of ::pan-template/id
-            (s/coll-of t/validation-result-spec :min-count 1)))
-
 (s/fdef validate-statement-errors
   :args (s/cat :compiled-templates compiled-templates-spec
                :statement ::xs/statement
@@ -407,13 +407,72 @@
 ;; Pattern Matching Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; ***** Profile to FSM Compilation *****
-
-;; TODO: Work with XML and Turtle Profiles
+;; Specs ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def compiled-profiles-spec
+  "A compiled profiles spec: a map from profile IDs to another map of pattern
+   IDs (from that profile) to a map of compiled FSMs."
   (s/every-kv ::pan-profile/id
               (s/every-kv ::pan-pattern/id p/fsm-map-spec)))
+
+(def registration-key-spec
+  "Spec for a registration key - either a single registration UUID string
+   or a vector pair of a registration and subregistration UUID."
+  (s/or :no-subregistration ::stmt/registration
+        :subregistration (s/tuple ::stmt/registration-id
+                                  ::stmt/subregistration)))
+
+;; Function kwargs
+(s/def ::print? boolean?)
+
+;; State info specs
+
+(def state-info-meta-spec
+  "Spec for failure metadata: a nilable map of `::pattern.failure/failure`."
+  (s/nilable (s/keys :req-un [::fmeta/failure])))
+
+(def state-info-spec ; state-info + meta
+  "Spec for state info + failure metadata."
+  (s/and p/state-info-spec
+         (s/conformer meta)
+         state-info-meta-spec))
+
+(s/def ::accepts
+  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
+
+(s/def ::rejects
+  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
+
+(s/def ::states-map
+  (s/every-kv registration-key-spec
+              (s/every-kv ::pan-pattern/id state-info-spec)))
+
+(def state-info-map-spec
+  "Spec for an individual state info map."
+  (s/or :start (s/nilable (s/and map? empty?))
+        :continue (s/keys :req-un [::accepts
+                                   ::rejects
+                                   ::states-map])))
+
+;; Match failure specs
+
+;; TODO: Probably move to the `stmt` namespace
+(s/def ::type #{::stmt/missing-profile-reference
+                ::stmt/invalid-subreg-no-registration
+                ::stmt/invalid-subreg-nonconformant})
+
+(s/def ::error
+  (s/keys :req-un [::type ::xs/statement]))
+
+;; TODO: Delete in next break ver
+(def ^:deprecated stmt-error-spec
+  (s/keys :req-un [::error]))
+
+(def statement-error-spec
+  "Spec for a statement error (e.g. during match error)."
+  (s/keys :req-un [::error]))
+
+;; Profile to FSM Compilation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (s/fdef compile-profiles->fsms
   :args (s/cat :profiles ::profiles
@@ -483,90 +542,48 @@
 
 ;; Registration Key Construction
 
-(def registration-key-spec
-  (s/or :no-subregistration ::stmt/registration
-        :subregistration (s/tuple ::stmt/registration-id
-                                  ::stmt/subregistration)))
-
 (defn- construct-registration-key
   [profile-id registration ?subreg-ext]
-  (if-some [subregistration (and ?subreg-ext
-                                 (stmt/get-subregistration-id profile-id
-                                                              ?subreg-ext))]
+  (if-some [subregistration
+            (and ?subreg-ext
+                 (stmt/get-subregistration-id profile-id ?subreg-ext))]
     [registration subregistration]
     registration))
 
-;; ***** Statement Pattern Matching *****
-
-(s/def ::states-map
-  (s/every-kv registration-key-spec
-              (s/every-kv ::pan-pattern/id
-                          p/state-info-spec)))
-
-(s/def ::accepts
-  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
-
-(s/def ::rejects
-  (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
-
-(def state-info-map-spec
-  (s/or :start (s/nilable #{{}})
-        :continue (s/keys :req-un [::accepts
-                                   ::rejects
-                                   ::states-map])))
+;; Statement Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-id    :id
-    pat-dfa   :dfa
+  [{pat-dfa   :dfa
     ?pat-nfa  :nfa
-    ?nfa-meta :nfa-meta}
+    :as fsms}
    state-info
    statement
    print?]
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
     (if (empty? new-st-info)
-      (if-some [old-meta (meta state-info)]
+      (if-some [{old-fail-meta :failure :as old-meta} (meta state-info)]
         (do
-          (when print?
-            (println (perr-printer/error-msg-str (:failure old-meta))))
+          (when print? (println (perr-printer/error-msg-str old-fail-meta)))
           (with-meta new-st-info old-meta))
-        (let [?fail-trc (when ?pat-nfa
-                          (let [read-temp-ids
-                                (if ?nfa-meta
-                                  (partial p/read-visited-templates
-                                           ?pat-nfa
-                                           ?nfa-meta)
-                                  (partial p/read-visited-templates
-                                           ?pat-nfa))
-                                build-trace
-                                (fn [temp-ids]
-                                  {:templates temp-ids
-                                   :patterns  (read-temp-ids temp-ids)})]
-                            (->> state-info
-                                 (map :visited)
-                                 (map build-trace))))
-              fail-meta (cond-> {:statement (get statement "id")
-                                 :pattern   pat-id}
-                          ?fail-trc
-                          (assoc :traces ?fail-trc))]
-          (when print?
-            (println (perr-printer/error-msg-str fail-meta)))
+        (let [fail-meta (fmeta/construct-failure-info
+                         fsms
+                         state-info
+                         statement)]
+          (when print? (println (perr-printer/error-msg-str fail-meta))) 
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
-(s/def ::print? boolean?)
-
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :error stmt-error-spec
+               :state-info-map    (s/or :error statement-error-spec
                                         :ok state-info-map-spec)
                :statement         ::xs/statement
                :kwargs            (s/keys* :opt-un [::print?]))
-  :ret (s/or :error stmt-error-spec
+  :ret (s/or :error statement-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
@@ -673,10 +690,10 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :error stmt-error-spec
+               :state-info-map    (s/or :error statement-error-spec
                                         :ok state-info-map-spec)
                :statement-batch   (s/coll-of ::xs/statement))
-  :ret (s/or :error stmt-error-spec
+  :ret (s/or :error statement-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch

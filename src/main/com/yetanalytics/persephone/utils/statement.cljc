@@ -6,7 +6,11 @@
             [com.yetanalytics.pan.objects.profile :as pan-prof]
             [com.yetanalytics.persephone.utils.time :as time]))
 
-(def subreg-iri
+;; TODO: Delete in next break ver
+(def ^:deprecated subreg-iri
+  "https://w3id.org/xapi/profiles/extensions/subregistration")
+
+(def subregistration-iri
   "https://w3id.org/xapi/profiles/extensions/subregistration")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -90,7 +94,9 @@
    extension value (a coll of subreg objects), or a keyword if the
    subregistration value is invalid."
   [statement registration]
-  (let [subreg-ext (get-in statement ["context" "extensions" subreg-iri])]
+  (let [subreg-ext (get-in statement ["context"
+                                      "extensions"
+                                      subregistration-iri])]
     (when (some? subreg-ext)
       (cond
         ;; Subregistrations present without registration

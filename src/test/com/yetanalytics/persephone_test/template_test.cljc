@@ -2,16 +2,14 @@
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.persephone.template.errors :as print-errs]
             [com.yetanalytics.persephone.template :as tv]
-            [com.yetanalytics.persephone-test.test-utils :as test-u]))
+            #?(:clj
+               [com.yetanalytics.persephone-test.test-utils :as test-u]
+               :cljs
+               [com.yetanalytics.persephone-test.test-utils :as test-u :refer [slurp]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statement Template Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; TODO: Move to test-utils
-#?(:cljs (defn slurp [path]
-           (let [fs (js/require "fs")]
-             (.readFileSync fs path "utf8"))))
 
 (def ex-statement-1
   (test-u/json->edn (slurp "test-resources/sample_statements/adl_1.json")))

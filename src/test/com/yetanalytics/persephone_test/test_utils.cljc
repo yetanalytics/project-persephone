@@ -10,7 +10,7 @@
                        [clojure.test.check.generators]
                        [orchestra-cljs.spec.test :as otest :include-macros true]]))
   #?(:cljs (:require-macros [com.yetanalytics.persephone-test.test-utils
-                             :refer [persephone-syms-macro]])))
+                             :refer [persephone-syms-var]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON Parsing
@@ -46,18 +46,20 @@
           (filter persephone-sym-filter)
           set)))
 
-;; cljs mode needs a macro since `instrument` in cljs is itself a macro
-;; (unlike clj mode where `instrument` is a function)
+;; cljs mode needs a compile-time var since `instrument` in cljs a macro
+;; (unlike clj mode where `instrument` is a runtime function).
 
 #?(:clj
-   (defmacro persephone-syms-macro
-     []
-     `(->>(stest/instrumentable-syms)
-           (filter #(->> % namespace (re-matches #"com\.yetanalytics\.persephone.*")))
-           set)))
+   (def persephone-syms-var
+     (persephone-syms)))
 
-(comment
-  ;; TODO: Add the instrumentation as a fixture
-  ;; (including in ClojureScript, somehow)
-  (otest/instrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro)))
-  (otest/unstrument #?(:clj (persephone-syms) :cljs (persephone-syms-macro))))
+(def instrumentation-fixture
+  "Fixture to instrument, run tests, then unstrument."
+  #?(:clj
+     (fn [f]
+       (otest/instrument (persephone-syms))
+       (f)
+       (otest/unstrument (persephone-syms)))
+     :cljs
+     {:before #(otest/instrument persephone-syms-var)
+      :after #(otest/unstrument persephone-syms-var)}))

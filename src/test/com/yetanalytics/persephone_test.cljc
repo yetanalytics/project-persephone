@@ -1,5 +1,5 @@
 (ns com.yetanalytics.persephone-test
-  (:require [clojure.test :refer [deftest testing is]]
+  (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [com.yetanalytics.persephone :as p]
             [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
@@ -13,6 +13,8 @@
    (defn slurp [path]
      (let [fs (js/require "fs")]
        (.readFileSync fs path "utf8"))))
+
+(use-fixtures :once test-u/instrumentation-fixture)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definitions + Basic test

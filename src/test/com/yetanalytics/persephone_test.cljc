@@ -684,14 +684,14 @@ Pattern path:
 (def satisfied-stmt-3
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" stmt/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subregistration-iri]
                 [{"profile"         "https://w3id.org/xapi/cmi5/v1.0"
                   "subregistration" sub-reg-1}])))
 
 (def satisfied-stmt-4
   (-> satisfied-stmt
       (assoc-in ["context" "registration"] registration-3)
-      (assoc-in ["context" "extensions" stmt/subreg-iri]
+      (assoc-in ["context" "extensions" stmt/subregistration-iri]
                 [{"profile"         "https://example.org/profile"
                   "subregistration" sub-reg-3}
                  {"profile"         "https://w3id.org/xapi/cmi5/v1.0"
@@ -818,7 +818,7 @@ Pattern path:
   (testing "subregistration errors"
     (is (= ::stmt/invalid-subreg-nonconformant
            (->> (assoc-in satisfied-stmt-3
-                          ["context" "extensions" stmt/subreg-iri]
+                          ["context" "extensions" stmt/subregistration-iri]
                           [])
                 (match-cmi-2 nil)
                 :error

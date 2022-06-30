@@ -35,7 +35,11 @@
 (s/def ::error
   (s/keys :req-un [::type ::xs/statement]))
 
-(def stmt-error-spec
+;; TODO: Delete in next break ver
+(def ^:deprecated stmt-error-spec
+  (s/keys :req-un [::error]))
+
+(def statement-error-spec
   (s/keys :req-un [::error]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -560,11 +564,11 @@
 
 (s/fdef match-statement
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :error stmt-error-spec
+               :state-info-map    (s/or :error statement-error-spec
                                         :ok state-info-map-spec)
                :statement         ::xs/statement
                :kwargs            (s/keys* :opt-un [::print?]))
-  :ret (s/or :error stmt-error-spec
+  :ret (s/or :error statement-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement
@@ -671,10 +675,10 @@
 
 (s/fdef match-statement-batch
   :args (s/cat :compiled-profiles compiled-profiles-spec
-               :state-info-map    (s/or :error stmt-error-spec
+               :state-info-map    (s/or :error statement-error-spec
                                         :ok state-info-map-spec)
                :statement-batch   (s/coll-of ::xs/statement))
-  :ret (s/or :error stmt-error-spec
+  :ret (s/or :error statement-error-spec
              :ok state-info-map-spec))
 
 (defn match-statement-batch

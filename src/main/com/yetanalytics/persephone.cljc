@@ -10,9 +10,9 @@
             [com.yetanalytics.persephone.utils.profile   :as prof]
             [com.yetanalytics.persephone.utils.statement :as stmt]
             [com.yetanalytics.persephone.pattern.fsm     :as fsm]
+            [com.yetanalytics.persephone.pattern.failure :as fmeta]
             [com.yetanalytics.persephone.template.errors :as terr-printer]
             [com.yetanalytics.persephone.pattern.errors  :as perr-printer]
-            [com.yetanalytics.persephone.utils.spec      :refer [lazy-seq?]]
             [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -499,40 +499,20 @@
 
 ;; ***** Statement Pattern Matching *****
 
-;; Meta specs
-
-(s/def :com.yetanalytics.persephone.meta/statement :statement/id)
-(s/def :com.yetanalytics.persephone.meta/pattern ::pan-pattern/id)
-
-;; The templates that were visited during matching
-(s/def :com.yetanalytics.persephone.meta/templates
-  (s/coll-of ::pan-template/id :kind vector?))
-
-;; The different paths of patterns that were taken during matching
-(s/def :com.yetanalytics.persephone.meta/patterns
-  (s/coll-of (s/coll-of ::pan-pattern/id :kind vector?) :kind lazy-seq?))
-
-(s/def :com.yetanalytics.persephone.meta/traces
-  (s/coll-of (s/keys :req-un [:com.yetanalytics.persephone.meta/templates
-                              :com.yetanalytics.persephone.meta/patterns])
-             :kind lazy-seq?))
-
-(s/def :com.yetanalytics.persephone.meta/failure
-  (s/keys :req-un [:com.yetanalytics.persephone.meta/statement
-                   :com.yetanalytics.persephone.meta/pattern]
-          :opt-un [:com.yetanalytics.persephone.meta/traces]))
-
 (def state-info-meta-spec
-  (s/nilable (s/keys :req-un [:com.yetanalytics.persephone.meta/failure])))
+  "Spec for failure metadata"
+  (s/nilable (s/keys :req-un [::fmeta/failure])))
 
-;; Non-meta specs
+(def state-info-spec ; state-info + meta
+  "Spec for state info + failure metadata."
+  (s/and p/state-info-spec
+         (s/conformer meta)
+         state-info-meta-spec))
 
 (s/def ::states-map
   (s/every-kv registration-key-spec
               (s/every-kv ::pan-pattern/id
-                          (s/and p/state-info-spec
-                                 (s/conformer meta)
-                                 state-info-meta-spec))))
+                          state-info-spec)))
 
 (s/def ::accepts
   (s/every (s/tuple registration-key-spec ::pan-pattern/id)))
@@ -546,14 +526,17 @@
                                    ::rejects
                                    ::states-map])))
 
+(defn- println-optional
+  [print? x]
+  (when print? (println x)))
+
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-id    :id
-    pat-dfa   :dfa
+  [{pat-dfa   :dfa
     ?pat-nfa  :nfa
-    ?nfa-meta :nfa-meta}
+    :as fsms}
    state-info
    statement
    print?]
@@ -562,30 +545,14 @@
     (if (empty? new-st-info)
       (if-some [old-meta (meta state-info)]
         (do
-          (when print?
-            (println (perr-printer/error-msg-str (:failure old-meta))))
+          (println-optional print?
+                            (perr-printer/error-msg-str (:failure old-meta)))
           (with-meta new-st-info old-meta))
-        (let [?fail-trc (when ?pat-nfa
-                          (let [read-temp-ids
-                                (if ?nfa-meta
-                                  (partial p/read-visited-templates
-                                           ?pat-nfa
-                                           ?nfa-meta)
-                                  (partial p/read-visited-templates
-                                           ?pat-nfa))
-                                build-trace
-                                (fn [temp-ids]
-                                  {:templates temp-ids
-                                   :patterns  (read-temp-ids temp-ids)})]
-                            (->> state-info
-                                 (map :visited)
-                                 (map build-trace))))
-              fail-meta (cond-> {:statement (get statement "id")
-                                 :pattern   pat-id}
-                          ?fail-trc
-                          (assoc :traces ?fail-trc))]
-          (when print?
-            (println (perr-printer/error-msg-str fail-meta)))
+        (let [fail-meta (fmeta/construct-failure-info
+                         fsms
+                         state-info
+                         statement)]
+          (println-optional print? (perr-printer/error-msg-str fail-meta)) 
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 

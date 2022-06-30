@@ -225,6 +225,7 @@
 ;; Putting it all together
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: Remove in next break ver
 (s/def ::nfa-meta
   (s/keys :opt-un [:meta/states]))
 

@@ -302,5 +302,9 @@
 (s/def :meta/states
   (s/every-kv (s/or :nfa :nfa/state :dfa :int-dfa/state) any?))
 
-(def fsm-metadata-spec
+;; TODO: Remove in next break ver
+(def ^:deprecated fsm-metadata-spec
+  (s/keys :opt-un [:meta/states]))
+
+(s/def ::nfa-meta
   (s/keys :opt-un [:meta/states]))

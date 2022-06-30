@@ -13,6 +13,20 @@
                              :refer [persephone-syms-var]])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Resource reading
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
+
+#?(:cljs
+   (defn slurp
+     "ClojureScript drop-in replacement for `clojure.core/slurp`. Only works
+      for reading local files."
+     [path]
+     (let [fs (js/require "fs")]
+       (.readFileSync fs path "utf8"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON Parsing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

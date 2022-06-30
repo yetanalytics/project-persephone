@@ -4,15 +4,10 @@
             [com.yetanalytics.persephone.template.statement-ref :as sref]
             [com.yetanalytics.persephone.pattern.errors :as perrs]
             [com.yetanalytics.persephone.utils.statement :as stmt]
-            [com.yetanalytics.persephone-test.test-utils :as test-u]))
-
-;; https://stackoverflow.com/questions/38880796/how-to-load-a-local-file-for-a-clojurescript-test
-
-;; TODO: Move to test-utils
-#?(:cljs
-   (defn slurp [path]
-     (let [fs (js/require "fs")]
-       (.readFileSync fs path "utf8"))))
+            #?(:clj
+               [com.yetanalytics.persephone-test.test-utils :as test-u]
+               :cljs
+               [com.yetanalytics.persephone-test.test-utils :as test-u :refer [slurp]])))
 
 (use-fixtures :once test-u/instrumentation-fixture)
 

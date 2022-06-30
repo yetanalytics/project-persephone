@@ -275,7 +275,8 @@
                                             "$.context.statement"
                                             ?stmt-ref-opts)))))
 
-(def validator-spec fn?)
+(def validator-spec
+  fn?)
 
 ;; The fspec is the detailed spec, but is commented out or else
 ;; instrumented fns slow to a crawl.

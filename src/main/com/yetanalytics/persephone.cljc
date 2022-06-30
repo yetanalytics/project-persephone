@@ -552,10 +552,6 @@
 
 ;; Statement Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- println-optional
-  [print? x]
-  (when print? (println x)))
-
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
@@ -569,16 +565,15 @@
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
     (if (empty? new-st-info)
-      (if-some [old-meta (meta state-info)]
+      (if-some [{old-fail-meta :failure :as old-meta} (meta state-info)]
         (do
-          (println-optional print?
-                            (perr-printer/error-msg-str (:failure old-meta)))
+          (when print? (println (perr-printer/error-msg-str old-fail-meta)))
           (with-meta new-st-info old-meta))
         (let [fail-meta (fmeta/construct-failure-info
                          fsms
                          state-info
                          statement)]
-          (println-optional print? (perr-printer/error-msg-str fail-meta)) 
+          (when print? (println (perr-printer/error-msg-str fail-meta))) 
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 

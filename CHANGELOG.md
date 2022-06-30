@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.8.2 = 2022-06-30
+- Deprecate `stmt-error` and `util.statement.subreg-iri` in favor of `statement-error` and `subregistration-iri`, respectively (while keeping the values identical).
+- Add `pattern.failure` namespace and specs such as `::failure/failure` and `state-info-meta-spec` for failure info/state info metadata.
+- Add docstrings to API specs.
+
 ## 0.8.1 - 2022-03-08
 - Implement Clojars deployment
 - Update dependencies

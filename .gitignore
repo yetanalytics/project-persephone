@@ -12,10 +12,11 @@ pom.xml.asc
 .hgignore
 .hg/
 
-# Calva + linting
+# VSCode stuff
 .calva
 .clj-kondo
 .lsp
+.vscode/
 
 # Image output files
 *.png

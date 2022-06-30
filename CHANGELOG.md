@@ -4,6 +4,7 @@
 - Deprecate `stmt-error` and `util.statement.subreg-iri` in favor of `statement-error` and `subregistration-iri`, respectively (while keeping the values identical).
 - Add `pattern.failure` namespace and specs such as `::failure/failure` and `state-info-meta-spec` for failure info/state info metadata.
 - Add docstrings to API specs.
+- (Test-only) Add spec instrumentation fixture and apply it to API function tests.
 
 ## 0.8.1 - 2022-03-08
 - Implement Clojars deployment

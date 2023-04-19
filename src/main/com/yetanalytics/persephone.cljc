@@ -136,8 +136,8 @@
    `:validator-fn`, and `:predicate-fn`, just like with
    `compile-templates->validators`. Takes the following kwargs:
 
-   | Keyword Arg | Description
-   | --- | ---
+   | Keyword Arg           | Description
+   | ---                   | ---
    | `:statement-ref-fns`  | Same as in `compile-templates->validators`.
    | `:validate-profiles?` | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
    | `:selected-profiles`  | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
@@ -589,7 +589,8 @@
    registrations will be assigned a default `:no-registration` key.
    
    `state-info` is a map of the following:
-   | Key | Description
+   | Key          | Description
+   | ---          | ---
    | `:state`     | The current state in the FSM, i.e. where is the current location in the Pattern?
    | `:accepted?` | If that state is an accept state, i.e. did the inputs fully match the Pattern?
    | `:visited`   | The vec of visited Statement Templates; this is only present if `compiled-profiles` was compiled with `compile-nfa?` set to `true`.

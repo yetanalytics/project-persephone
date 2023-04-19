@@ -178,11 +178,6 @@ Persephone validates both Profiles and input Statements against the latest xAPI 
 
 While Concepts are an integral part of most xAPI profiles, this library does not concern itself with them. This library is strictly focused on structural validation using Statement Templates and Patterns and not on any ontological meaning given by Concepts. In other words, this is a syntax library, not a semantics library.
 
-## TODO
-
-- Deal with profile-external Templates and Patterns (requires a triple store).
-- Squish any bugs (see Issue tracker).
-
 ## License
 
 Copyright © 2019-2023 Yet Analytics, Inc.

@@ -89,7 +89,7 @@
 (defn- presence-pred-fn
   "Pulls out the functionality common to the `*-values?` functions
 
-  `pred-fn` should be a 2-airty function:
+  `pred-fn` should be a binary function:
   - first arg = `presence` set i.e. `any`, `all`, or `none`
   - second arg = `values` collection"
   [presence-set values-coll pred-fn]

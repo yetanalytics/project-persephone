@@ -1,5 +1,7 @@
 # project-persephone
 
+<img src="logo/logo.svg" alt="Persephone Logo" width="400px">
+
 [![CI](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml/badge.svg)](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml)
 
 _"Only Persephone, daughter of Zeus and wife of Hades, could travel between the Underworld and the world of the living. Project Persephone is the liaison between our physical world and the world of the Semantic Web."_
@@ -186,3 +188,5 @@ While Concepts are an integral part of most xAPI profiles, this library does not
 Copyright © 2019-2021 Yet Analytics, Inc.
 
 Distributed under the Apache License version 2.0.
+
+The Persephone logo is based off of [_Proserpine_](https://en.wikipedia.org/wiki/Hiram_Powers#/media/File:'Proserpine',_marble_bust_by_Hiram_Powers,_1844,_Cincinnati_Art_Museum.jpg) by [Hiram Powers](https://en.wikipedia.org/wiki/Hiram_Powers).

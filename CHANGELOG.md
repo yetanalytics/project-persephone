@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.8.4 - 2023-04-19
+- Update README and API function docstrings.
+
 ## 0.8.3 - 2022-10-24
 - Update GitHub CI and CD to remove deprecation warnings
 

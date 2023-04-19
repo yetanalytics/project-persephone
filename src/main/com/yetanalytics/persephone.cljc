@@ -607,7 +607,7 @@
    where `error-kw` is one of the following:
    | Keyword | Description
    | ---     | ---
-   | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context activity.
+   | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.
    | `::invalid-subreg-no-registration` | If a sub-registration is present without a registration.
    | `::invalid-subreg-nonconformant`   | If the sub-registration extension value is invalid.
    

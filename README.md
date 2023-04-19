@@ -185,7 +185,7 @@ While Concepts are an integral part of most xAPI profiles, this library does not
 
 ## License
 
-Copyright © 2019-2021 Yet Analytics, Inc.
+Copyright © 2019-2023 Yet Analytics, Inc.
 
 Distributed under the Apache License version 2.0.
 

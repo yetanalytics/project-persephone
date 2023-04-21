@@ -47,18 +47,18 @@ Validating a Statement against a Statement Template involves three aspects:
 
 The compilation functions `compile-templates->validators` and `compile-profiles->validators` return a collection of maps of the following:
 
-| Key | Description
-| --- | ---
+| Map Key         | Description
+| ---             | ---
 | `:id`           | The Statement Template ID.
 | `:predicate-fn` | A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
 | `:validator-fn` | A function that takes a Statement and returns `nil` if that Statement is valid against it, a map of error data otherwise.
 
 `compile-templates->validators` takes the following keyword args:
-| Keyword Arg            | Description
+| Keyword Argument       | Description
 | ---                    | ---
 | `:statement-ref-fns`   | A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
-- `:validate-templates?` | Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
-- `:selected-templates`  | Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
+| `:validate-templates?` | Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
+| `:selected-templates`  | Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
 
 `compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument.
 
@@ -73,7 +73,7 @@ The `validate-statement` function take the keyword argument `:fn-type`, which ca
 | `:templates` | Returns a vector of the IDs of the Statement Templates the Statement is valid for.
 
 `validate-statement` also takes the following two keyword args:
-| Keyword Arg       | Description
+| Keyword Argument  | Description
 | ---               | ---
 | `:all-valid?`     | If `false` (default), the Statement is considered valid if _any_ of the Statement Template is valid for it. If `true`, validity is if _all_ of the Templates are valid for it. Applicable to all function types except `:templates`.
 | `:short-circuit?` | If `false` (default), returns error data for all invalid Templates; if `true`, returns data for only the first invalid Template found. Applicable to `:result`, `:assertion`, and `:printer`.
@@ -125,7 +125,7 @@ with `:dfa` and `:nfa` being two different FSMs:
 NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.
 
 The `compile-profiles->fsms` functions have the following keyword arguments:
-| Keyword Arg          | Description
+| Keyword Argument     | Description
 | ---                  | ---
 | `:statement-ref-fns` | Same as in the Statement Template compilation functions.
 | `:validate-profile?` | Validates Profiles and checks that there are no clashing Profile or Pattern IDs.
@@ -152,7 +152,7 @@ The `match-statement` and `match-statement-batch` functions take in a compiled P
                                  :visited ["template-id"]}}}}}
 ```
 where the following are the values in the leaf `:states-data` map:
-| Key          | Description
+| Map Key      | Description
 | ---          | ---
 | `:state`     | The state that the FSM is currently at.
 | `:accepted?` | Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
@@ -176,7 +176,7 @@ For more information about the technical implementation details (including about
 ### Statement Ref Templates
 
 By default, Statement Ref Template validation is not supported; however, to allow for such support, `compile-profiles->validators` and `compile-profiles->fsms` take in an optional `:statement-ref-fns` argument. Its value needs to be a map of the following:
-| Key                 | Description
+| Map Key             | Description
 | ---                 | ---
 | `:get-statement-fn` | A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 | `:get-template-fn`  | A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.

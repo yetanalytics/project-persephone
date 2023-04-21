@@ -25,13 +25,19 @@
     :parse-fn  f/read-statement
     :validate  [s/statement? s/statement-err-msg]
     :update-fn (fnil conj [])]
+   ["-n" "--compile-nfa"
+    (str "If set, compiles the Patterns into a non-deterministic finite automaton (NFA) "
+         "instead of a deterministic one, allowing for more detailed error traces at the "
+         "expense of compilation time.")
+    :id :compile-nfa]
    ["-h" "--help" "Display the help menu."]])
 
 (defn- match
-  [{:keys [profiles pattern-ids statements]}]
+  [{:keys [profiles pattern-ids statements compile-nfa]}]
   (let [compiled (per/compile-profiles->fsms
                   profiles
                   :validate-profiles? false
+                  :compile-nfa?       compile-nfa
                   :selected-patterns  (not-empty pattern-ids))]
     ;; TODO: binary version of match stmt fns
     (per/match-statement-batch compiled nil statements :print? true)

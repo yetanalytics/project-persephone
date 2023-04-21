@@ -148,8 +148,8 @@ The `match-statement` and `match-statement-batch` functions take in a compiled P
    :rejects []
    :states-data {"registration-key"
                  {"pattern-id" #{{:state 1
-                                 :accepted? true
-                                 :visited ["template-id"]}}}}}
+                                  :accepted? true
+                                  :visited ["template-id"]}}}}}
 ```
 where the following are the values in the leaf `:states-data` map:
 | Map Key      | Description

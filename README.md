@@ -10,9 +10,7 @@ A Clojure library for validating xAPI Statements against xAPI Profiles.
 
 Add the following to the `:deps` map in your `deps.edn` file:
 ```clojure
-com.yetanalytics/project-persephone {:mvn/version "0.8.3"
-                                     :exclusions [org.clojure/clojure
-                                                  org.clojure/clojurescript]}
+com.yetanalytics/project-persephone {:mvn/version "0.8.3"}
 ```
 
 ## Usage 

@@ -20,7 +20,11 @@
                                        org.clojure/data.json
                                        com.yetanalytics/xapi-schema]}}
  :aliases
- {:dev
+ {:cli
+  {:extra-paths ["src/cli"]
+   :extra-deps  {org.clojure/tools.cli {:mvn/version "1.0.206"}
+                 cheshire/cheshire     {:mvn/version "5.11.0"}}}
+  :dev
   {:extra-paths ["src/dev"]
    :extra-deps  {cider/piggieback    {:mvn/version "0.5.2"} ; cljs only
                  dorothy/dorothy     {:mvn/version "0.0.7"}

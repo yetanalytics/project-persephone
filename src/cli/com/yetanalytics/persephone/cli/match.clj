@@ -38,13 +38,19 @@
                   profiles
                   :validate-profiles? false
                   :compile-nfa?       compile-nfa
-                  :selected-patterns  (not-empty pattern-ids))]
-    ;; TODO: binary version of match stmt fns
-    (per/match-statement-batch compiled nil statements :print? true)
-    nil))
+                  :selected-patterns  (not-empty pattern-ids))
+        state-m  (per/match-statement-batch compiled
+                                            nil
+                                            statements
+                                            :print? true)]
+    (not (boolean (or (-> state-m :error)
+                      ;; TODO: This really shouldn't be meta...
+                      (-> state-m meta :failure))))))
 
 (defn -main [& args]
-  (match (a/handle-args args match-statements-options)))
+  (if (match (a/handle-args args match-statements-options))
+    (System/exit 0)
+    (System/exit 1)))
 
 (comment
   (match

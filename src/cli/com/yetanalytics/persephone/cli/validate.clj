@@ -38,15 +38,21 @@
   (let [compiled (per/compile-profiles->validators
                   profiles
                   :validate-profiles? false ; already validated as CLI args
-                  :selected-templates (not-empty template-ids))]
-    (per/validate-statement compiled
-                            statement
-                            :fn-type :printer
-                            :all-valid? all-valid
-                            :short-circuit? short-circuit)))
+                  :selected-templates (not-empty template-ids))
+        ;; TODO: This is an obvious hack, please fix
+        res-str  (with-out-str (per/validate-statement
+                                compiled
+                                statement
+                                :fn-type :printer
+                                :all-valid? all-valid
+                                :short-circuit? short-circuit))]
+    (when (some? res-str) (print res-str))
+    (empty? res-str)))
 
 (defn -main [& args]
-  (validate (a/handle-args args validate-statement-options)))
+  (if (validate (a/handle-args args validate-statement-options))
+    (System/exit 0)
+    (System/exit 1)))
 
 (comment
   (a/handle-args '("--help") validate-statement-options)

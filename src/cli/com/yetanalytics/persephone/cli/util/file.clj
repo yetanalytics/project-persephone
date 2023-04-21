@@ -12,7 +12,6 @@
   [profile-filename]
   (with-open [reader (io/reader profile-filename)]
     (let [res (json/parse-stream reader coerce-profile-key)]
-      #_(println res)
       res)))
 
 (defn read-template

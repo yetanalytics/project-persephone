@@ -60,4 +60,9 @@
   {:extra-deps {cloverage/cloverage {:mvn/version "1.2.2"}}
    :main-opts  ["-m" "cloverage.coverage"
                 "-p" "src/main"
-                "-s" "src/test"]}}}
+                "-s" "src/test"]}
+  :build
+  {:paths      ["src/build"]
+   :deps       {io.github.clojure/tools.build {:git/tag "v0.6.6"
+                                               :git/sha "4d41c26"}}
+   :ns-default com.yetanalytics.persephone.build}}}

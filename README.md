@@ -24,14 +24,14 @@ The `persephone` namespace contains functions that perform two main tasks, which
 | ---                     | ---
 | `validate-statement`    | Takes a Statement and validates it against the properties and rules of compiled Statement Templates, as described in the [xAPI Statement Template specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#statment-templates).
 | `match-statement`       | Takes a Statement and matches them against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
-| `match-statement-batch` | Takes a collection of Statements and matches them in order against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
+| <span style="white-space:nowrap">`match-statement-batch`</span> | Takes a collection of Statements and matches them in order against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 
 The following functions are provided for Template/Profile compilation:
 | Function | Description
 | ---      | ---
-| `compile-templates->validators`| Compiles a collection of Statement Templates into validators.
-| `compile-profiles->validators` | Compiles a collection of Profiles into validators.
-| `compile-profiles->fsms`       | Compiles a collection of Profiles into an FSM map.
+| <span style="white-space:nowrap">`compile-templates->validators`</span> | Compiles a collection of Statement Templates into validators.
+| `compile-profiles->validators`  | Compiles a collection of Profiles into validators.
+| `compile-profiles->fsms`        | Compiles a collection of Profiles into an FSM map.
 
 NOTE: All Profiles and Statements must be already parsed into EDN format. Profiles must have keyword keys, while Statements must have string keys (to match the expected formats of [project-pan](https://github.com/yetanalytics/project-pan) and [xapi-schema](https://github.com/yetanalytics/xapi-schema), respectively). As convenience functions, Persephone provides the functions `coerce-profile` and `coerce-statement` in `utils/json.cljc` in order to guarantee correct coercion from JSON strings to EDN.
 
@@ -47,17 +47,17 @@ Validating a Statement against a Statement Template involves three aspects:
 
 The compilation functions `compile-templates->validators` and `compile-profiles->validators` return a collection of maps of the following:
 
-| Map Key         | Description
+| Key             | Description
 | ---             | ---
 | `:id`           | The Statement Template ID.
-| `:predicate-fn` | A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
+| <span style="white-space:nowrap">`:predicate-fn`</span> | A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
 | `:validator-fn` | A function that takes a Statement and returns `nil` if that Statement is valid against it, a map of error data otherwise.
 
 `compile-templates->validators` takes the following keyword args:
 | Keyword Argument       | Description
 | ---                    | ---
 | `:statement-ref-fns`   | A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
-| `:validate-templates?` | Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
+| <span style="white-space:nowrap">`:validate-templates?`</span> | Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
 | `:selected-templates`  | Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
 
 `compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument.
@@ -76,7 +76,7 @@ The `validate-statement` function take the keyword argument `:fn-type`, which ca
 | Keyword Argument  | Description
 | ---               | ---
 | `:all-valid?`     | If `false` (default), the Statement is considered valid if _any_ of the Statement Template is valid for it. If `true`, validity is if _all_ of the Templates are valid for it. Applicable to all function types except `:templates`.
-| `:short-circuit?` | If `false` (default), returns error data for all invalid Templates; if `true`, returns data for only the first invalid Template found. Applicable to `:result`, `:assertion`, and `:printer`.
+| <span style="white-space:nowrap">`:short-circuit?`</span> | If `false` (default), returns error data for all invalid Templates; if `true`, returns data for only the first invalid Template found. Applicable to `:result`, `:assertion`, and `:printer`.
 
 In addition to the main `valid-statement` function, there are additional validation functions that perform a specific type of validation, e.g. `validated-statement?` is always a predicate (and is in fact what `validate-statement` calls in `:predicate` mode).
 
@@ -120,14 +120,14 @@ with `:dfa` and `:nfa` being two different FSMs:
 | ---         | ---
 | `:dfa`      | A (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
 | `:nfa`      | A non-deterministic NFA with pattern metadata associated with each of its states. This is an optional value; if present, it is used to reconstruct the path from the primary pattern to the template when constructing match failure data.
-| `:nfa-meta` | The metadata for the `:nfa` value; this is only present if `:nfa` is present.
+| <span style="white-space:nowrap">`:nfa-meta`</span> | The metadata for the `:nfa` value; this is only present if `:nfa` is present.
 
 NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.
 
 The `compile-profiles->fsms` functions have the following keyword arguments:
 | Keyword Argument     | Description
 | ---                  | ---
-| `:statement-ref-fns` | Same as in the Statement Template compilation functions.
+| <span style="white-space:nowrap">`:statement-ref-fns`</span> | Same as in the Statement Template compilation functions.
 | `:validate-profile?` | Validates Profiles and checks that there are no clashing Profile or Pattern IDs.
 | `:compile-nfa?`      | If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
 | `:selected-profiles` | Which Profiles in the collection should be compiled.
@@ -152,7 +152,7 @@ The `match-statement` and `match-statement-batch` functions take in a compiled P
                                   :visited ["template-id"]}}}}}
 ```
 where the following are the values in the leaf `:states-data` map:
-| Map Key      | Description
+| Key         | Description
 | ---          | ---
 | `:state`     | The state that the FSM is currently at.
 | `:accepted?` | Whether the current state is an accept state; this indicates that the stream of Statements was accepted by the Pattern (though more Patterns may be read in).
@@ -176,16 +176,16 @@ For more information about the technical implementation details (including about
 ### Statement Ref Templates
 
 By default, Statement Ref Template validation is not supported; however, to allow for such support, `compile-profiles->validators` and `compile-profiles->fsms` take in an optional `:statement-ref-fns` argument. Its value needs to be a map of the following:
-| Map Key             | Description
+| Key                 | Description
 | ---                 | ---
-| `:get-statement-fn` | A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
+| <span style="white-space:nowrap">`:get-statement-fn`</span> | A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 | `:get-template-fn`  | A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
 
 This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, two functions are provided in the `persephone.template.statement-ref` namespace for use with `statement-ref-fns`:
 | Function | Description
 | ---      | ---
 | `profile->id-template-map`          | Takes a Profile and returns a map between Template IDs and Templates.
-| `statement-batch->id-statement-map` | Takes a Statement batch and returns a map between Statement IDs and Statements.
+| <span style="white-space:nowrap">`statement-batch->id-statement-map`</span> | Takes a Statement batch and returns a map between Statement IDs and Statements.
 
 ### So...does it fit the spec?
 

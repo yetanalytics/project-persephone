@@ -35,3 +35,10 @@
 
 (defn -main [& args]
   (validate (a/handle-args args validate-statement-options)))
+
+(comment
+  (validate
+   (a/handle-args
+    '("-p" "../poseidon/dev-resources/profile/tccc.jsonld" 
+      "-s" "sample-statement.json")
+    validate-statement-options)))

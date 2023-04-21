@@ -721,10 +721,9 @@
            st-info-map state-info-map]
       (if-let [stmt (first stmt-coll)]
         (let [match-res (match-statement st-info-map stmt)]
-          (if-some [match-err (:error match-res)]
+          (if (:error match-res)
             ;; Error keyword - early termination
-            (do (cond-println print? (perr-printer/error-message-str match-err))
-                match-res)
+            match-res
             ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
         st-info-map))))

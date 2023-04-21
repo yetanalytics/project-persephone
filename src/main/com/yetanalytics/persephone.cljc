@@ -653,8 +653,10 @@
           ?stmt-subreg  (stmt/get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
                           (when (keyword? ?stmt-subreg) ?stmt-subreg))]
-        {:error {:type      err-kw
-                 :statement statement}}
+        (let [match-err {:type      err-kw
+                         :statement statement}]
+          (println-cond print? (perr-printer/error-message-str match-err))
+          {:error match-err})
         (let [match-res
               (for [;; Map over profile IDs
                     [prof-id pat-fsm-m] compiled-profiles

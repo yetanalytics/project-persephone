@@ -609,7 +609,7 @@ Pattern path:
                    "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
              errs-1))
       (is (= failure-msg-1
-             (perrs/error-msg-str (:failure errs-1)))))
+             (perrs/failure-message-str (:failure errs-1)))))
     (let [errs-2 (-> nil
                      (match-cmi satisfied-stmt)
                      (match-cmi launched-stmt)
@@ -647,7 +647,7 @@ Pattern path:
                  (update-in [:failure :traces 0 :patterns] set))))
       ;; Patterns ordering will be different in clj and cljs, so don't bother
       ;; with exact string matching.
-      (is (string? (perrs/error-msg-str (:failure errs-2)))))
+      (is (string? (perrs/failure-message-str (:failure errs-2)))))
     (testing ":print? kwarg set to true"
       (let [match-cmi-print (fn [si stmt]
                               (p/match-statement cmi-fsm-map

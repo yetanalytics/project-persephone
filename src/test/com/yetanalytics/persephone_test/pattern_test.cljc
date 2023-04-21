@@ -418,7 +418,7 @@
                 "  http://example.org/t1\n"
                 "Pattern path:\n"
                 "  http://example.org/p1")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    [{:templates ["http://example.org/t3"
@@ -434,7 +434,7 @@
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "\n"
                 "Pattern cannot match any statements.")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    []})))
@@ -443,7 +443,7 @@
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "\n"
                 "Pattern matching has failed.")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    nil})))))

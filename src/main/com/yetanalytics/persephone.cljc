@@ -552,6 +552,11 @@
 
 ;; Statement Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn- println-cond
+  "Println only if `print?` is `true`."
+  [print? expr]
+  (when print? (println expr)))
+
 (defn- match-statement-vs-pattern
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
@@ -567,13 +572,13 @@
     (if (empty? new-st-info)
       (if-some [{old-fail-meta :failure :as old-meta} (meta state-info)]
         (do
-          (when print? (println (perr-printer/error-msg-str old-fail-meta)))
+          (println-cond print? (perr-printer/failure-message-str old-fail-meta))
           (with-meta new-st-info old-meta))
         (let [fail-meta (fmeta/construct-failure-info
                          fsms
                          state-info
                          statement)]
-          (when print? (println (perr-printer/error-msg-str fail-meta))) 
+          (println-cond print? (perr-printer/failure-message-str fail-meta)) 
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
@@ -637,8 +642,10 @@
      then prints any error or match failure."
   [compiled-profiles state-info-map statement & {:keys [print?]
                                                  :or   {print? false}}]
-  (if (:error state-info-map) ; TODO: Should errors also be printed?
-    state-info-map
+  (if-some [match-err (:error state-info-map)]
+    (do
+      (println-cond print? (perr-printer/error-message-str match-err))
+      state-info-map)
     (let [reg-pat-st-m  (:states-map state-info-map)
           prof-id-set   (set (keys compiled-profiles))
           stmt-prof-ids (stmt/get-statement-profile-ids statement prof-id-set)
@@ -712,9 +719,10 @@
            st-info-map state-info-map]
       (if-let [stmt (first stmt-coll)]
         (let [match-res (match-statement st-info-map stmt)]
-          (if (:error match-res)
+          (if-some [match-err (:error match-res)]
             ;; Error keyword - early termination
-            match-res
+            (do (println-cond print? (perr-printer/error-message-str match-err))
+                match-res)
             ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
         st-info-map))))

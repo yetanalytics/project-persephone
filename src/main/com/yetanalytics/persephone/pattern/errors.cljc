@@ -34,17 +34,19 @@
   [{statement-id :statement
     pattern-id   :pattern
     trace-coll   :traces}]
-  (fmt (str "----- Pattern Match Failure -----\n"
-            "Primary Pattern ID: %s\n"
-            "Statement ID:       %s\n"
-            "\n"
-            "%s")
-       pattern-id
-       statement-id
-       (cond
-         (nil? trace-coll)   "Pattern matching has failed."
-         (empty? trace-coll) "Pattern cannot match any statements."
-         :else               (trace-str trace-coll))))
+  (let [details-str
+        (cond
+          (nil? trace-coll)   "Pattern matching has failed."
+          (empty? trace-coll) "Pattern cannot match any statements."
+          :else               (trace-str trace-coll))]
+    (fmt (str "----- Pattern Match Failure -----\n"
+              "Primary Pattern ID: %s\n"
+              "Statement ID:       %s\n"
+              "\n"
+              "%s")
+         pattern-id
+         statement-id
+         details-str)))
 
 ;; TODO: Delete in the next break ver
 (defn ^:deprecated error-msg-str [failure]
@@ -53,54 +55,65 @@
 (defn error-message-str
   "Given a pattern match error map, create a pretty error message
    detailing the error, Statement ID, and relevant Statement details
-   (i.e. context activities, registration, and extensions)."
+   (i.e. context activities, registration, and subregistrations).
+   
+   Each error type has a corresponding error description (the `stmt`
+   alias is for the `persephone.utils.statement` namespace):
+   | Keyword | Description
+   | ---     | ---
+   | `::stmt/missing-profile-reference`      | Missing Profile version in context category activity IDs
+   | `::stmt/invalid-subreg-no-registration` | Invalid subregistration - no statement registration
+   | `::stmt/invalid-subreg-nonconformant`   | Invalid subregistration - does not conform to spec"
   [{error-type :type
     {statement-id "id"
      stmt-context "context"} :statement}]
-  (let [type-str
+  (let [type-string
         (case error-type
           ::stmt/missing-profile-reference
-          "No Profile reference in category contextActivity IDs"
+          "Missing Profile version in context category activity IDs"
           ::stmt/invalid-subreg-no-registration
-          "Subregistration without registration property"
+          "Invalid subregistration - no statement registration"
           ::stmt/invalid-subreg-nonconformant
-          "Subregistration does not conform to spec"
+          "Invalid subregistration - does not conform to spec"
           ;; else
-          "Unknown")
-        details-str
+          "Unknown error")
+        details-string
         (condp contains? error-type
           ;; contextActivities error
           #{::stmt/missing-profile-reference}
           (let [ccats (get-in stmt-context ["contextActivities" "category"])]
-            (->> (or (not-empty (map #(get % "id") ccats))
-                     "(None)")
-                 (cstr/join "\n")
-                 (fmt "Category contextActivity IDs:\n%s")))
+            (fmt "Category contextActivity IDs:\n%s"
+                 (or (->> ccats (map #(get % "id")) (cstr/join "\n") not-empty)
+                     "(None)")))
+          ;; subregistration error
           #{::stmt/invalid-subreg-no-registration
             ::stmt/invalid-subreg-nonconformant}
-          (let [subregs (get-in stmt-context ["extensions"
-                                              stmt/subregistration-iri])]
-            (->> subregs
-                 pprint/pprint
-                 with-out-str
-                 (fmt "Subregistration Extension:\n%s")))
+          (let [registration (get-in stmt-context ["registration"])
+                subregs      (get-in stmt-context ["extensions"
+                                                   stmt/subregistration-iri])]
+            (fmt (str "Registration value:\n"
+                      "%s\n"
+                      "Subregistration extension value:\n"
+                      "%s")
+                 registration
+                 (->> subregs pprint/pprint with-out-str cstr/trim)))
           ;; else
           "")]
     (fmt (str "----- Pattern Match Error -----\n"
-              "Error:        %s\n"
-              "Statement ID: %s\n"
+              "Error Description:  %s\n"
+              "Statement ID:       %s\n"
               "\n"
               "%s")
-         type-str
+         type-string
          statement-id
-         details-str)))
+         details-string)))
 
 (comment
   (println
    (error-message-str
     {:type ::stmt/missing-profile-reference
      :statement {"id" "000000000-4000-8000-0000-111111111111"
-                 "context" {"contextActivities" {"category" [#_{"id" "http://foo.org"}
+                 "context" {"contextActivities" {"category" [{"id" "http://foo.org"}
                                                              #_{"id" "http://bar.org"}]}}}}))
   
   (println
@@ -109,7 +122,16 @@
      :statement {"id" "000000000-4000-8000-0000-111111111111"
                  "context" {"extensions" {stmt/subregistration-iri
                                           [{"profile" "http://foo.org"
-                                            "subregistration" 2 #_"00000000-4000-8000-0000-111122223333"}]}}}}))
+                                            "subregistration" "00000000-4000-8000-0000-111122223333"}]}}}}))
+  
+  (println
+   (error-message-str
+    {:type ::stmt/invalid-subreg-nonconformant
+     :statement {"id" "000000000-4000-8000-0000-111111111111"
+                 "context" {"registration" "00000000-4000-8000-0000-555555555555"
+                            "extensions" {stmt/subregistration-iri
+                                          [{"profile" "http://foo.org"
+                                            "subregistration" 2}]}}}}))
   (pr-str
    [{"profile" "http://profile.org"
      "subregistration" "000000000-4000-8000-0000-000000000000"}])

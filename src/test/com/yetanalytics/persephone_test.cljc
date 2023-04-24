@@ -1044,7 +1044,7 @@ Pattern path:
     (is (not (p/validate-statement
               catch-compiled-profile-1
               test-stmt-3)))
-    (is (= (str "----- Invalid Statement -----\n"
+    (is (= (str "----- Statement Validation Failure -----\n"
                 "Template ID:  https://w3id.org/xapi/catch/templates#evidence-advocacy-provide\n"
                 ;; UUID of test-stmt-3
                 "Statement ID: 48f4ea6b-990b-458b-849e-92d2ac10e6af\n"

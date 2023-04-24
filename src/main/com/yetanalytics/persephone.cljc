@@ -275,8 +275,9 @@
                                               statement
                                               :all-valid? all-valid?
                                               :short-circuit? short-circuit?)]
-    (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                          :errors errs}))))
+    (throw (ex-info "Statement Validation Failure."
+                    {:kind   ::invalid-statement
+                     :errors errs}))))
 
 (s/fdef validate-statement-print
   :args (s/cat :compiled-templates compiled-templates-spec

@@ -71,7 +71,7 @@ In addition to the main `valid-statement` function, there are additional validat
 The following is an example error message from `validate-statement-vs-template`, when `:fn-type` is set to `:printer`:
 
 ```
------ Invalid Statement -----
+----- Statement Validation Failure -----
 Statement ID: "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
 Template ID: http://foo.org/example/template
 

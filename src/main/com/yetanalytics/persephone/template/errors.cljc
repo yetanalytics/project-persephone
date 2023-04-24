@@ -142,7 +142,7 @@
                                 {})
                         (mapv (fn [[header errs]] [header (reverse errs)])))]
     (doseq [[[temp-id stmt-id] error-subvec] error-vec']
-      (print (fmt (str "----- Invalid Statement -----\n"
+      (print (fmt (str "----- Statement Validation Failure -----\n"
                        "Template ID:  %s\n"
                        "Statement ID: %s\n"
                        "\n")

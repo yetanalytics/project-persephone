@@ -3,6 +3,7 @@
             [com.yetanalytics.persephone.cli.util.args :as a]
             [com.yetanalytics.persephone.cli.util.file :as f]
             [com.yetanalytics.persephone.cli.util.spec :as s]
+            [com.yetanalytics.persephone.template.errors        :as errs]
             [com.yetanalytics.persephone.template.statement-ref :as sref])
   (:gen-class))
 
@@ -64,15 +65,19 @@
                    :validate-profiles? false ; already validated as CLI args
                    :selected-templates ?temp-ids
                    :statement-ref-fns  ?sref-fns)
-        ;; TODO: This is an obvious hack, please fix
-        res-str  (with-out-str (per/validate-statement
-                                compiled
-                                statement
-                                :fn-type :printer
-                                :all-valid? all-valid
-                                :short-circuit? short-circuit))]
-    (when (some? res-str) (print res-str))
-    (empty? res-str)))
+        ;; `:fn-type` is `:errors` instead of `:printer` since we want to
+        ;; return whether the error results are empty or not.
+        ;; TODO: Redo how validation printing works to be more like in pattern
+        ;; matching and be a side effect that can happen for any `:fn-type`?
+        error-res (per/validate-statement
+                   compiled
+                   statement
+                   :fn-type :errors
+                   :all-valid? all-valid
+                   :short-circuit? short-circuit)]
+    (when (some? error-res)
+      (dorun (->> error-res vals (apply concat) errs/print-errors)))
+    (empty? error-res)))
 
 (defn -main [& args]
   (if (validate (a/handle-args args validate-statement-options))

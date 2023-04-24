@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone-test.cli-test.validate-test
   (:require [clojure.test :refer [deftest testing is]]
+            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.persephone.cli.validate :refer [validate]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
@@ -76,13 +77,38 @@ Template rule was not followed:
    The first Activity
 ")
 
-(deftest validate-cli-test
+(deftest validate-cli-args-test
   (testing "Help Argument"
     (is (not-empty (with-out-str (validate (list "--help")))))
     (is (= (with-out-str
              (validate (list "-h")))
            (with-out-str
              (validate (list "-h" "-p" profile-uri "-s" statement-uri))))))
+  (testing "Invalid Arguments"
+    (is (= "No Profiles specified.\nNo Statement specified.\n"
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (validate '())
+               (str s)))))
+    (is (= (str "Error while parsing option \"-s non-existent.json\": "
+                "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
+                "No Statement specified.\n")
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (validate (list "-p" profile-uri "-s" "non-existent.json"))
+               (str s)))))
+    (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
+                (with-out-str
+                  (pan/validate-profile
+                   (pan/json-profile->edn (slurp statement-uri))
+                   :result :print))
+                "No Profiles specified.\n")
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (validate (list "-p" statement-uri "-s" statement-uri))
+               (str s)))))))
+
+(deftest validate-cli-test
   (testing "Validation Passes"
     (is (validate (list "--profile" profile-uri
                         "--statement" statement-uri)))

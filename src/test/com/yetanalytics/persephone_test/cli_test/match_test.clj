@@ -1,5 +1,6 @@
 (ns com.yetanalytics.persephone-test.cli-test.match-test
   (:require [clojure.test :refer [deftest testing is]]
+            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.persephone.cli.match :refer [match]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
@@ -51,11 +52,36 @@ Pattern path:
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
 ")
 
-(deftest match-cli-test
+(deftest match-cli-args-test
   (testing "Help Argument"
     (is (not-empty (with-out-str (match '("--help")))))
     (is (= (with-out-str (match '("-h")))
            (with-out-str (match '("-h" "-p" profile-uri))))))
+  (testing "Invalid Arguments"
+    (is (= "No Profiles specified.\nNo Statements specified.\n"
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match '())
+               (str s)))))
+    (is (= (str "Error while parsing option \"-s non-existent.json\": "
+                "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
+                "No Statements specified.\n")
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match (list "-p" profile-uri "-s" "non-existent.json"))
+               (str s)))))
+    (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
+                (with-out-str
+                  (pan/validate-profile
+                   (pan/json-profile->edn (slurp statement-uri))
+                   :result :print))
+                "No Profiles specified.\n")
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match (list "-p" statement-uri "-s" statement-uri))
+               (str s)))))))
+
+(deftest match-cli-test
   (testing "Match Passes"
     (is (true? (match (list "--profile" profile-uri
                             "--statement" statement-uri))))

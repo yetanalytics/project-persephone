@@ -11,7 +11,6 @@
 (def bad-statement-2-uri "test-resources/sample_statements/adl_3.json")
 
 (def pattern-id "https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1")
-(def pattern-2-id "https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-2")
 
 (def missing-profile-ref-error-str-1
   "----- Pattern Match Error -----

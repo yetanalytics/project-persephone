@@ -1,7 +1,6 @@
 (ns com.yetanalytics.persephone-test.cli-test.validate-test
   (:require [clojure.test :refer [deftest testing is]]
-            [com.yetanalytics.persephone.cli.validate  :as v]
-            [com.yetanalytics.persephone.cli.util.args :as a]))
+            [com.yetanalytics.persephone.cli.validate :refer [validate]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
@@ -9,9 +8,6 @@
 
 (def template-1-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-1")
 (def template-2-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2")
-
-(defn- validate [arglist]
-  (v/validate (a/handle-args arglist v/validate-statement-options)))
 
 (def template-2-fail-str
   "----- Statement Validation Failure -----
@@ -80,7 +76,9 @@ Template rule was not followed:
    The first Activity
 ")
 
-(deftest validate-test
+(deftest validate-cli-test
+  (testing "Help Arguments"
+    (is (not-empty (with-out-str (validate '("--help"))))))
   (testing "Validation Passes"
     (is (validate (list "--profile" profile-uri
                         "--statement" statement-uri)))

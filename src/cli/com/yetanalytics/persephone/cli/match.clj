@@ -35,7 +35,10 @@
     :id :compile-nfa]
    ["-h" "--help" "Display the help menu."]])
 
-(defn- match
+(defn- match*
+  "Perform Pattern matching on `statements` based on the options map; print
+   match failures or errors and return `false` if errors or failures exist,
+   `true` otherwise."
   [{:keys [profiles pattern-ids statements compile-nfa]}]
   (let [compiled (per/compile-profiles->fsms
                   profiles
@@ -50,8 +53,19 @@
                       ;; TODO: This really shouldn't be meta...
                       (-> state-m meta :failure))))))
 
+(defn match
+  "Perform Pattern matching based on `arglist`; print match failures or errors
+   and return `false` if errors or failures exist, `true` if match passes
+   or if the `--help` argument was present."
+  [arglist]
+  (let [options (a/handle-args arglist match-statements-options)]
+    (cond
+      (= :help options)  true
+      (= :error options) false
+      :else (match* options))))
+
 (defn -main [& args]
-  (if (match (a/handle-args args match-statements-options))
+  (if (match args)
     (System/exit 0)
     (System/exit 1)))
 

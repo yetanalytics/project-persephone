@@ -50,10 +50,9 @@
     :id :short-circuit]
    ["-h" "--help" "Display the help menu."]])
 
-;; Public fn for testing purposes
-(defn validate
+(defn- validate*
   "Perform validation on `statement` based on the CLI options map; print any
-   validation errors and return `true` if errors exist, `false` otherwise."
+   validation errors and return `false` if errors exist, `true` otherwise."
   [{:keys [profiles template-ids statement extra-statements
            all-valid short-circuit]}]
   (let [prof->map #(sref/profile->id-template-map % :validate-profile? false)
@@ -82,7 +81,18 @@
       (dorun (->> error-res vals (apply concat) errs/print-errors)))
     (empty? error-res)))
 
+(defn validate
+  "Perform Statement Template validation based on `arglist`; print any
+   validation errors and return `false` if errors exist, `true` if validation
+   passes or the `--help` argument was present."
+  [arglist]
+  (let [options (a/handle-args arglist validate-statement-options)]
+    (cond
+      (= :help options)  true
+      (= :error options) false
+      :else (validate* options))))
+
 (defn -main [& args]
-  (if (validate (a/handle-args args validate-statement-options))
+  (if (validate args)
     (System/exit 0)
     (System/exit 1)))

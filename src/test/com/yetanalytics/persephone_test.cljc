@@ -445,7 +445,8 @@
 
 (def cmi-fsm-map (p/compile-profiles->fsms [cmi-profile]
                                            :compile-nfa? true
-                                           :select-patterns [cmi-pattern-id]))
+                                           :selected-patterns [cmi-pattern-id]))
+
 (def match-cmi (partial p/match-statement cmi-fsm-map))
 
 (def failure-msg-1
@@ -467,6 +468,18 @@ Pattern path:
   https://w3id.org/xapi/cmi5#typicalsession
   https://w3id.org/xapi/cmi5#typicalsessions
   https://w3id.org/xapi/cmi5#toplevel")
+
+
+(deftest pattern-compilation-test
+  (testing "Testing compilation with 1 primary Pattern"
+    (is (some? (not-empty
+                (-> cmi-fsm-map
+                    (get "https://w3id.org/xapi/cmi5/v1.0"))))))
+  (testing "Testing compilation with 0 primary Patterns"
+    (is (= {} (-> (p/compile-profiles->fsms [cmi-profile]
+                                            :compile-nfa? true
+                                            :selected-patterns [])
+                  (get "https://w3id.org/xapi/cmi5/v1.0"))))))
 
 (deftest pattern-match-test
   (testing "Testing matching of a stream of Statements using Patterns from the cmi5 Profile."

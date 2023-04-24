@@ -243,6 +243,7 @@
    Assumes a valid Profile."
   ([profile]
    (profile->fsms profile {}))
+  ;; TODO: Rename :select-patterns to :selected-patterns?
   ([profile {:keys [statement-ref-fns compile-nfa? select-patterns]}]
    (let [?pat-id-set  (when select-patterns (set select-patterns))
          temp-pat-map (mapify-all profile)

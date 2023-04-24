@@ -528,7 +528,8 @@
     (assert/assert-profile-pattern-ids profiles))
   (let [opt-map      {:statement-ref-fns statement-ref-fns
                       :compile-nfa?      compile-nfa?
-                      :selected-patterns selected-patterns}
+                      ;; TODO: Rename back to :selected-patterns?
+                      :select-patterns   selected-patterns}
         ?prof-id-set (when selected-profiles (set selected-profiles))
         profiles     (cond->> profiles
                        ?prof-id-set

@@ -1,0 +1,30 @@
+{
+  "id": "00000000-4000-8000-0000-000000000000",
+  "timestamp": "2022-06-27T10:10:10.000Z",
+  "actor": {
+    "name": "My Name",        
+    "mbox": "mailto:foo@example.org",
+    "objectType": "Agent"
+  },
+  "verb": {
+    "id": "https://xapinet.org/xapi/yet/calibration/v1/concepts#did",
+    "display": {"en-US": "Did"}
+  },
+  "object": {
+    "id": "https://xapinet.org/xapi/yet/calibration/v1/concepts#activity-1",
+    "objectType": "Activity",
+    "definition": {
+      "name": {"en-US": "Activity 1"},
+      "description": {"en-US": "The first Activity"}
+    }
+  },
+  "context": {
+    "contextActivities": {
+      "category": [
+        {
+          "id": "https://xapinet.org/xapi/yet/calibration/v1",
+       	  "objectType": "Activity"}
+      ]
+    }
+  }
+}

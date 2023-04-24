@@ -50,7 +50,10 @@
     :id :short-circuit]
    ["-h" "--help" "Display the help menu."]])
 
-(defn- validate
+;; Public fn for testing purposes
+(defn validate
+  "Perform validation on `statement` based on the CLI options map; print any
+   validation errors and return `true` if errors exist, `false` otherwise."
   [{:keys [profiles template-ids statement extra-statements
            all-valid short-circuit]}]
   (let [prof->map #(sref/profile->id-template-map % :validate-profile? false)
@@ -83,13 +86,3 @@
   (if (validate (a/handle-args args validate-statement-options))
     (System/exit 0)
     (System/exit 1)))
-
-(comment
-  (a/handle-args '("--help") validate-statement-options)
-
-  (validate
-   (a/handle-args
-    '("-p" "../poseidon/dev-resources/profile/calibration.jsonld" 
-      "-s" "sample-statement.json"
-      "-a" "-c")
-    validate-statement-options)))

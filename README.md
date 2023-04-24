@@ -1,6 +1,6 @@
 # project-persephone
 
-<img src="logo/logo.svg" alt="Persephone Logo" width="400px">
+<img src="logo/logo.svg" alt="Persephone Logo" width="325px" align="left" />
 
 [![CI](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml/badge.svg)](https://github.com/yetanalytics/project-persephone/actions/workflows/main.yml)
 

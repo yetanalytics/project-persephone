@@ -19,16 +19,16 @@ com.yetanalytics/project-persephone {:mvn/version "0.8.4"
 
 ## Usage
 
-The `persephone` namespace contains functions that perform two main tasks, which is accomplished via these functions:
+The `persephone` namespace contains functions that perform two main tasks: validation against Statement Templates and matching against Patterns, which is accomplished via these API functions:
 <!-- NOTE: This ugly non-breaking space padding is so that function/keyword/etc names don't break on hyphens -->
-| Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+| API&nbsp;Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                     | :--
 | `validate-statement`    | Takes a Statement and validates it against the properties and rules of compiled Statement Templates, as described in the [xAPI Statement Template specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#statment-templates).
 | `match-statement`       | Takes a Statement and matches them against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 | `match-statement-batch` | Takes a collection of Statements and matches them in order against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 
-The following functions are provided for Template/Profile compilation:
-| Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+The following API functions are provided for Template/Profile compilation:
+| API&nbsp;Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                            | :--
 | `compile-templates->validators`| Compiles a collection of Statement Templates into validators.
 | `compile-profiles->validators` | Compiles a collection of Profiles into validators.
@@ -48,7 +48,7 @@ Validating a Statement against a Statement Template involves three aspects:
 
 The compilation functions `compile-templates->validators` and `compile-profiles->validators` return a collection of maps of the following:
 
-| Map&nbsp;Key&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+| Validator&nbsp;Map&nbsp;Key | Description
 | :--             | :--
 | `:id`           | The Statement Template ID.
 | `:predicate-fn` | A function that takes a Statement and returns `true` if that Statement is valid against it, `false` otherwise.
@@ -135,7 +135,7 @@ The `compile-profiles->fsms` functions have the following keyword arguments:
 | `:selected-patterns` | Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
 
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
-| Property     | Description
+| Property&nbsp;Name | Description
 | :--          | :--
 | `sequence`   | The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
 | `alternates` | The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (the `|` operator in a regex string).
@@ -177,13 +177,13 @@ For more information about the technical implementation details (including about
 ### Statement Ref Templates
 
 By default, Statement Ref Template validation is not supported; however, to allow for such support, `compile-profiles->validators` and `compile-profiles->fsms` take in an optional `:statement-ref-fns` argument. Its value needs to be a map of the following:
-| Argument&nbsp;Map&nbsp;Key&nbsp;&nbsp;&nbsp;&nbsp; | Description
+| Argument&nbsp;Map&nbsp;Key&nbsp;&nbsp; | Description
 | :--                 | :--
 | `:get-statement-fn` | A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 | `:get-template-fn`  | A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
 
 This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, two functions are provided in the `persephone.template.statement-ref` namespace for use with `statement-ref-fns`:
-| Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+| Statement&nbsp;Ref&nbsp;Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                                 | :--
 | `profile->id-template-map`          | Takes a Profile and returns a map between Template IDs and Templates.
 | `statement-batch->id-statement-map` | Takes a Statement batch and returns a map between Statement IDs and Statements.

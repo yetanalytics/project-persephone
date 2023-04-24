@@ -77,8 +77,12 @@ Template rule was not followed:
 ")
 
 (deftest validate-cli-test
-  (testing "Help Arguments"
-    (is (not-empty (with-out-str (validate '("--help"))))))
+  (testing "Help Argument"
+    (is (not-empty (with-out-str (validate (list "--help")))))
+    (is (= (with-out-str
+             (validate (list "-h")))
+           (with-out-str
+             (validate (list "-h" "-p" profile-uri "-s" statement-uri))))))
   (testing "Validation Passes"
     (is (validate (list "--profile" profile-uri
                         "--statement" statement-uri)))

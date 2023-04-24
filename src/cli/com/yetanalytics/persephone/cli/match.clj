@@ -6,19 +6,22 @@
   (:gen-class))
 
 (def match-statements-options
-  [["-p" "--profile URI" "Profile filepath/location; must specify one or more."
+  [["-p" "--profile URI"
+    "Profile filepath/location; must specify one or more."
     :id        :profiles
     :missing   "No Profiles specified."
     :multi     true
     :parse-fn  f/read-profile
     :validate  [s/profile? s/profile-err-msg]
     :update-fn (fnil conj [])]
-   ["-i" "--pattern-id IRI" "IDs of Patterns to match against; can specify zero or more."
+   ["-i" "--pattern-id IRI"
+    "IDs of Patterns to match against; can specify zero or more."
     :id        :pattern-ids
     :multi     true
     :validate  [s/iri? s/iri-err-msg]
     :update-fn (fnil conj [])]
-   ["-s" "--statement URI" "Statement filepath/location; must specify one or more."
+   ["-s" "--statement URI"
+    "Statement filepath/location; must specify one or more."
     :id        :statements
     :missing   "No Statements specified."
     :multi     true
@@ -26,9 +29,9 @@
     :validate  [s/statement? s/statement-err-msg]
     :update-fn (fnil conj [])]
    ["-n" "--compile-nfa"
-    (str "If set, compiles the Patterns into a non-deterministic finite automaton (NFA) "
-         "instead of a deterministic one, allowing for more detailed error traces at the "
-         "expense of compilation time.")
+    (str "If set, compiles the Patterns into a non-deterministic finite "
+         "automaton (NFA) instead of a deterministic one, allowing for "
+         "more detailed error traces at the cost of decreased performance.")
     :id :compile-nfa]
    ["-h" "--help" "Display the help menu."]])
 

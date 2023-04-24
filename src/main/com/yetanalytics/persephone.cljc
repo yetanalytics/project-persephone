@@ -563,19 +563,21 @@
   "Match `statement` against the pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-dfa   :dfa
-    ?pat-nfa  :nfa
+  [{pat-dfa  :dfa
+    ?pat-nfa :nfa
     :as fsms}
    state-info
    statement
    print?]
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
-    (if (empty? new-st-info)
+    (if (fsm/rejected? new-st-info)
       (if-some [{old-fail-meta :failure :as old-meta} (meta state-info)]
+        ;; The state info is stuck in the failure state from a prev iteration
         (do
           (cond-println print? (perr-printer/failure-message-str old-fail-meta))
           (with-meta new-st-info old-meta))
+        ;; The state info encountered a failure state on this iteration
         (let [fail-meta (fmeta/construct-failure-info
                          fsms
                          state-info
@@ -728,4 +730,5 @@
             match-res
             ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
+        ;; Finish matching
         st-info-map))))

@@ -100,7 +100,10 @@ Template rule was not followed:
     ;; so --extra-statements just gets ignored
     (is (validate (list "-p" profile-uri "-s" statement-uri
                         "--extra-statements" statement-2-uri
-                        "-e" statement-2-uri))))
+                        "-e" statement-2-uri)))
+    ;; No templates => statement vacuously validates against all
+    (is (validate (list "-p" profile-uri "-s" statement-uri
+                        "-i" "http://random-template.org"))))
   (testing "Validation Fails"
     (is (= (str template-2-fail-str
                 "\n-----------------------------"

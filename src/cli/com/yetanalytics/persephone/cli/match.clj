@@ -50,8 +50,7 @@
                                             statements
                                             :print? true)]
     (not (boolean (or (-> state-m :error)
-                      ;; TODO: This really shouldn't be meta...
-                      (-> state-m meta :failure))))))
+                      (-> state-m :rejects not-empty))))))
 
 (defn match
   "Perform Pattern matching based on `arglist`; print match failures or errors

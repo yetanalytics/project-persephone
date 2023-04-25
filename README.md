@@ -51,7 +51,8 @@ For example, suppose that you have the following Statement:
       "category": [
         {
           "id": "https://xapinet.org/xapi/yet/calibration/v1",
-       	  "objectType": "Activity"}
+       	  "objectType": "Activity"
+        }
       ]
     }
   }

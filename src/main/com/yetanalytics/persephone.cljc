@@ -471,9 +471,9 @@
      }
    }
    ```
-   where `profile-version` is the latest version ID in the Profile
-   and `pattern-id` is the ID of a primary Pattern in that Profile. The
-   leaf values include the following: 
+   where `profile-version` is the Profile version ID and `pattern-id` is the
+   ID of a primary Pattern in that Profile. The FSM map keys are as follows:
+   
    | FSM Map Key | Description
    | ---         | ---
    | `:id`       | The Pattern ID.
@@ -482,6 +482,7 @@
    | `:nfa-meta` | The NFA metadata; assoc-ed here in case meta is lost from the `:nfa` value. Only present if `:nfa` is.
 
    The following are optional keyword arguments:
+     
    | Keyword Argument      | Description
    | ---                   | ---
    | `:statement-ref-fns`  | Takes the key-value pairs described in `template->validator`.
@@ -576,24 +577,20 @@
    Matches `statement` to against `compiled-profiles` and returns an
    updated value of `state-info-map`.
 
-   `state-info-map` is a map of the form:
-   ```clojure
-     {:accepts    [[registration-key pattern-id] ...]
-      :rejects    [[registration-key pattern-id] ...]
-      :states-map {registration-key {pattern-id state-info}}}
-   ```
-   where
+   `state-info-map` is a map with the following keys:
+
    | Map Key       | Description
    | ---           | ---
-   | `:accepts`    | A coll of identifiers for accepted state infos (where `:accepted?` is `true`).
-   | `:rejects`    | A coll of identifiers for rejected state infos (where they are empty sets).
-   | `:states-map` | A doubly-nested map that associates registration keys and Pattern IDs to state info maps.
+   | `:accepts`    | A vector of `[registration-key pattern-id]` key paths for accepted state infos (where `:accepted?` is `true`).
+   | `:rejects`    | A vecotr of `[registration-key pattern-id]` for rejected state infos (where they are empty sets).
+   | `:states-map` | A map of the form `{registration-key {pattern-id state-info}}}`
    
    `registration-key` can either be a registration UUID or a
    pair of registration and subregistration UUIDs. Statements without
    registrations will be assigned a default `:no-registration` key.
    
-   `state-info` is a map of the following:
+   `state-info` is a map of the following keys:
+
    | Map Key      | Description
    | ---          | ---
    | `:state`     | The current state in the FSM, i.e. where is the current location in the Pattern?
@@ -610,6 +607,7 @@
    }
    ```
    where `error-kw` is one of the following:
+
    | Pattern Match Error Keyword        | Description
    | ---                                | ---
    | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.

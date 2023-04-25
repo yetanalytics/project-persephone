@@ -11,7 +11,7 @@ The `validate` command validates a single Statement against Statement Templates 
 | CLI&nbsp;Command&nbsp;Argument | Description
 | :--                          | :--
 | `-p, --profile URI`          | Profile URI filepath/location; must specify one or more.
-| `-i, --template-id IRI`      | IDs of Statement Templates to validate against; can specify zero or more.
+| `-i, --template-id IRI`      | IDs of Statement Templates to validate against; can specify zero or more. Filters out all Templates that are not included.
 | `-s, --statement URI`        | Statement filepath/location; must specify one.
 | `-e, --extra-statements URI` | Extra Statement batch filepath/location; can specify zero or more. If specified, activates [Statement Ref property](library.md#statement-ref-templates) validation, where the referred object/context Statement exists in this batch and its Template exists in a provided Profile.
 | `-a, --all-valid`            | If set, the Statement is not considered valid unless it is valid against ALL Templates. Otherwise, it only needs to be valid against at least one Template.
@@ -23,12 +23,12 @@ The `match` command matches a Statement batch against Patterns in one or more Pr
 | CLI&nbsp;Command&nbsp;Argument | Description
 | :--                    | :--
 | `-p, --profile URI`    | Profile filepath/location; must specify one or more.
-| `-i, --pattern-id IRI` | IDs of Patterns to match against; can specify zero or more.
+| `-i, --pattern-id IRI` | IDs of primary Patterns to match against; can specify zero or more. Filters out all Patterns that are not included.
 | `-s, --statement URI`  | Statement filepath/location; must specify one or more.
 | `-n, --compile-nfa`    | If set, compiles the Patterns into a non-deterministic finite automaton (NFA) instead of a deterministic one, allowing for more detailed error traces at the cost of decreased performance.
 | `-h, --help`           | Display the help menu.
 
-## Example: `validate` command
+## Examples: `validate` command
 
 In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run our CLI commands.
 
@@ -49,7 +49,7 @@ We can also add additional Profiles as so:
 ```
 and it will output the same result, as the Statement will still match against the `calibration.jsonld` Profile, even though it will fail validation against all Templates in the `catch.json` profile.
 
-To see an example of failed validation, set the `--all-valid` argument so that the Statement has to be valid against all Templates:
+To see an example of failed validation, set the `--all-valid` flag so that the Statement has to be valid against all Templates:
 ```
 % ./bin/validate.sh \
   --profile sample_profiles/calibration.jsonld \
@@ -92,10 +92,45 @@ Template rule was not followed:
  statement values:
    The first Activity
 
+----- Statement Validation Failure -----
+Template ID:  https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
+Statement ID: 00000000-4000-8000-0000-000000000000
+
+Template rule was not followed:
+  {:any [\"https://xapinet.org/xapi/yet/calibration/v1/concepts#activity-3\"],
+   :location \"$.object.id\",
+   :presence \"included\"}
+ failed 'any' property: evaluated values must include some values given by 'any'
+ statement values:
+   https://xapinet.org/xapi/yet/calibration/v1/concepts#activity-1
+
+Template rule was not followed:
+  {:any [\"Activity 3\"],
+   :location \"$.object.definition.name.en-US\",
+   :presence \"included\"}
+ failed 'any' property: evaluated values must include some values given by 'any'
+ statement values:
+   Activity 1
+
+Template rule was not followed:
+  {:any [\"The third Activity\"],
+   :location \"$.object.definition.description.en-US\",
+   :presence \"included\"}
+ failed 'any' property: evaluated values must include some values given by 'any'
+ statement values:
+   The first Activity
+
 -----------------------------
 Total errors found: 7
 ```
-and exit with exit code 1. If we set the `--short-circuit` command along with `--all-valid`, then only the first validation failure will display. 
+and exit with exit code 1. If we set the `--short-circuit` flag along with `--all-valid`:
+```
+% ./bin/validate.sh \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json \
+  --short-circuit --all-valid
+```
+then only the first validation failure encountered will appear.
 
 We can use `--template-id` to select which Templates the Statement is validated against.
 ```
@@ -105,7 +140,7 @@ We can use `--template-id` to select which Templates the Statement is validated 
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
 ```
-This will exclude the only Template in the Profile that the Statement is valid against, and will result in the same validation failure output as above.
+This will only include Templates the Statement is invalid against, so running the command will result in the same validation failure output as in the previous example.
 
 Note that if we set `--template-id` to be a non-existent Template, e.g.
 ```
@@ -116,7 +151,7 @@ Note that if we set `--template-id` to be a non-existent Template, e.g.
 ```
 the validation will pass vacuously, as there are technically no Templates the Statement is invalid against.
 
-## Example: `match` command
+## Examples: `match` command
 
 We can match the Statement batch consisting of `calibration_1.json` and `calibration_2.json` against the Patterns in the `calibration.jsonld` Profile as so:
 ```

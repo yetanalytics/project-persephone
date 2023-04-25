@@ -17,7 +17,7 @@
     :validate  [s/profile? s/profile-err-msg]
     :update-fn (fnil conj [])]
    ["-i" "--template-id IRI"
-    "IDs of Statement Templates to validate against; can specify zero or more."
+    "IDs of Statement Templates to validate against; can specify zero or more. Filters out all Templates that are not included."
     :id        :template-ids
     :multi     true
     :validate  [s/iri? s/iri-err-msg]

@@ -15,7 +15,7 @@
     :validate  [s/profile? s/profile-err-msg]
     :update-fn (fnil conj [])]
    ["-i" "--pattern-id IRI"
-    "IDs of Patterns to match against; can specify zero or more."
+    "IDs of primary Patterns to match against; can specify zero or more. Filters out all Patterns that are not included."
     :id        :pattern-ids
     :multi     true
     :validate  [s/iri? s/iri-err-msg]

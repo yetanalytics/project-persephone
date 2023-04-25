@@ -1,3 +1,3 @@
 #!/bin/sh
 
-java -jar cli.jar $@
+java -server -jar cli.jar $@

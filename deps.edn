@@ -23,6 +23,11 @@
    :extra-deps  {org.clojure/clojure   {:mvn/version "1.10.2"}
                  org.clojure/tools.cli {:mvn/version "1.0.206"}
                  cheshire/cheshire     {:mvn/version "5.11.0"}}}
+  :server
+  {:extra-paths ["src/server"]
+   :extra-deps  {org.clojure/clojure {:mvn/version "1.10.2"}
+                 io.pedestal/pedestal.service {:mvn/version "0.5.10"}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.5.10"}}}
   :dev
   {:extra-paths ["src/dev"]
    :extra-deps  {org.clojure/clojure       {:mvn/version "1.10.2"}

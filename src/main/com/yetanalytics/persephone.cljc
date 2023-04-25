@@ -458,11 +458,22 @@
   :ret compiled-profiles-spec)
 
 (defn compile-profiles->fsms
-  "Take `profiles`, a collection of Profiles, and returns a doubly-nested map
-   of the form `{profile-version {pattern-id fsm-map}}`, where `profile-version`
-   is the latest Profile version ID and `pattern-id` is the ID of a
-   primary Pattern in that Profile. `fsm-map` is a map consisting of the
-   following: 
+  "Take `profiles`, a collection of Profiles, and returns a map of the following
+   form:
+   ```clojure
+   {
+     profile-version {
+       pattern-id {
+         :id ...
+         :dfa ...
+         :nfa ...
+       }
+     }
+   }
+   ```
+   where `profile-version` is the latest version ID in the Profile
+   and `pattern-id` is the ID of a primary Pattern in that Profile. The
+   leaf values include the following: 
    | FSM Map Key | Description
    | ---         | ---
    | `:id`       | The Pattern ID.
@@ -565,12 +576,18 @@
    Matches `statement` to against `compiled-profiles` and returns an
    updated value of `state-info-map`.
 
-   `state-info-map` is a map containing the following:
+   `state-info-map` is a map of the form:
+   ```clojure
+     {:accepts    [[registration-key pattern-id] ...]
+      :rejects    [[registration-key pattern-id] ...]
+      :states-map {registration-key {pattern-id state-info}}}
+   ```
+   where
    | Map Key       | Description
    | ---           | ---
-   | `:accepts`    | A coll of `[registration-key pattern-id]` key paths for accepted state infos (where `:accepted?` is `true`).
-   | `:rejects`    | A coll of `[registration-key pattern-id]` key paths for rejected state infos (where they are empty sets).
-   | `:states-map` | A map of the form `{registration-key {pattern-id state-info}}`.
+   | `:accepts`    | A coll of identifiers for accepted state infos (where `:accepted?` is `true`).
+   | `:rejects`    | A coll of identifiers for rejected state infos (where they are empty sets).
+   | `:states-map` | A doubly-nested map that associates registration keys and Pattern IDs to state info maps.
    
    `registration-key` can either be a registration UUID or a
    pair of registration and subregistration UUIDs. Statements without
@@ -583,9 +600,16 @@
    | `:accepted?` | If that state is an accept state, i.e. did the inputs fully match the Pattern?
    | `:visited`   | The vec of visited Statement Templates; this is only present if `compiled-profiles` was compiled with `compile-nfa?` set to `true`.
 
-   On error, this function returns a map of the form `{:error error-data}`,
-   where `error-data` contains the keys `:type` and `:statement`. The `:type`
-   value will be one fo the following error keywords:
+   On error, this function returns the map
+   ```clojure
+   {
+     :error {
+       :type error-kw
+       :statement {...}
+     }
+   }
+   ```
+   where `error-kw` is one of the following:
    | Pattern Match Error Keyword        | Description
    | ---                                | ---
    | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.

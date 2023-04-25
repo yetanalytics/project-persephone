@@ -13,9 +13,9 @@
 
 #?(:clj
    (defmacro wrap-pred
-     "Wrap a predicate function f such that if f returns true,
-      return nil, and if f returns false, return the keywordized
-      name of f."
+     "Wrap a predicate function `f` such that if `f` returns `true`,
+      return `nil`, and if `f` returns `false`, return the keywordized
+      name of `f`."
      [f]
      (assert (symbol? f))
      (let [pred-name# (keyword f)]
@@ -23,9 +23,9 @@
 
 #?(:clj
    (defmacro and-wrapped
-     "Given two functions wrapped using wrap-pred, return nil
-      if both functions return true and the corresponding
-      keywordized fn name for the function that returns false.
+     "Given two functions `f1` and `f2` wrapped using `wrap-pred`, return `nil`
+      if both functions return `true` and the corresponding
+      keywordized function name for the function that returns false.
       Short circuiting."
      [f1 f2]
      `(fn [x#]
@@ -36,8 +36,8 @@
 
 #?(:clj
    (defmacro or-wrapped
-     "Given two functions wrapped using wrap-pred, return nil
-      if either function returns true and the keywordized fn
+     "Given two functions `f1` and `f2` wrapped using `wrap-pred`, return `nil`
+      if either function returns `true` and the keywordized function
       name for the first function if both return false."
      [f1 f2]
      `(fn [x#]
@@ -47,8 +47,8 @@
 
 #?(:clj
    (defmacro add-wrapped
-     "Given a function wrapped using wrap-pred or add-wrapped,
-      add a 2-ary predicate f only if the values are not nil."
+     "Given a function wrapped using `wrap-pred` or `add-wrapped`,
+      add a 2-ary predicate `f` only if the values are not `nil`."
      [wrapped-fns f values]
      `(if (some? ~values)
         ~(let [pred-name# (keyword f)]
@@ -67,18 +67,18 @@
 ;; means unmatchable value.
 
 (defn all-matchable?
-  "Returns true iff every value in `coll` is matchable."
+  "Returns `true` iff every value in `coll` is matchable."
   [coll]
   (or (empty? coll)
       (every? some? coll)))
 
 (defn none-matchable?
-  "Returns true iff no value in `coll` is matchable."
+  "Returns `true` iff no value in `coll` is matchable."
   [coll]
   (->> coll (filter some?) empty?))
 
 (defn any-matchable?
-  "Returns true iff at least one matchable value in `coll` exists."
+  "Returns `true` iff at least one matchable value in `coll` exists."
   [coll]
   (->> coll (filter some?) not-empty boolean))
 
@@ -87,10 +87,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- presence-pred-fn
-  "pulls out the functionality common to the -values? functions
+  "Pulls out the functionality common to the `*-values?` functions
 
-  `pred-fn` should be a fn of 2 arity
-  - first arg = `presence` set i.e. any | all | none
+  `pred-fn` should be a binary function:
+  - first arg = `presence` set i.e. `any`, `all`, or `none`
   - second arg = `values` collection"
   [presence-set values-coll pred-fn]
   (pred-fn presence-set (-> values-coll set (disj nil))))
@@ -99,8 +99,8 @@
 ;; that is given by 'any'. In other words, the set of 'any' and the evaluated
 ;; values MUST interesect.
 (defn some-any-values?
-  "Return true if there's at least one value from `vals-coll` in
-   `any-set`; false otherwise."
+  "Return `true` if there's at least one value from `vals-coll` in
+   `any-set`; `false` otherwise."
   [any-set vals-coll]
   (presence-pred-fn
    any-set
@@ -110,8 +110,8 @@
 ;; If 'all' is provided, evaluated values MUST only include values in 'all'.
 ;; In other words, the set of 'all' MUST be a superset of the evaluated values.
 (defn only-all-values?
-  "Return true is every value from `vals-coll` is in `all-set`;
-   false otherwise."
+  "Return `true` is every value from `vals-coll` is in `all-set`;
+   `false` otherwise."
   [all-set vals-coll]
   (presence-pred-fn
    all-set
@@ -122,8 +122,8 @@
 ;; 'none'. In other words, the set of 'none' and the evaluated values MUST NOT
 ;; intersect.
 (defn no-none-values?
-  "Return true if there are no values from `vals-coll` in `none-set`;
-   false otherwise."
+  "Return `true` if there are no values from `vals-coll` in `none-set`;
+   `false` otherwise."
   [none-set vals-coll]
   (presence-pred-fn
    none-set
@@ -131,8 +131,8 @@
    (fn [p v] (empty? (cset/intersection v p)))))
 
 (defn every-val-present?
-  "Return true if every value in `presence-set` can be found in
-   `vals-coll`; false otherwise."
+  "Return `true` if every value in `presence-set` can be found in
+   `vals-coll`; `false` otherwise."
   [presence-set vals-coll]
   (presence-pred-fn
    presence-set
@@ -142,8 +142,8 @@
 ;; If 'all' is provided, evaluated values MUST NOT include any unmatchable
 ;; values.
 (defn no-unmatch-vals?
-  "Return true if no unmatchable values from `vals-coll` exist;
-   false otherwise."
+  "Return `true` if no unmatchable values from `vals-coll` exist;
+   `false` otherwise."
   [_all-set vals-coll]
   (all-matchable? vals-coll))
 
@@ -152,7 +152,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- nset
-  "'nilable set'; like `clojure.core/set` but preserves nil args."
+  "'nilable set'; like `clojure.core/set` but preserves `nil` args."
   [coll]
   (when (some? coll) (set coll)))
 
@@ -163,7 +163,7 @@
 ;; If presence is 'included', location and selector MUST include at least one
 ;; matchable value and MUST NOT include any unmatchable values. 
 (defn create-included-pred
-  "Returns a wrapped pred for when presence is 'included.'"
+  "Returns a wrapped pred for when presence is `included`."
   [{:keys [any all none]}]
   (let [any-set  (nset any)
         all-set  (nset all)
@@ -176,7 +176,7 @@
 ;; If presence is 'excluded', location and selector MUST NOT return any values
 ;; (ie. MUST NOT include any matchable values). 
 (defn create-excluded-pred
-  "Returns a wrapped pred for when presence is 'excluded.'"
+  "Returns a wrapped pred for when presence is `excluded`."
   [_]
   ;; the creation of a spec directly from a function is done using `s/spec`
   (wrap-pred none-matchable?))
@@ -186,7 +186,7 @@
 ;; restrictions, i.e. it is possible not to have any matchable values).
 ;; 'recommended' allows profile authors to not have any/all/none in a rule.
 (defn create-default-pred
-  "Returns a wrapped pred for when presence is 'recommended' or is
+  "Returns a wrapped pred for when presence is `recommended` or is
    missing."
   [{:keys [any all none]}]
   (let [any-set  (nset any)
@@ -225,7 +225,7 @@
 (defn create-rule-pred
   "Given a rule, create a predicate that will validate a Statement
    against it. Returns the name of the atomic predicate that returns
-   false, or nil if all return true."
+   `false`, or `nil` if all return `true`."
   [{:keys [presence] :as rule}]
   (assert-valid-rule rule)
   (if (contains? rule :det-prop)

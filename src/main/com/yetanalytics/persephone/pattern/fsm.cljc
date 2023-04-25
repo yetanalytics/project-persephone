@@ -187,7 +187,7 @@
             (fn [{:keys [states]}] (= 2 (count states)))))
 
 (defn transition-nfa
-  "Create an NFA that accepts a single input. If `meta?` is true, then
+  "Create an NFA that accepts a single input. If `meta?` is `true`, then
    associate `:states` metadata to the NFA."
   ([fn-symbol f]
    (transition-nfa fn-symbol f false))
@@ -247,7 +247,7 @@
 
 (defn concat-nfa
   "Concat a collection of NFAs in sequential order. The function throws
-   an exception on empty collections. If `meta?` is true, then assoc the
+   an exception on empty collections. If `meta?` is `true`, then assoc the
    alphatized `:states` metadata to the NFA."
   ([nfa-coll]
    (concat-nfa nfa-coll false))
@@ -277,7 +277,7 @@
 
 (defn union-nfa
   "Construct a union of NFAs (corresponding to the \"|\" regex symbol.)
-   If `meta?` is true, then assoc the alphatized `:states` metadata to
+   If `meta?` is `true`, then assoc the alphatized `:states` metadata to
    the NFA."
   ([nfa-coll]
    (union-nfa nfa-coll false))
@@ -324,7 +324,7 @@
 
 (defn kleene-nfa
   "Apply the Kleene star operation on an NFA (the \"*\" regex symbol),
-   which means the NFA can be taken zero or more times. If `meta` is true,
+   which means the NFA can be taken zero or more times. If `meta` is `true`,
    copy the original `:states` metadata."
   ([nfa]
    (kleene-nfa nfa false))
@@ -360,7 +360,7 @@
 
 (defn optional-nfa
   "Apply the optional operation on an NFA (the \"?\" regex symbol), which
-   means the NFA may or may not be taken. If `meta` is true, copy the
+   means the NFA may or may not be taken. If `meta` is `true`, copy the
    original `:states` metadata."
   ([nfa]
    (optional-nfa nfa false))
@@ -397,7 +397,7 @@
 
 (defn plus-nfa
   "Apply the Kleene plus operation on an NFA (the \"+\" regex symbol),
-   which means the NFA can be taken one or more times. If `meta` is true,
+   which means the NFA can be taken one or more times. If `meta` is `true`,
    copy the original `:states` metadata."
   ([nfa]
    (plus-nfa nfa false))
@@ -698,21 +698,24 @@
   "Given a compiled `fsm`, the current `state-info`, and `input`, let
    the FSM read that input; this function returns updated state info.
    The state info is a set of maps with the following fields:
-     
-     :state     The states arrived at in the FSM after reading the input.
-     :accepted? True if the FSM as arrived at an accept state
-                after reading the input; false otherwise.
+   
+   | Key | Description
+   | --- | ---
+   | `:state`     | The states arrived at in the FSM after reading the input.
+   | `:accepted?` | `true` if the FSM as arrived at an accept state after reading the input; `false` otherwise.
+
    In addition to the required args, the optional `start-opts` map
    can be passed. Valid options include:
 
-     :record-visits? If true, each state info map will contain an extra
-                     `:visited` value that is a list of visited
-                     transition IDs.
+   | Key               | Description
+   | ---               | ---
+   | `:record-visits?` | If `true`, each state info map will contain an extra `:visited` value that is a list of visited transition IDs.
+   
    If `state-info` is `nil`, the function starts at the start state,
    with `start-opts` applied as needed. As indicated by its name,
    `start-opts` not applied when `state-info` is not `nil`.
 
-   If `state-info` is `#{}` is empty, it is returned as-is, since an
+   If `state-info` is `#{}`, i.e. is empty, it is returned as-is, since an
    empty set indicates that no more states can be matched."
   {:arglists '([fsm state-info input]
                [fsm start-opts state-info input])}

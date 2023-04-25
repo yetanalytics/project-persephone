@@ -33,7 +33,7 @@
    and the Templates themselves. Used for Statement Ref Template
    resolution.
    
-   :validate-profile? is default true. If true, `profile->validator`
+   `:validate-profile?` is default `true`. If `true`, `profile->validator`
    checks that `profile` conforms to the xAPI Profile spec."
   [profile & {:keys [validate-profile?] :or {validate-profile? true}}]
   (when validate-profile? (assert/assert-profile profile))

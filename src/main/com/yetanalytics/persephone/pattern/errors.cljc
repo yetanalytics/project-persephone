@@ -108,34 +108,3 @@
          statement-id
          details-string)))
 
-(comment
-  (println
-   (error-message-str
-    {:type ::stmt/missing-profile-reference
-     :statement {"id" "000000000-4000-8000-0000-111111111111"
-                 "context" {"contextActivities" {"category" [{"id" "http://foo.org"}
-                                                             #_{"id" "http://bar.org"}]}}}}))
-  
-  (println
-   (error-message-str
-    {:type ::stmt/invalid-subreg-no-registration
-     :statement {"id" "000000000-4000-8000-0000-111111111111"
-                 "context" {"extensions" {stmt/subregistration-iri
-                                          [{"profile" "http://foo.org"
-                                            "subregistration" "00000000-4000-8000-0000-111122223333"}]}}}}))
-  
-  (println
-   (error-message-str
-    {:type ::stmt/invalid-subreg-nonconformant
-     :statement {"id" "000000000-4000-8000-0000-111111111111"
-                 "context" {"registration" "00000000-4000-8000-0000-555555555555"
-                            "extensions" {stmt/subregistration-iri
-                                          [{"profile" "http://foo.org"
-                                            "subregistration" 2}]}}}}))
-  (pr-str
-   [{"profile" "http://profile.org"
-     "subregistration" "000000000-4000-8000-0000-000000000000"}])
-  (with-out-str
-    (pprint/pprint
-     [{"profile" "http://profile.org"
-       "subregistration" "000000000-4000-8000-0000-000000000000"}])))

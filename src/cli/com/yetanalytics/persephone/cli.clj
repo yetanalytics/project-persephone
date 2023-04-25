@@ -41,9 +41,3 @@
       (do
         (printerr [(format "Unknown subcommand: %s" subcommand)])
         (System/exit 1)))))
-
-(comment
-  (printerr [(format "Unknown subcommand: %s" "foobar")])
-  (println (:summary (cli/parse-opts '("match" "--help") []
-                                     :in-order true
-                                     :summary-fn (fn [_] top-level-summary)))))

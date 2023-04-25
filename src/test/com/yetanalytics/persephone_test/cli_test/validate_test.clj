@@ -9,6 +9,7 @@
 
 (def template-1-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-1")
 (def template-2-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2")
+(def template-3-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3")
 
 (def template-2-fail-str
   "----- Statement Validation Failure -----
@@ -137,6 +138,14 @@ Template rule was not followed:
            (with-out-str
              (validate
               (list "-p" profile-uri "-s" statement-uri "-i" template-2-id)))))
+    (is (= (str template-2-fail-str
+                template-3-fail-str
+                "\n-----------------------------"
+                "\nTotal errors found: 7\n\n")
+           (with-out-str
+             (validate (list "-p" profile-uri "-s" statement-uri
+                             "-i" template-2-id
+                             "-i" template-3-id)))))
     (is (= (str template-2-fail-str
                 template-3-fail-str
                 "\n-----------------------------"

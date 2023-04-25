@@ -96,6 +96,10 @@ Pattern path:
     ;; No patterns => statement vacuously matches against all
     (is (true? (match (list "-p" profile-uri "-s" statement-uri
                             "-i" "http://random-profile.org"))))
+    (is (true? (match (list "-p" profile-uri
+                            "-s" statement-uri
+                            "-s" statement-2-uri
+                            "-i" "http://random-pattern.org"))))
     ;; Pattern vacuously matches against the calibration profile even though
     ;; only cmi5 patterns is present
     (is (true? (match (list "-p" profile-uri

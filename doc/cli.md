@@ -95,7 +95,26 @@ Template rule was not followed:
 -----------------------------
 Total errors found: 7
 ```
-and exit with exit code 1. If we set the `--short-circuit` command along with `--all-valid`, then only the first validation failure will display.
+and exit with exit code 1. If we set the `--short-circuit` command along with `--all-valid`, then only the first validation failure will display. 
+
+We can use `--template-id` to select which Templates the Statement is validated against.
+```
+% ./bin/validate.sh \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json \
+  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
+  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
+```
+This will exclude the only Template in the Profile that the Statement is valid against, and will result in the same validation failure output as above.
+
+Note that if we set `--template-id` to be a non-existent Template, e.g.
+```
+% ./bin/validate.sh \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json \
+  --template-id http://random-template.org
+```
+the validation will pass vacuously, as there are technically no Templates the Statement is invalid against.
 
 ## Example: `match` command
 
@@ -163,3 +182,13 @@ Pattern path:
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-3
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
 ```
+
+Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern:
+```
+% ./bin/match.sh \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json \
+  --statement sample_statements/calibration_2.json
+  --pattern-id http://random-pattern.org
+```
+then matching will vacuously pass, as there would be no Patterns the Statements will fail to match against.

@@ -39,7 +39,7 @@
              :error #{::missing-profile-reference}))
 
 (defn get-statement-profile-ids
-  "Get the category context activity IDs that are also profile IDs, or
+  "Get the category context Activity IDs that are also Profile IDs, or
    return `::missing-profile-reference` if none are."
   [statement profile-id-set]
   (let [cat-acts (get-in statement ["context" "contextActivities" "category"])

@@ -39,14 +39,14 @@
 (s/def ::predicate-fn t/predicate-spec)
 
 (def compiled-template-spec
-  "Spec for a compiled template: a map of the template `:id`, a `:validator-fn`,
+  "Spec for a compiled Template: a map of the Template `:id`, a `:validator-fn`,
    and a `:predicate-fn`."
   (s/keys :req-un [::pan-template/id
                    ::validator-fn
                    ::predicate-fn]))
 
 (def compiled-templates-spec
-  "Spec for a coll of compiled template maps."
+  "Spec for a coll of compiled Template maps."
   (s/every compiled-template-spec))
 
 ;; Validation function kwargs
@@ -60,7 +60,7 @@
                    :assertion})
 
 (def validation-error-map-spec
-  "Spec for validation error: a map from the template ID to a validation
+  "Spec for validation error: a map from the Template ID to a validation
    result map containing `:stmt`, `:temp`, `:pred`, `:vals`, and either
    `:prop` or `:sref`."
   (s/map-of ::pan-template/id
@@ -70,8 +70,7 @@
 
 (defn- template->validator
   "Takes `template` and nilable `statement-ref-fns` and returns a map
-   contaiing the Template ID, a validation function, and a predicate
-   function."
+   containing the Template `:id`, a `:validator-fn`, and a `:predicate-fn`."
   [template ?statement-ref-fns]
   {:id           (:id template)
    :validator-fn (t/create-template-validator template ?statement-ref-fns)
@@ -85,38 +84,29 @@
   :ret compiled-templates-spec)
 
 (defn compile-templates->validators
-  "Takes a `templates` coll and returns a coll of maps of:
+  "Takes a `templates` coll and returns a coll of maps:
    
-     :id           The Statement Template ID
-     :validator-fn A function that returns error data if a Statement
-                   is invalid against the Template, else `nil`.
-     :predicate-fn A function that returns `true` if a Statement
-                   is valid against the Template, else `false`.
+   | Validator Map Key | Description
+   | ---               | ---
+   | `:id`             | The Statement Template ID
+   | `:validator-fn`   | A function that returns error data if a Statement is invalid against the Template, else `nil`.
+   | `:predicate-fn`   | A function that returns `true` if a Statement is valid against the Template, else `false`.
    
    `compile-templates->validators` takes the following kwargs:
 
-     :statement-ref-fns  A map with two fields: `:get-template-fn`
-                         and `get-statement-fn`. If not present,
-                         then any Template's StatementRef props
-                         are ignored.
-     :validate-template? Whether to validate against the Template
-                         spec and check for ID clashes before
-                         compilation; default `true`.
-     :selected-profiles  if present filters out any Profiles whose
-                         IDs are not in the coll. (Note that these
-                         should be profile IDs, not version IDs.)
-     :selected-templates if present filters out any Templates
-                         whose IDs are not in the coll.
+   | Keyword Argument      | Description
+   | ---                   | ---
+   | `:statement-ref-fns`  | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
+   | `:validate-template?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
+   | `:selected-profiles`  | If present, filters out Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates` | If present, filters out Templates whose IDs are not in the coll.
    
    The following are the fields of the `:statement-ref-fns` map:
 
-     :get-template-fn   Function that takes a Statement Template ID
-                        and returns the corresponding Template. Can be
-                        created using `profile->id-template-map`.
-                        Must return `nil` if the Template isn't found.
-     :get-statement-fn  Function that takes a Statement ID and
-                        returns the corresponding Statement. Must
-                        return `nil` if the Statement is not found."
+   | Argument Map Key    | Description
+   | ---                 | ---
+   | `:get-template-fn`  | A function or map that takes a Template ID and returns the Template, or `nil` if not found. See also: `template.statement-ref/profile->id-template-map`.
+   | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found."
   [templates & {:keys [statement-ref-fns
                        validate-templates?
                        selected-templates]
@@ -146,15 +136,12 @@
    `:validator-fn`, and `:predicate-fn`, just like with
    `compile-templates->validators`. Takes the following kwargs:
 
-     :statement-ref-fns  Same as in `compile-templates->validators`.
-     :validate-profiles? Whether to validate against the Profile
-                         spec and check for ID clashes before
-                         compilation; default `true`.
-     :selected-profiles  if present filters out any Profiles whose
-                         IDs are not in the coll. (Note that these
-                         should be profile IDs, not version IDs.)
-     :selected-templates if present filters out any Templates
-                         whose IDs are not in the coll."
+   | Keyword Argument      | Description
+   | ---                   | ---
+   | `:statement-ref-fns`  | Same as in `compile-templates->validators`.
+   | `:validate-profiles?` | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
+   | `:selected-profiles`  | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates` | If present, filters out any Templates whose IDs are not present in the coll."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
                       selected-profiles
@@ -342,30 +329,20 @@
    Takes a `:fn-type` kwarg, which sets the return value and side effects
    of `validate-statement`. Has the following options:
 
-     :predicate  Returns `true` if `statement` is valid for any
-                 Statement Template, else `false`. Default.
-     :filter     Returns `statement` if it is valid against any
-                 Template, else `nil`.
-     :errors     Returns validation error data on every Template
-                 the Statement is invalid against, `nil` if any
-                 Template is valid for `statement`. The error
-                 data is a map from Template ID to error data.
-     :templates  Returns the IDs of the Templates that `statement`
-                 is valid against.
-     :printer    Prints the error data for all Templates the Statement
-                 fails validation against, if every Template is
-                 invalid for `statement`
-     :assertion  Throws an exception upon validation failure (where
-                 `(-> e ex-data :errors)` returns all error data) if
-                 every Template is invalid for `statement`, else
-                 returns`nil`.
+   | Keyword Argument | Description
+   | ---          | ---
+   | `:predicate` | Returns `true` if `statement` is valid for any Statement Template, else `false`. Default.
+   | `:filter`    | Returns `statement` if it is valid against any Template, else `nil`.
+   | `:errors`    | Returns a map from Template IDs to error data for every Template the Statement is invalid against, `nil` if any Template is valid for `statement`.
+   | `:templates` | Returns the IDs of the Templates that `statement` is valid against.
+   | `:printer`   | Prints the error data for all Templates the Statement fails validation against, if every Template is invalid for `statement`
+   | `:assertion` | Throws an exception upon validation failure (where `(-> e ex-data :errors)` returns all error data) if every Template is invalid for `statement`, else returns`nil`.
    
    Note that the above descriptions are only for when the kwargs
-   `:all-valid?` and `:short-circuit?` are `false` (the default).
-     
-     If `:all-valid?` is `true`, then the validation is not considered
+   `:all-valid?` and `:short-circuit?` are `false` (default).
+   - If `:all-valid?` is `true`, then the validation is not considered
      `true` unless all Templates are valid against `statement`.
-     If `:short-circuit?` is `true`, then only the error data for the
+   - If `:short-circuit?` is `true`, then only the error data for the
      first invalid Template is returned."
   [compiled-templates statement & {:keys [fn-type all-valid? short-circuit?]
                                    :or   {fn-type        :predicate
@@ -410,8 +387,8 @@
 ;; Specs ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def compiled-profiles-spec
-  "A compiled profiles spec: a map from profile IDs to another map of pattern
-   IDs (from that profile) to a map of compiled FSMs."
+  "A compiled profiles spec: a map from Profile IDs to another map of Pattern
+   IDs (from that Profile) to a map of compiled FSMs."
   (s/every-kv ::pan-profile/id
               (s/every-kv ::pan-pattern/id p/fsm-map-spec)))
 
@@ -484,35 +461,37 @@
   :ret compiled-profiles-spec)
 
 (defn compile-profiles->fsms
-  "Take `profiles`, a collection of JSON-LD profiles (or equivalent EDN
-   data) and returns a map of the following form:
-     
-     { profile-version { pattern-id {:id ... :dfa ... :nfa ...} } }
-  Where `profile-version` is the latest profile version ID in the Profile
-  and `pattern-id` is the ID of a primary Pattern in that Profile. The
-  leaf values include the following: 
-     
-     `:id`       The pattern ID.
-     `:dfa`      The DFA used for general pattern matching.
-     `:nfa`      The NFA with pattern metadata used for reconstructing the
-                 pattern path. This is an optional property that is only
-                 produced when `:compile-nfa?` is `true`.
-     `:nfa-meta` The NFA metadata; assoc-ed here in case meta is lost
-                 from the `:nfa` value. Only present if `:nfa` is.
-   The following are optional arguments:
+  "Take `profiles`, a collection of Profiles, and returns a map of the following
+   form:
+   ```clojure
+   {
+     profile-version {
+       pattern-id {
+         :id ...
+         :dfa ...
+         :nfa ...
+       }
+     }
+   }
+   ```
+   where `profile-version` is the latest version ID in the Profile
+   and `pattern-id` is the ID of a primary Pattern in that Profile. The
+   leaf values include the following: 
+   | FSM Map Key | Description
+   | ---         | ---
+   | `:id`       | The Pattern ID.
+   | `:dfa`      | The DFA used for general Pattern matching.
+   | `:nfa`      | The NFA with Pattern metadata used for reconstructing the Pattern path. This is an optional property that is only produced when `:compile-nfa?` is `true`.
+   | `:nfa-meta` | The NFA metadata; assoc-ed here in case meta is lost from the `:nfa` value. Only present if `:nfa` is.
 
-     :statement-ref-fns  takes the key-value pairs described in
-     `template->validator`.
-     :validate-profiles? if true checks that all Profiles conform to the
-     xAPI Profile spec and that all Profile, Template, and Pattern IDs
-     do not clash. Throws exception if validation fails. Default true.
-     :compile-nfa?       if true compiles an additional NFA that is used
-     for composing detailed error traces. Default false.
-     :selected-profiles  if present filters out any profiles whose IDs
-     are not in the coll. (Note that these should be profile IDs, not
-     profile version IDs.)
-     :selected-patterns  if present filters out any primary patterns
-     whose IDs are not in the coll."
+   The following are optional keyword arguments:
+   | Keyword Argument      | Description
+   | ---                   | ---
+   | `:statement-ref-fns`  | Takes the key-value pairs described in `template->validator`.
+   | `:validate-profiles?` | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
+   | `:compile-nfa?`       | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
+   | `:selected-profiles`  | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
+   | `:selected-patterns`  | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
                       compile-nfa?
@@ -553,7 +532,7 @@
 ;; Statement Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- match-statement-vs-pattern
-  "Match `statement` against the pattern DFA, and upon failure (i.e.
+  "Match `statement` against the Pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
   [{pat-dfa   :dfa
@@ -593,48 +572,47 @@
    updated value of `state-info-map`.
 
    `state-info-map` is a map of the form:
-   
+   ```clojure
      {:accepts    [[registration-key pattern-id] ...]
       :rejects    [[registration-key pattern-id] ...]
       :states-map {registration-key {pattern-id state-info}}}
+   ```
    where
-
-     :accepts    is a coll of identifiers for accepted state infos
-                 (where `:accepted?` is `true`).
-     :rejects    is a coll of identifiers for rejected state infos
-                 (where they are empty sets).
-     :states-map is a doubly-nested map that associates registration
-                 keys and pattern IDs to state info maps.
+   | Map Key       | Description
+   | ---           | ---
+   | `:accepts`    | A coll of identifiers for accepted state infos (where `:accepted?` is `true`).
+   | `:rejects`    | A coll of identifiers for rejected state infos (where they are empty sets).
+   | `:states-map` | A doubly-nested map that associates registration keys and Pattern IDs to state info maps.
    
    `registration-key` can either be a registration UUID or a
    pair of registration and subregistration UUIDs. Statements without
    registrations will be assigned a default `:no-registration` key.
    
    `state-info` is a map of the following:
+   | Map Key      | Description
+   | ---          | ---
+   | `:state`     | The current state in the FSM, i.e. where is the current location in the Pattern?
+   | `:accepted?` | If that state is an accept state, i.e. did the inputs fully match the Pattern?
+   | `:visited`   | The vec of visited Statement Templates; this is only present if `compiled-profiles` was compiled with `compile-nfa?` set to `true`.
 
-     :state     The current state in the FSM, i.e. where is the
-                current location in the Pattern?
-     :accepted? If that state is an accept state, i.e. did the inputs
-                fully match the Pattern?
-     :visited   The vec of visited Statement Templates; this is only
-                present if `compiled-profiles` was compiled with
-                `compile-nfa?` set to `true`.
-
-   On error, returns the map
-     
-     {:error {:type error-kw :statement {...}}}
+   On error, this function returns the map
+   ```clojure
+   {
+     :error {
+       :type error-kw
+       :statement {...}
+     }
+   }
+   ```
    where `error-kw` is one of the following:
-     
-     ::missing-profile-reference      if `statement` does not have a
-                                      Profile ID from `compiled-profiles`
-                                      as a category context activity.
-     ::invalid-subreg-no-registration if a sub-registration is present
-                                      without a registration.
-     ::invalid-subreg-nonconformant   if the sub-registration extension
-                                      value is invalid.
-     
-     `match-statement` takes in an optional `:print?` kwarg; if true,
-     then prints any error or match failure."
+   | Pattern Match Error Keyword        | Description
+   | ---                                | ---
+   | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.
+   | `::invalid-subreg-no-registration` | If a sub-registration is present without a registration.
+   | `::invalid-subreg-nonconformant`   | If the sub-registration extension value is invalid.
+   
+   `match-statement` takes in an optional `:print?` kwarg; if `true`,
+   then prints any error or match failure."
   [compiled-profiles state-info-map statement & {:keys [print?]
                                                  :or   {print? false}}]
   (if (:error state-info-map) ; TODO: Should errors also be printed?
@@ -697,9 +675,9 @@
              :ok state-info-map-spec))
 
 (defn match-statement-batch
-  "Similar to `match-statement`, except takes a batch of statements and
-   sorts them by timestamp before matching. Short-circuits if an error
-   (e.g. missing Profile ID reference) is detected."
+  "Similar to `match-statement`, except takes a batch of Statements (instead
+   of a single Statement) and sorts them by timestamp before matching.
+   Short-circuits if an error (e.g. missing Profile ID reference) is detected."
   [compiled-profiles state-info-map statement-batch & {:keys [print?]
                                                        :or   {print? false}}]
   (let [match-statement (fn [st-info-map stmt]

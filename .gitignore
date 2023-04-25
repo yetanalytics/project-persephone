@@ -19,7 +19,8 @@ pom.xml.asc
 .vscode/
 
 # Image output files
-*.png
+# TODO: Generated PNG files should go in target/ directory
+# *.png
 
 # ClojureScript
 package-lock.json

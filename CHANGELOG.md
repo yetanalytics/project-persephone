@@ -8,12 +8,6 @@
 - Added printing for pattern match errors (not just failures)
 - Change Statement validation error message header and assert message from `Invalid Statement` to `Statement Validation Failure`
 - Fix bug where the `:selected-patterns` keyword arg for `compile-profiles->fsms` did not work
-- Delete the following deprecated variables and keywords:
-  - `persephone/stmt-err-spec`
-  - `persephone.pattern/nfa-meta`
-  - `persephone.pattern.error/error-msg-str` (replaced by `failure-message-str`)
-  - `persephone.pattern.fsm-spec/fsm-metadata-spec`
-  - `persephone.utils.statement/subreg-iri` (already been replaced by `subregistration-iri`)
 
 ## 0.8.4 - 2023-04-19
 - Update README and API function docstrings.

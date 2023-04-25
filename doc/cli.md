@@ -7,6 +7,7 @@ To use the CLI, first run `make bundle`, then `cd` to `target/bundle`. You will 
 Note that Profile and Statement arguments accept URIs, e.g. filepaths, not the JSON data itself. In addition, some arguments (e.g. `--profile`) may be repeated to allow the command to accept multiple arguments.
 
 The `validate` command validates a single Statement against Statement Templates in one or more Profiles. The following table shows its arguments:
+
 | CLI&nbsp;Command&nbsp;Argument | Description
 | :--                          | :--
 | `-p, --profile URI`          | Profile URI filepath/location; must specify one or more.
@@ -18,6 +19,7 @@ The `validate` command validates a single Statement against Statement Templates 
 | `-h, --help`                 | Display the help menu.
 
 The `match` command matches a Statement batch against Patterns in one or more Profiles. The following table shows its arguments:
+
 | CLI&nbsp;Command&nbsp;Argument | Description
 | :--                    | :--
 | `-p, --profile URI`    | Profile filepath/location; must specify one or more.

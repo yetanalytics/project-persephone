@@ -9,6 +9,7 @@ The `persephone` namespace contains functions that perform two main tasks: valid
 | `match-statement-batch` | Takes a collection of Statements and matches them in order against compiled Patterns according to the [xAPI Pattern specification](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns).
 
 The following API functions are provided for Template/Profile compilation:
+
 | API&nbsp;Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                            | :--
 | `compile-templates->validators`| Compiles a collection of Statement Templates into validators.
@@ -36,6 +37,7 @@ The compilation functions `compile-templates->validators` and `compile-profiles-
 | `:validator-fn` | A function that takes a Statement and returns `nil` if that Statement is valid against it, a map of error data otherwise.
 
 `compile-templates->validators` takes the following keyword args:
+
 | Keyword&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                    | :--
 | `:statement-ref-fns`   | A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
@@ -45,6 +47,7 @@ The compilation functions `compile-templates->validators` and `compile-profiles-
 `compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument.
 
 The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
+
 | Keyword      | Description
 | :--          | :--
 | `:predicate` | Returns `true` for a valid Statement, `false` otherwise. Default.
@@ -55,6 +58,7 @@ The `validate-statement` function take the keyword argument `:fn-type`, which ca
 | `:templates` | Returns a vector of the IDs of the Statement Templates the Statement is valid for.
 
 `validate-statement` also takes the following two keyword args:
+
 | Keyword&nbsp;Argument  | Description
 | :--               | :--
 | `:all-valid?`     | If `false` (default), the Statement is considered valid if _any_ of the Statement Template is valid for it. If `true`, validity is if _all_ of the Templates are valid for it. Applicable to all function types except `:templates`.
@@ -92,12 +96,14 @@ The above error message indicates that the Statement's Verb property has an inco
 ### Statement Ref Templates
 
 By default, Statement Ref Template validation is not supported; however, to allow for such support, `compile-profiles->validators` and `compile-profiles->fsms` take in an optional `:statement-ref-fns` argument. Its value needs to be a map of the following:
+
 | Argument&nbsp;Map&nbsp;Key&nbsp;&nbsp; | Description
 | :--                 | :--
 | `:get-statement-fn` | A function that takes a Statement ID and returns a Statement, or `nil` if not found. This function will be called to return the Statement referenced by a `StatementRef` object.
 | `:get-template-fn`  | A function that takes a Template ID and returns a Statement Template, or `nil` if not found. This function will be called to return the Template referenced by `ObjectStatementRefTemplate` or `ContextStatementRefTemplate`.
 
 This system allows for flexibility when retrieving Statements and Templates by ID, e.g. `get-statement-fn` may be a function that calls out an LRS to retrieve Statements. For convenience, two functions are provided in the `persephone.template.statement-ref` namespace for use with `statement-ref-fns`:
+
 | Statement&nbsp;Ref&nbsp;Function&nbsp;Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                                 | :--
 | `profile->id-template-map`          | Takes a Profile and returns a map between Template IDs and Templates.
@@ -112,6 +118,7 @@ Each Pattern is essentially a regular expression on Statement Templates, which c
                                :nfa {...}}}}
 ```
 with `:dfa` and `:nfa` being two different FSMs:
+
 | Map&nbsp;Key&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description |
 | :--         | :--
 | `:dfa`      | A (mostly: see below) deterministic, minimized FSM used for efficient matching of Statements against a Pattern.
@@ -121,6 +128,7 @@ with `:dfa` and `:nfa` being two different FSMs:
 NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since a Statement may match against multiple Templates.
 
 The `compile-profiles->fsms` functions have the following keyword arguments:
+
 | Keyword&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                  | :--
 | `:statement-ref-fns` | Same as in the Statement Template compilation functions.
@@ -130,6 +138,7 @@ The `compile-profiles->fsms` functions have the following keyword arguments:
 | `:selected-patterns` | Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
 
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
+
 | Property&nbsp;Name | Description
 | :--          | :--
 | `sequence`   | The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
@@ -148,6 +157,7 @@ The `match-statement` and `match-statement-batch` functions take in a compiled P
                                   :visited ["template-id"]}}}}}
 ```
 where the following are the values in the leaf `:states-data` map:
+
 | Map&nbsp;Key | Description
 | :--          | :--
 | `:state`     | The state that the FSM is currently at.

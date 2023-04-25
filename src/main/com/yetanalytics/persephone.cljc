@@ -86,15 +86,15 @@
 (defn compile-templates->validators
   "Takes a `templates` coll and returns a coll of maps:
    
-   | Key             | Description
-   | ---             | ---
-   | `:id`           | The Statement Template ID
-   | `:validator-fn` | A function that returns error data if a Statement is invalid against the Template, else `nil`.
-   | `:predicate-fn` | A function that returns `true` if a Statement is valid against the Template, else `false`.
+   | Validator Map Key | Description
+   | ---               | ---
+   | `:id`             | The Statement Template ID
+   | `:validator-fn`   | A function that returns error data if a Statement is invalid against the Template, else `nil`.
+   | `:predicate-fn`   | A function that returns `true` if a Statement is valid against the Template, else `false`.
    
    `compile-templates->validators` takes the following kwargs:
 
-   | Keyword Arg           | Description
+   | Keyword Argument      | Description
    | ---                   | ---
    | `:statement-ref-fns`  | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
    | `:validate-template?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
@@ -103,7 +103,7 @@
    
    The following are the fields of the `:statement-ref-fns` map:
 
-   | Key                 | Description
+   | Argument Map Key    | Description
    | ---                 | ---
    | `:get-template-fn`  | A function or map that takes a Template ID and returns the Template, or `nil` if not found. See also: `template.statement-ref/profile->id-template-map`.
    | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found."
@@ -136,7 +136,7 @@
    `:validator-fn`, and `:predicate-fn`, just like with
    `compile-templates->validators`. Takes the following kwargs:
 
-   | Keyword Arg           | Description
+   | Keyword Argument      | Description
    | ---                   | ---
    | `:statement-ref-fns`  | Same as in `compile-templates->validators`.
    | `:validate-profiles?` | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
@@ -329,7 +329,7 @@
    Takes a `:fn-type` kwarg, which sets the return value and side effects
    of `validate-statement`. Has the following options:
 
-   | Keyword Arg  | Description
+   | Keyword Argument | Description
    | ---          | ---
    | `:predicate` | Returns `true` if `statement` is valid for any Statement Template, else `false`. Default.
    | `:filter`    | Returns `statement` if it is valid against any Template, else `nil`.
@@ -477,7 +477,7 @@
    where `profile-version` is the latest version ID in the Profile
    and `pattern-id` is the ID of a primary Pattern in that Profile. The
    leaf values include the following: 
-   | Key         | Description
+   | FSM Map Key | Description
    | ---         | ---
    | `:id`       | The Pattern ID.
    | `:dfa`      | The DFA used for general Pattern matching.
@@ -485,7 +485,7 @@
    | `:nfa-meta` | The NFA metadata; assoc-ed here in case meta is lost from the `:nfa` value. Only present if `:nfa` is.
 
    The following are optional keyword arguments:
-   | Keyword Arg           | Description
+   | Keyword Argument      | Description
    | ---                   | ---
    | `:statement-ref-fns`  | Takes the key-value pairs described in `template->validator`.
    | `:validate-profiles?` | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
@@ -578,7 +578,7 @@
       :states-map {registration-key {pattern-id state-info}}}
    ```
    where
-   | Key           | Description
+   | Map Key       | Description
    | ---           | ---
    | `:accepts`    | A coll of identifiers for accepted state infos (where `:accepted?` is `true`).
    | `:rejects`    | A coll of identifiers for rejected state infos (where they are empty sets).
@@ -589,7 +589,7 @@
    registrations will be assigned a default `:no-registration` key.
    
    `state-info` is a map of the following:
-   | Key          | Description
+   | Map Key      | Description
    | ---          | ---
    | `:state`     | The current state in the FSM, i.e. where is the current location in the Pattern?
    | `:accepted?` | If that state is an accept state, i.e. did the inputs fully match the Pattern?
@@ -605,8 +605,8 @@
    }
    ```
    where `error-kw` is one of the following:
-   | Keyword | Description
-   | ---     | ---
+   | Pattern Match Error Keyword        | Description
+   | ---                                | ---
    | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.
    | `::invalid-subreg-no-registration` | If a sub-registration is present without a registration.
    | `::invalid-subreg-nonconformant`   | If the sub-registration extension value is invalid.

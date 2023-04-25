@@ -2,7 +2,7 @@
 
 Persephone supports the `persephone` CLI command with two subcommands: `validate` and `match`, which performs Statement Template validation and Pattern matching, respectively.
 
-To use the CLI, first run `make bundle`, then `cd` to `target/bundle`. You will then be able to run `/bin/persephone.sh`, which will accept arguments for Profiles, Statements, and so on. 
+To use the CLI, first run `make bundle`, then `cd` to `target/bundle`. You will then be able to run `/bin/persephone.sh`, which will accept arguments for Profiles, Statements, and so on. You can also provide the command with a `--help` or `-h` flag and it will list its subcommands.
 
 Note that Profile and Statement arguments accept URIs, e.g. filepaths, not the JSON data itself. In addition, some arguments (e.g. `--profile`) may be repeated to allow the CLI to accept multiple arguments.
 

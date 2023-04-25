@@ -1,5 +1,6 @@
 {:paths ["src/main"]
- :deps {com.yetanalytics/xapi-schema {:mvn/version "1.2.0"
+ :deps {org.clojure/data.json        {:mvn/version "1.0.0"} ; clj only
+        com.yetanalytics/xapi-schema {:mvn/version "1.2.0"
                                       :exclusions
                                       [org.clojure/clojure
                                        org.clojure/clojurescript
@@ -20,7 +21,6 @@
  {:cli
   {:extra-paths ["src/cli"]
    :extra-deps  {org.clojure/clojure   {:mvn/version "1.10.2"}
-                 org.clojure/data.json {:mvn/version "1.0.0"}
                  org.clojure/tools.cli {:mvn/version "1.0.206"}
                  cheshire/cheshire     {:mvn/version "5.11.0"}}}
   :dev
@@ -30,7 +30,6 @@
                                             :exclusions  [org.clojure/data.json]}
                  cider/piggieback      {:mvn/version "0.5.2"} ; cljs only
                  dorothy/dorothy       {:mvn/version "0.0.7"}
-                 org.clojure/data.json {:mvn/version "1.0.0"} ; clj only
                  criterium/criterium   {:mvn/version "0.4.6"} ; clj only
                  com.taoensso/tufte    {:mvn/version "2.2.0"}}}
   :test
@@ -39,7 +38,6 @@
                  org.clojure/clojurescript {:mvn/version "1.10.764"
                                             :exclusions  [org.clojure/data.json]}
                  org.clojure/test.check  {:mvn/version "1.1.0"}
-                 org.clojure/data.json   {:mvn/version "1.0.0"} ; clj only
                  orchestra/orchestra     {:mvn/version "2021.01.01-1"}
                  olical/cljs-test-runner {:mvn/version "3.8.0"
                                           :exclusions  [org.clojure/clojurescript

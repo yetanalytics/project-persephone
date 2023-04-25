@@ -142,7 +142,7 @@ There are five different types of Patterns, based on which of the five following
 | Property&nbsp;Name | Description
 | :--          | :--
 | `sequence`   | The Pattern matches if the Patterns or Templates in the array match in the order listed. Equivalent to the concatenation operation in a regex.
-| `alternates` | The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (the `|` operator in a regex string).
+| `alternates` | The Pattern matches if any of the Templates or Patterns in the array match. Equivalent to the union operator (the `\|` operator in a regex string).
 | `zeroOrMore` | The Pattern matches if the Template or Pattern matches one or more times, or is not matched against at all. Equivalent of the Kleene Star operation (the `*` operator in a regex string).
 | `oneOrMore`  | The Pattern matches if the Template or Pattern matches at least one time. Equivalent of the `+` operator in a regex.
 | `optional`   | The Pattern matches if the Template or Pattern matches exactly once, or not at all. Equivalent of the `?` operator in a regex.

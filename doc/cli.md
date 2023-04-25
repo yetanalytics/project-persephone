@@ -30,7 +30,7 @@ The `match` subcommand matches a Statement batch against Patterns in one or more
 
 ## Examples: `persephone validate`
 
-In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run our `persephone`` command.
+In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run our `persephone` command.
 
 For our first example, we can validate the `calibration_1.json` Statement against the Statement Templates in the `calibration.jsonld` Profile:
 ```

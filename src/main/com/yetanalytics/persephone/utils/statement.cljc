@@ -6,6 +6,10 @@
             [com.yetanalytics.pan.objects.profile :as pan-prof]
             [com.yetanalytics.persephone.utils.time :as time]))
 
+;; TODO: Delete in next break ver
+(def ^:deprecated subreg-iri
+  "https://w3id.org/xapi/profiles/extensions/subregistration")
+
 (def subregistration-iri
   "https://w3id.org/xapi/profiles/extensions/subregistration")
 

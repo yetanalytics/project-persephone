@@ -48,6 +48,10 @@
          statement-id
          details-str)))
 
+;; TODO: Delete in the next break ver
+(defn ^:deprecated error-msg-str [failure]
+  (failure-message-str failure))
+
 (defn error-message-str
   "Given a pattern match error map, create a pretty error message
    detailing the error, Statement ID, and relevant Statement details

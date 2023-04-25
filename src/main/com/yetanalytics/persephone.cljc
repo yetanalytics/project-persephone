@@ -442,6 +442,10 @@
 (s/def ::error
   (s/keys :req-un [::type ::xs/statement]))
 
+;; TODO: Delete in next break ver
+(def ^:deprecated stmt-error-spec
+  (s/keys :req-un [::error]))
+
 (def statement-error-spec
   "Spec for a statement error (e.g. during match error)."
   (s/keys :req-un [::error]))

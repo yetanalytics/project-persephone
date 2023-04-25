@@ -1,14 +1,14 @@
 # Command Line Interface
 
-Persephone supports a CLI with two commands `validate` and `match`, which performs Statement Template validation and Pattern matching, respectively.
+Persephone supports the `persephone` CLI command with two subcommands: `validate` and `match`, which performs Statement Template validation and Pattern matching, respectively.
 
-To use the CLI, first run `make bundle`, then `cd` to `target/bundle`. You will then be able to run `/bin/validate.sh` and `/bin/match.sh` from there, which will accept arguments for Profiles, Statements, and so on. 
+To use the CLI, first run `make bundle`, then `cd` to `target/bundle`. You will then be able to run `/bin/persephone.sh`, which will accept arguments for Profiles, Statements, and so on. 
 
-Note that Profile and Statement arguments accept URIs, e.g. filepaths, not the JSON data itself. In addition, some arguments (e.g. `--profile`) may be repeated to allow the command to accept multiple arguments.
+Note that Profile and Statement arguments accept URIs, e.g. filepaths, not the JSON data itself. In addition, some arguments (e.g. `--profile`) may be repeated to allow the CLI to accept multiple arguments.
 
-The `validate` command validates a single Statement against Statement Templates in one or more Profiles. The following table shows its arguments:
+The `validate` subcommand validates a single Statement against Statement Templates in one or more Profiles. The following table shows its arguments:
 
-| CLI&nbsp;Command&nbsp;Argument | Description
+| Subcommand&nbsp;Argument | Description
 | :--                          | :--
 | `-p, --profile URI`          | Profile URI filepath/location; must specify one or more.
 | `-i, --template-id IRI`      | IDs of Statement Templates to validate against; can specify zero or more. Filters out all Templates that are not included.
@@ -18,9 +18,9 @@ The `validate` command validates a single Statement against Statement Templates 
 | `-c, --short-circuit`        | If set, then print on only the first Template the Statement fails validation against.Otherwise, print for all Templates the Statement fails against.
 | `-h, --help`                 | Display the help menu.
 
-The `match` command matches a Statement batch against Patterns in one or more Profiles. The following table shows its arguments:
+The `match` subcommand matches a Statement batch against Patterns in one or more Profiles. The following table shows its arguments:
 
-| CLI&nbsp;Command&nbsp;Argument | Description
+| Subcommand&nbsp;Argument | Description
 | :--                    | :--
 | `-p, --profile URI`    | Profile filepath/location; must specify one or more.
 | `-i, --pattern-id IRI` | IDs of primary Patterns to match against; can specify zero or more. Filters out all Patterns that are not included.
@@ -28,21 +28,21 @@ The `match` command matches a Statement batch against Patterns in one or more Pr
 | `-n, --compile-nfa`    | If set, compiles the Patterns into a non-deterministic finite automaton (NFA) instead of a deterministic one, allowing for more detailed error traces at the cost of decreased performance.
 | `-h, --help`           | Display the help menu.
 
-## Examples: `validate` command
+## Examples: `persephone validate`
 
-In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run our CLI commands.
+In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run our `persephone`` command.
 
 For our first example, we can validate the `calibration_1.json` Statement against the Statement Templates in the `calibration.jsonld` Profile:
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json
 ```
-This command will run, print nothing, and exit with exit code 0, indicating successful validation.
+This will run, print nothing, and exit with exit code 0, indicating successful validation.
 
 We can also add additional Profiles as so:
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --profile test-resources/sample_profiles/catch.json \
   --statement sample_statements/calibration_1.json
@@ -51,12 +51,12 @@ and it will output the same result, as the Statement will still match against th
 
 To see an example of failed validation, set the `--all-valid` flag so that the Statement has to be valid against all Templates:
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --all-valid
 ```
-This command will run and print the following message to stdout:
+This will run and print the following message to stdout:
 ```
 ----- Statement Validation Failure -----
 Template ID:  https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
@@ -125,7 +125,7 @@ Total errors found: 7
 ```
 and exit with exit code 1. If we set the `--short-circuit` flag along with `--all-valid`:
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --short-circuit --all-valid
@@ -134,41 +134,41 @@ then only the first validation failure encountered will appear.
 
 We can use `--template-id` to select which Templates the Statement is validated against.
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
 ```
-This will only include Templates the Statement is invalid against, so running the command will result in the same validation failure output as in the previous example.
+This will only include Templates the Statement is invalid against, so running this will result in the same validation failure output as in the previous example.
 
 Note that if we set `--template-id` to be a non-existent Template, e.g.
 ```
-% ./bin/validate.sh \
+% ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --template-id http://random-template.org
 ```
 the validation will pass vacuously, as there are technically no Templates the Statement is invalid against.
 
-## Examples: `match` command
+## Examples: `persephone match`
 
 We can match the Statement batch consisting of `calibration_1.json` and `calibration_2.json` against the Patterns in the `calibration.jsonld` Profile as so:
 ```
-% ./bin/match.sh \
+% ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --statement sample_statements/calibration_2.json
 ```
-This command will run, print nothing, and exit with code 0, indicating match success.
+This will run, print nothing, and exit with code 0, indicating match success.
 
 However, if we were to match a Statement that was not intended to be matched with the Profile, for example:
 ```
-% ./bin/match.sh \
+% ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement test-resources/sample_statements/adl_3.json
 ```
-the command will print an error message to stdout indicating that the Statement does not refer to the profile version in its category context activity IDs:
+the CLI will print an error message to stdout indicating that the Statement does not refer to the profile version in its category context activity IDs:
 ```
 ----- Pattern Match Error -----
 Error Description:  Missing Profile version in context category activity IDs
@@ -180,9 +180,9 @@ http://www.example.com/meetings/categories/teammeeting
 
 Errors would also appear if the Statement included a sub-registration without a registration, or if the sub-registration did not conform to spec.
 
-The order in which the Statements are passed to the `match` command matters greatly. If we switch the order of our Statements from the first example, Pattern matching fails:
+The order in which the Statements are passed to the `match` subcommand matters greatly. If we switch the order of our Statements from the first example, Pattern matching fails:
 ```
-% ./bin/match.sh \
+% ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_2.json \
   --statement sample_statements/calibration_1.json
@@ -198,7 +198,7 @@ Pattern matching has failed.
 
 If we set the `--compile-nfa` flag, then we can get a detailed trace of the Pattern matching path:
 ```
-% ./bin/match.sh \
+% ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_2.json \
   --statement sample_statements/calibration_1.json \
@@ -220,7 +220,7 @@ Pattern path:
 
 Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern:
 ```
-% ./bin/match.sh \
+% ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --statement sample_statements/calibration_2.json

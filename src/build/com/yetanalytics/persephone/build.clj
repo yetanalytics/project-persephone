@@ -1,6 +1,8 @@
 (ns com.yetanalytics.persephone.build
   (:require [clojure.tools.build.api :as b]))
 
+(def valid-jar-names #{"cli"})
+
 (def source-dirs ["src/main" "src/cli"])
 
 (def class-dir "target/classes")
@@ -14,13 +16,12 @@
 
 (defn- main-ns [jar-name]
   (case jar-name
-    "validate" 'com.yetanalytics.persephone.cli.validate
-    "match"    'com.yetanalytics.persephone.cli.match))
+    "cli" 'com.yetanalytics.persephone.cli))
 
 (defn- validate-jar-name
   [jar]
   (let [jar-name (name jar)]
-    (if (#{"match" "validate"} jar-name)
+    (if (valid-jar-names jar-name)
       jar-name
       (throw (IllegalArgumentException.
               (format "Invalid `:jar` argument: %s" jar))))))
@@ -28,10 +29,10 @@
 (defn uber
   "Build a new JAR file at `target/bundle`. Takes one keyword arg: `:jar`,
    which can a keyword or symbol that is one of:
+   
    | Keyword Arg | Description
    | ---         | ---
-   | `:validate` | Create `validate.jar` to use as the `validate` CLI command.
-   | `:match`    | Create `match.jar` to use as the `match` CLI command."
+   | `:cli`      | Create `cli.jar` for the command line interface."
   [{:keys [jar]}]
   (let [jar-name (validate-jar-name jar)]
     (b/copy-dir

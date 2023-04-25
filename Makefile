@@ -26,17 +26,14 @@ ci: clean test-clj test-cljs
 
 .PHONY: bundle
 
-target/bundle/validate.jar:
-	clojure -T:build uber :jar validate
-
-target/bundle/match.jar:
-	clojure -T:build uber :jar match
+target/bundle/cli.jar:
+	clojure -T:build uber :jar cli
 
 target/bundle/bin:
 	mkdir -p target/bundle/bin
 	cp bin/*.sh target/bundle/bin
 	chmod +x target/bundle/bin/*.sh
 
-target/bundle: target/bundle/validate.jar target/bundle/match.jar target/bundle/bin
+target/bundle: target/bundle/cli.jar target/bundle/bin
 
 bundle: target/bundle

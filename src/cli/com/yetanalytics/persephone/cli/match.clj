@@ -2,8 +2,7 @@
   (:require [com.yetanalytics.persephone :as per]
             [com.yetanalytics.persephone.cli.util.args :as a]
             [com.yetanalytics.persephone.cli.util.file :as f]
-            [com.yetanalytics.persephone.cli.util.spec :as s])
-  (:gen-class))
+            [com.yetanalytics.persephone.cli.util.spec :as s]))
 
 (def match-statements-options
   [["-p" "--profile URI"
@@ -33,7 +32,7 @@
          "automaton (NFA) instead of a deterministic one, allowing for "
          "more detailed error traces at the cost of decreased performance.")
     :id :compile-nfa]
-   ["-h" "--help" "Display the help menu."]])
+   ["-h" "--help" "Display the 'match' subcommand help menu."]])
 
 (defn- match*
   "Perform Pattern matching on `statements` based on the options map; print
@@ -62,17 +61,3 @@
       (= :help options)  true
       (= :error options) false
       :else (match* options))))
-
-(defn -main [& args]
-  (if (match args)
-    (System/exit 0)
-    (System/exit 1)))
-
-(comment
-  (match
-   (a/handle-args
-    '("-p"
-      "test-resources/sample_profiles/cmi5.json"
-      "-s"
-      "sample-statement.json")
-    match-statements-options)))

@@ -4,8 +4,7 @@
             [com.yetanalytics.persephone.cli.util.file :as f]
             [com.yetanalytics.persephone.cli.util.spec :as s]
             [com.yetanalytics.persephone.template.errors        :as errs]
-            [com.yetanalytics.persephone.template.statement-ref :as sref])
-  (:gen-class))
+            [com.yetanalytics.persephone.template.statement-ref :as sref]))
 
 (def validate-statement-options
   [["-p" "--profile URI"
@@ -48,7 +47,7 @@
          "validation against."
          "Otherwise, print for all Templates the Statement fails against.")
     :id :short-circuit]
-   ["-h" "--help" "Display the help menu."]])
+   ["-h" "--help" "Display the 'validate' subcommand help menu."]])
 
 (defn- validate*
   "Perform validation on `statement` based on the CLI options map; print any
@@ -91,8 +90,3 @@
       (= :help options)  true
       (= :error options) false
       :else (validate* options))))
-
-(defn -main [& args]
-  (if (validate args)
-    (System/exit 0)
-    (System/exit 1)))

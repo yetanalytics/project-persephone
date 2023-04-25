@@ -1,11 +1,11 @@
 (ns com.yetanalytics.persephone.cli.util.args
   (:require [clojure.tools.cli :as cli]))
 
-(defn- printerr
-  "Print `errors` to stderr"
-  [errors]
+(defn printerr
+  "Print the `err-messages` vector line-by-line to stderr."
+  [err-messages]
   (binding [*out* *err*]
-    (run! println errors))
+    (run! println err-messages))
   (flush))
 
 (defn handle-args

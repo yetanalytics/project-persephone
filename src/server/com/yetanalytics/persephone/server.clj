@@ -29,8 +29,8 @@
    {:name ::validate
     :enter
     (fn validate [context]
-      (let [statement (get-in context [:request :json-params])
-            err-res   (v/validate statement)]
+      (let [statements (get-in context [:request :json-params])
+            err-res    (v/validate statements)]
         (assoc context :response {:status 200 :body err-res})))}))
 
 (def match
@@ -46,28 +46,26 @@
 ;; Server Settings + Create
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def routes
-  #{["/health"
-     :get [health]
-     :route-name :server/health]
-    ["/validate"
-     :post [request-body validate]
-     :route-name :server/validate]
-    ["/match"
-     :post [request-body match]
-     :route-name :server/match]})
+(defn routes [mode-k]
+  (let [main-intercept (case mode-k
+                         :validate validate
+                         :match    match)]
+    #{["/health"
+       :get [health]
+       :route-name :server/health]
+      ["/statements"
+       :post [request-body main-intercept]
+       :route-name :server/statements]}))
 
-(defn- create-server []
-  (http/create-server
-   {::http/routes          routes
-    ::http/type            :jetty
-    ::http/allowed-origins []
-    ::http/host            "localhost"
-    ::http/port            8080
-    ::http/join?           false}))
-
-(defn- start-server []
-  (http/start (create-server)))
+(defn- start-server [mode-k]
+  (let [routes-set (routes mode-k)
+        server-map {::http/routes          routes-set
+                    ::http/type            :jetty
+                    ::http/allowed-origins []
+                    ::http/host            "localhost"
+                    ::http/port            8080
+                    ::http/join?           false}]
+    (http/start (http/create-server server-map))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Server Init CLI
@@ -104,7 +102,7 @@
           (= :error k)
           (System/exit 1)
           :else
-          (start-server)))
+          (start-server :validate)))
       (= "match" subcommand)
       (let [k (m/compile-patterns! rest)]
         (cond
@@ -113,7 +111,7 @@
           (= :error k)
           (System/exit 1)
           :else
-          (start-server)))
+          (start-server :match)))
       :else
       (do (u/printerr [(format "Unknown subcommand: %s" subcommand)])
           (System/exit 1)))))

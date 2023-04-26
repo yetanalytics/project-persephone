@@ -4,11 +4,11 @@
             [com.yetanalytics.persephone :as per])
   (:gen-class))
 
-(defn- health
-  []
+(def health
   (i/interceptor
    {:name ::health
-    :enter (fn [_] {:status 200 :body "OK"})}))
+    :enter (fn [context]
+             (assoc context :response {:status 200 :body "OK"}))}))
 
 (def validate
   (i/interceptor
@@ -23,7 +23,7 @@
             compiled (per/compile-profiles->validators profiles)
             err-res  (per/validate-statement compiled statement
                                              :fn-type :errors)]
-        err-res))}))
+        (assoc context :response {:status 200 :body err-res})))}))
 
 (def match
   (i/interceptor
@@ -37,7 +37,7 @@
             ;; Compile and match
             compiled (per/compile-profiles->fsms profiles)
             state-m (per/match-statement-batch compiled nil statements)]
-        state-m))}))
+        (assoc context :response {:status 200 :body state-m})))}))
 
 (def routes
   #{["/health"

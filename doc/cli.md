@@ -163,6 +163,14 @@ We can match the Statement batch consisting of `calibration_1.json` and `calibra
 ```
 This will run, print nothing, and exit with code 0, indicating match success.
 
+The `--statement` argument can also accept a Statement array file; in this example, `calibration_coll.json` is an array of the Statements in `calibration_1.json` and `calibration_2.json`, in that order.
+```
+% ./bin/persephone.sh match \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_coll.json
+```
+Individual Statements and Statement arrays can be mixed and matched when using `--statement` multiple times.
+
 However, if we were to match a Statement that was not intended to be matched with the Profile, for example:
 ```
 % ./bin/persephone.sh match \

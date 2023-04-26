@@ -9,6 +9,9 @@
 (defn read-profile [profile-filename]
   (json/coerce-profile (slurp profile-filename)))
 
+(defn read-statement [statement-filename]
+  (json/coerce-statement (slurp statement-filename)))
+
 (defn not-empty? [coll] (boolean (not-empty coll)))
 
 (defn iri? [x] (s/valid? ::ax/iri x))

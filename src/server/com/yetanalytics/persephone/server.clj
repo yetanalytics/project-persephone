@@ -1,7 +1,8 @@
 (ns com.yetanalytics.persephone.server
-  (:require [clojure.tools.cli       :as cli]
-            [io.pedestal.http        :as http]
-            [io.pedestal.interceptor :as i]
+  (:require [clojure.tools.cli            :as cli]
+            [io.pedestal.interceptor      :as i]
+            [io.pedestal.http             :as http]
+            [io.pedestal.http.body-params :as body-params]
             [com.yetanalytics.persephone.server.validate :as v]
             [com.yetanalytics.persephone.server.match    :as m]
             [com.yetanalytics.persephone.server.util     :as u])
@@ -10,6 +11,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interceptors
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def request-body
+  "Interceptor that performs parsing for request bodies `application/json`
+   content type, keeping keys as strings instead of keywordizing them."
+  (body-params/body-params
+   {#"^application/json" (body-params/custom-json-parser :key-fn str)}))
 
 (def health
   (i/interceptor
@@ -22,7 +29,7 @@
    {:name ::validate
     :enter
     (fn validate [context]
-      (let [statement (get-in context [:request :json-params :statement])
+      (let [statement (get-in context [:request :json-params])
             err-res   (v/validate statement)]
         (assoc context :response {:status 200 :body err-res})))}))
 
@@ -31,7 +38,7 @@
    {:name ::match
     :enter
     (fn match [context]
-      (let [statements (get-in context [:request :json-params :statements])
+      (let [statements (get-in context [:request :json-params])
             state-map  (m/match statements)]
         (assoc context :response {:status 200 :body state-map})))}))
 
@@ -44,10 +51,10 @@
      :get [health]
      :route-name :server/health]
     ["/validate"
-     :post [validate]
+     :post [request-body validate]
      :route-name :server/validate]
     ["/match"
-     :post [match]
+     :post [request-body match]
      :route-name :server/match]})
 
 (defn- create-server []

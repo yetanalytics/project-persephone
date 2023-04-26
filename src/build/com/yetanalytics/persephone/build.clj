@@ -1,7 +1,7 @@
 (ns com.yetanalytics.persephone.build
   (:require [clojure.tools.build.api :as b]))
 
-(def valid-jar-names #{"cli"})
+(def valid-jar-names #{"cli" "server"})
 
 (defn- source-directories [jar-name]
   ["src/main" (format "src/%s" jar-name)])
@@ -34,7 +34,8 @@
    
    | Keyword Arg | Description
    | ---         | ---
-   | `:cli`      | Create `cli.jar` for the command line interface."
+   | `:cli`      | Create `cli.jar` for the command line interface.
+   | `:server`   | Create `server.jar` for the webserver."
   [{:keys [jar]}]
   (let [jar-name  (validate-jar-name jar)
         src-dirs  (source-directories jar-name)

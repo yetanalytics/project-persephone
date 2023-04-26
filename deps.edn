@@ -27,7 +27,8 @@
   {:extra-paths ["src/server"]
    :extra-deps  {org.clojure/clojure {:mvn/version "1.10.2"}
                  io.pedestal/pedestal.service {:mvn/version "0.5.10"}
-                 io.pedestal/pedestal.jetty   {:mvn/version "0.5.10"}}}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.5.10"}
+                 org.slf4j/slf4j-simple       {:mvn/version "1.7.28"}}}
   :dev
   {:extra-paths ["src/dev"]
    :extra-deps  {org.clojure/clojure       {:mvn/version "1.10.2"}

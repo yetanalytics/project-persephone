@@ -1,3 +1,3 @@
 #!/bin/sh
 
-java -server -jar server.jar
+java -server -jar server.jar $@

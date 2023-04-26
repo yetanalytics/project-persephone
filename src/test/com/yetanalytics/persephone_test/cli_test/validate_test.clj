@@ -6,6 +6,7 @@
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
 (def statement-2-uri "test-resources/sample_statements/calibration_2.json")
+(def statement-coll-uri "test-resources/sample_statements/calibration_coll.json")
 
 (def template-1-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-1")
 (def template-2-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2")
@@ -128,6 +129,8 @@ Template rule was not followed:
     (is (validate (list "-p" profile-uri "-s" statement-uri
                         "--extra-statements" statement-2-uri
                         "-e" statement-2-uri)))
+    (is (validate (list "-p" profile-uri "-s" statement-uri
+                        "-e" statement-coll-uri)))
     ;; No templates => statement vacuously validates against all
     (is (validate (list "-p" profile-uri "-s" statement-uri
                         "-i" "http://random-template.org"))))

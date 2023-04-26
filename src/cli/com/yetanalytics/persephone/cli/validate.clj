@@ -28,15 +28,18 @@
     :parse-fn f/read-statement
     :validate [s/statement? s/statement-err-msg]]
    ["-e" "--extra-statements URI"
-    (str "Extra Statement batch filepath/location; can specify zero or more. "
+    (str "Extra Statement batch filepath/location; can specify zero or more "
+         "and accepts arrays of Statements. "
          "If specified, activates Statement Ref property validation, "
          "where the referred object/context Statement exists in this batch "
          "and its Template exists in a provided Profile.")
     :id        :extra-statements
     :multi     true
     :parse-fn  f/read-statement
-    :validate  [s/statement? s/statement-err-msg]
-    :update-fn (fnil conj [])]
+    :validate  [s/statements? s/statements-err-msg]
+    :update-fn (fn [xs s]
+                 (let [xs (or xs [])]
+                   (if (vector? s) (into xs s) (conj xs s))))]
    ["-a" "--all-valid"
     (str "If set, the Statement is not considered valid unless it is valid "
          "against ALL Templates. "

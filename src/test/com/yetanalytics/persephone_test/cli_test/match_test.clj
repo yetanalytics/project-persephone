@@ -6,6 +6,7 @@
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
 (def statement-2-uri "test-resources/sample_statements/calibration_2.json")
+(def statement-coll-uri "test-resources/sample_statements/calibration_coll.json")
 
 (def bad-statement-uri "test-resources/sample_statements/adl_1.json")
 (def bad-statement-2-uri "test-resources/sample_statements/adl_3.json")
@@ -51,6 +52,28 @@ Pattern path:
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
 ")
 
+(def pattern-match-failure-str-3
+  "----- Pattern Match Failure -----
+Primary Pattern ID: https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
+Statement ID:       00000000-4000-8000-0000-000000000001
+
+Pattern matching has failed.
+")
+
+(def pattern-match-failure-str-4
+  "----- Pattern Match Failure -----
+Primary Pattern ID: https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
+Statement ID:       00000000-4000-8000-0000-000000000001
+
+Statement Templates visited:
+  https://xapinet.org/xapi/yet/calibration/v1/templates#activity-1
+  https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
+Pattern path:
+  https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
+  https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-3
+  https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
+")
+
 (deftest match-cli-args-test
   (testing "Help Argument"
     (is (not-empty (with-out-str (match '("--help")))))
@@ -87,6 +110,8 @@ Pattern path:
     (is (true? (match (list "-p" profile-uri
                             "-s" statement-uri
                             "-s" statement-2-uri))))
+    (is (true? (match (list "-p" profile-uri
+                            "-s" statement-coll-uri))))
     (is (true? (match (list "-p" profile-uri
                             "-p" "test-resources/sample_profiles/cmi5.json"
                             "-s" statement-uri))))
@@ -125,4 +150,15 @@ Pattern path:
              (match (list "-p" profile-uri
                           "-s" statement-2-uri
                           "-s" statement-uri
-                          "--compile-nfa")))))))
+                          "--compile-nfa")))))
+    (is (= pattern-match-failure-str-3
+           (with-out-str
+             (match (list "-p" profile-uri
+                          "-s" statement-coll-uri
+                          "-s" statement-2-uri)))))
+    (is (= pattern-match-failure-str-4
+           (with-out-str
+             (match (list "-p" profile-uri
+                          "-s" statement-coll-uri
+                          "-s" statement-2-uri
+                          "-n")))))))

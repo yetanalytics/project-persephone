@@ -44,7 +44,7 @@ We can also add additional Profiles as so:
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
-  --profile test-resources/sample_profiles/catch.json \
+  --profile sample_profiles/catch.json \
   --statement sample_statements/calibration_1.json
 ```
 and it will output the same result, as the Statement will still match against the `calibration.jsonld` Profile, even though it will fail validation against all Templates in the `catch.json` profile.
@@ -131,14 +131,14 @@ If we set the `--short-circuit` flag along with `--all-valid`:
   --statement sample_statements/calibration_1.json \
   --short-circuit --all-valid
 ```
-then only the first validation failure encountered will appear.
+then only validation failures for the first failing Template will appear.
 
 We can use the `--template-id` argument to select which Templates the Statement is validated against.
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
-  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
+  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2 \
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
 ```
 This way, we pass to the CLI the two Templates the Statement is invalid against, so running this will result in the same validation failure output as in the previous example.
@@ -167,7 +167,7 @@ However, if we were to match a Statement that was not intended to be matched wit
 ```
 % ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
-  --statement test-resources/sample_statements/adl_3.json
+  --statement sample_statements/adl_3.json
 ```
 the CLI will print an error message to stdout indicating that the Statement does not refer to the profile version in its category context activity IDs:
 ```
@@ -224,7 +224,7 @@ Note that similar to `--template-id`, we can use `--pattern-id` to filter out Pa
 % ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
-  --statement sample_statements/calibration_2.json
+  --statement sample_statements/calibration_2.json \
   --pattern-id http://random-pattern.org
 ```
 then matching will vacuously pass, as there would be no Patterns the Statements will fail to match against.

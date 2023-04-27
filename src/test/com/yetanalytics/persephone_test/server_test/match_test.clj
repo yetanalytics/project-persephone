@@ -76,6 +76,22 @@
                       (post-map "{\"id\": \"not-a-statement\"}"))]
        (is (= 400 status))
        (is (= :invalid-statements
+              (-> body edn/read-string :type)))))
+   (testing "invalid JSON"
+     (let [{:keys [status body]}
+           (curl/post "localhost:8080/statements"
+                      (post-map "{\"id\":"))]
+       (is (= 400 status))
+       (is (= :invalid-json
+              (-> body edn/read-string :type)))))
+   (testing "invalid Content-Type"
+     (let [{:keys [status body]}
+           (curl/post "localhost:8080/statements"
+                      {:headers {"Content-Type" "application/edn"}
+                       :body    statement-1
+                       :throw   false})]
+       (is (= 400 status)) ; ideally should be 415 Unsupported Media Type
+       (is (= :invalid-statements
               (-> body edn/read-string :type))))))
   (test-match-server
    "Pattern matching works w/ two profiles"

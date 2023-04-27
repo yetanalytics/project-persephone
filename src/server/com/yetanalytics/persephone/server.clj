@@ -12,17 +12,22 @@
 ;; Interceptors
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def request-body
-  "Interceptor that performs parsing for request bodies `application/json`
-   content type, keeping keys as strings instead of keywordizing them."
-  (body-params/body-params
-   {#"^application/json" (body-params/custom-json-parser :key-fn str)}))
-
 (def health
   (i/interceptor
    {:name ::health
     :enter (fn [context]
              (assoc context :response {:status 200 :body "OK"}))}))
+
+(def request-body
+  "Interceptor that performs parsing for request bodies `application/json`
+   content type, keeping keys as strings instead of keywordizing them.
+   Returns a 400 error for invalid JSON."
+  (-> (body-params/body-params
+       {#"^application/json" (body-params/custom-json-parser :key-fn str)})
+      (assoc :error
+             (fn [context _]
+               (assoc context :response {:status 400
+                                         :body   {:type :invalid-json}})))))
 
 (def validate
   (i/interceptor
@@ -94,7 +99,8 @@
        :get [health]
        :route-name :server/health]
       ["/statements"
-       :post [request-body main-intercept]
+       :post [request-body
+              main-intercept]
        :route-name :server/statements]}))
 
 (defn start-server [mode-k host port]

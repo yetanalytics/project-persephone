@@ -30,26 +30,62 @@
     :enter
     (fn validate [context]
       (let [statements (get-in context [:request :json-params])
-            err-res    (v/validate statements)]
-        (assoc context :response {:status 200 :body err-res})))}))
+            statement  (if (vector? statements) (last statements) statements)
+            stmt-err   (u/statement-err-data statement)
+            stmt-err?  (some? stmt-err)
+            err-res    (and (not stmt-err?)
+                            (v/validate statement))
+            valid-err? (and (not stmt-err?)
+                            (some? err-res))
+            response   (cond
+                         stmt-err?  {:status 400
+                                     :body   {:type     :invalid-statement
+                                              :contents stmt-err}}
+                         valid-err? {:status 400
+                                     :body   {:type     :validation-failure
+                                              :contents err-res}}
+                         :else      {:status 204})]
+        (assoc context :response response)))}))
 
 (def match
   (i/interceptor
    {:name ::match
     :enter
     (fn match [context]
-      (let [statements (get-in context [:request :json-params])
-            state-map  (m/match statements)]
-        (assoc context :response {:status 200 :body state-map})))}))
+      (let [statements  (get-in context [:request :json-params])
+            statements  (if (vector? statements) statements [statements])
+            stmts-err   (u/statements-err-data statements)
+            stmts-err?  (some? stmts-err)
+            state-map   (and (not stmts-err?)
+                             (m/match statements))
+            match-err?  (and (not stmts-err?)
+                             (-> state-map :error some?))
+            match-fail? (and (not stmts-err?)
+                             (-> state-map :rejects not-empty boolean))
+            response    (cond
+                          stmts-err?  {:status 400
+                                       :body   {:type     :invalid-statements
+                                                :contents stmts-err}}
+                          match-err?  {:status 400
+                                       :body   {:type     :match-error
+                                                :contents state-map}}
+                          match-fail? {:status 400
+                                       :body   {:type     :match-failure
+                                                :contents state-map}}
+                          :else       {:status 204})]
+        (assoc context :response response)))}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Server Settings + Create
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn routes [mode-k]
-  (let [main-intercept (case mode-k
-                         :validate validate
-                         :match    match)]
+(defn- main-interceptor [mode-k]
+  (case mode-k
+    :validate validate
+    :match    match))
+
+(defn- routes [mode-k]
+  (let [main-intercept (main-interceptor mode-k)]
     #{["/health"
        :get [health]
        :route-name :server/health]

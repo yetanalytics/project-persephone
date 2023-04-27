@@ -22,9 +22,9 @@
 
 (defn profile-err-msg [p] (pan/validate-profile p :result :string))
 
-(defn statement? [s] (s/valid? ::xs/statement s))
+(defn statement-err-data [s] (s/explain-data ::xs/statement s))
 
-(defn statement-err-msg [s] (s/explain-str ::xs/statement s))
+(defn statements-err-data [s] (s/explain-data (s/coll-of ::xs/statement) s))
 
 (defn printerr
   "Print the `err-messages` vector line-by-line to stderr."

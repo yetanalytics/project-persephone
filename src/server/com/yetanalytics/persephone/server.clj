@@ -93,13 +93,13 @@
        :post [request-body main-intercept]
        :route-name :server/statements]}))
 
-(defn- start-server [mode-k]
+(defn- start-server [mode-k host port]
   (let [routes-set (routes mode-k)
         server-map {::http/routes          routes-set
                     ::http/type            :jetty
                     ::http/allowed-origins []
-                    ::http/host            "localhost"
-                    ::http/port            8080
+                    ::http/host            host
+                    ::http/port            port
                     ::http/join?           false}]
     (http/start (http/create-server server-map))))
 
@@ -108,14 +108,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def top-level-options
-  [["-h" "--help" "Display the top-level help guide."]])
+  [[nil "--host HOST" "The hostname of the webserver endpoint."
+    :id      :host
+    :default "localhost"]
+   [nil "--port PORT" "The port number of the webserver endpoint. Must be between 0 and 65536."
+    :id       :port
+    :default  8080
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 0 % 0x10000) "Must be an integer between 0 and 65536."]]
+   ["-h" "--help" "Display the top-level help guide."]])
 
-(def top-level-summary
-  (str "Usage 'persephone-server <subcommand> <args>' or 'persephone-server [-h|--help]'\n"
+(defn- top-level-summary [option-specs]
+  (str "Usage 'persephone-server [--host STRING] [--port INTEGER] [--help|-h] <subcommand> <args>'\n"
        "\n"
        "where the subcommand can be one of the following:\n"
        "  validate  Start a webserver that performs Statement Template validation on Statement requests\n"
        "  match     Start a webserver that performs Pattern matching on Statement batch requests\n"
+       "\n"
+       "The main command has the following optional arguments, along with defaults:\n"
+       (cli/summarize option-specs) "\n"
        "\n"
        "Run 'persephone-server <subcommand> --help' for details on each subcommand"))
 
@@ -123,11 +134,13 @@
   (let [{:keys [options summary arguments]}
         (cli/parse-opts args top-level-options
                         :in-order true
-                        :summary-fn (fn [_] top-level-summary))
+                        :summary-fn top-level-summary)
+        {:keys [host port help]}
+        options
         [subcommand & rest]
         arguments]
     (cond
-      (:help options)
+      help
       (do (println summary)
           (System/exit 0))
       (= "validate" subcommand)
@@ -138,7 +151,7 @@
           (= :error k)
           (System/exit 1)
           :else
-          (start-server :validate)))
+          (start-server :validate host port)))
       (= "match" subcommand)
       (let [k (m/compile-patterns! rest)]
         (cond
@@ -147,7 +160,7 @@
           (= :error k)
           (System/exit 1)
           :else
-          (start-server :match)))
+          (start-server :match host port)))
       :else
       (do (u/printerr [(format "Unknown subcommand: %s" subcommand)])
           (System/exit 1)))))

@@ -30,7 +30,9 @@
     :enter
     (fn validate [context]
       (let [statements (get-in context [:request :json-params])
-            statement  (if (vector? statements) (last statements) statements)
+            statement  (if (sequential? statements)
+                         (last statements)
+                         statements)
             stmt-err   (u/statement-err-data statement)
             stmt-err?  (some? stmt-err)
             err-res    (and (not stmt-err?)
@@ -53,7 +55,9 @@
     :enter
     (fn match [context]
       (let [statements  (get-in context [:request :json-params])
-            statements  (if (vector? statements) statements [statements])
+            statements  (if (sequential? statements)
+                          statements
+                          [statements])
             stmts-err   (u/statements-err-data statements)
             stmts-err?  (some? stmts-err)
             state-map   (and (not stmts-err?)
@@ -93,7 +97,7 @@
        :post [request-body main-intercept]
        :route-name :server/statements]}))
 
-(defn- start-server [mode-k host port]
+(defn start-server [mode-k host port]
   (let [routes-set (routes mode-k)
         server-map {::http/routes          routes-set
                     ::http/type            :jetty
@@ -102,6 +106,9 @@
                     ::http/port            port
                     ::http/join?           false}]
     (http/start (http/create-server server-map))))
+
+(defn stop-server [server]
+  (http/stop server))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Server Init CLI

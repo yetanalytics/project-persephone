@@ -2,6 +2,9 @@
   (:require [com.yetanalytics.persephone :as per]
             [com.yetanalytics.persephone.server.util :as u]))
 
+;; TODO: There is no --compile-nfa flag since there is no trace printing, and
+;; the trace is not present in the match response.
+
 (def match-statements-options
   [["-p" "--profile URI"
     "Profile filepath/location; must specify one or more."
@@ -18,11 +21,6 @@
     :multi     true
     :validate  [u/iri? u/iri-err-msg]
     :update-fn (fnil conj [])]
-   ["-n" "--compile-nfa"
-    (str "If set, compiles the Patterns into a non-deterministic finite "
-         "automaton (NFA) instead of a deterministic one, allowing for "
-         "more detailed error traces at the cost of decreased performance.")
-    :id :compile-nfa]
    ["-h" "--help" "Display the 'match' subcommand help menu."]])
 
 (defonce match-ref

@@ -121,10 +121,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def top-level-options
-  [[nil "--host HOST" "The hostname of the webserver endpoint"
+  [["-H" "--host HOST" "The hostname of the webserver endpoint"
     :id      :host
     :default "localhost"]
-   [nil "--port PORT" "The port number of the webserver endpoint; must be between 0 and 65536"
+   ["-P" "--port PORT" "The port number of the webserver endpoint; must be between 0 and 65536"
     :id       :port
     :default  8080
     :parse-fn #(Integer/parseInt %)
@@ -132,16 +132,16 @@
    ["-h" "--help" "Display the top-level help guide"]])
 
 (defn- top-level-summary [option-specs]
-  (str "Usage 'persephone-server [--host HOST] [--port PORT] [--help|-h] <subcommand> <args>'\n"
+  (str "Usage 'server [--host|-H HOST] [--port|-P PORT] [--help|-h] <subcommand> <args>'\n"
        "\n"
        "where the subcommand can be one of the following:\n"
        "  validate  Start a webserver that performs Statement Template validation on Statement requests\n"
        "  match     Start a webserver that performs Pattern matching on Statement batch requests\n"
        "\n"
-       "The main command has the following optional arguments, along with defaults:\n"
+       "The 'server' command has the following optional arguments, along with defaults:\n"
        (cli/summarize option-specs) "\n"
        "\n"
-       "Run 'persephone-server <subcommand> --help' for details on each subcommand."))
+       "Run 'server <subcommand> --help' for details on each subcommand."))
 
 (defn -main [& args]
   (let [{:keys [options summary arguments]}

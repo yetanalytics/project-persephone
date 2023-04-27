@@ -4,6 +4,7 @@
 - Add CLI for Persephone as two commands that can be made using `make bundle`; command options can be viewed using `--help`.
   - `validate`: Performs Statement Template validation for a single Statement
   - `match`: Performs Pattern matching for a Statement batch
+- Add webserver that can be started in either `validate` or `match` mode, then perform validation/matching by providing Statements at the `POST /statements` endpoint.
 - Move Clojure and ClojureScript dependencies out of main deps into alias (extra) deps
 - Added printing for pattern match errors (not just failures)
 - Change Statement validation error message header and assert message from `Invalid Statement` to `Statement Validation Failure`

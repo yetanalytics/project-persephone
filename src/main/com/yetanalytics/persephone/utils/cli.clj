@@ -1,27 +1,58 @@
-(ns com.yetanalytics.persephone.server.util
+(ns com.yetanalytics.persephone.utils.cli
+  "Clojure-only namespace for CLI-specific utilities, used by the
+   `:cli` and `:server` aliases instead of the general API."
   (:require [clojure.spec.alpha :as s]
-            [clojure.tools.cli  :as cli]
             [xapi-schema.spec   :as xs]
             [com.yetanalytics.pan.axioms :as ax]
             [com.yetanalytics.pan.errors :as perr]
             [com.yetanalytics.persephone.utils.asserts :as assert]
-            [com.yetanalytics.persephone.utils.json :as json]))
+            [com.yetanalytics.persephone.utils.json    :as json]))
 
-(defn read-profile [profile-filename]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; File reading
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn read-profile
+  [profile-filename]
   (json/coerce-profile (slurp profile-filename)))
+
+(defn read-statement
+  [statement-filename]
+  (json/coerce-statement (slurp statement-filename)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn iri? [x] (s/valid? ::ax/iri x))
 
-(def iri-err-msg "Must be a valid IRI.")
+(defn iri-err-msg [_] "Must be a valid IRI.")
 
-;; Basic validation; most validation will be done at the API level
+;; Super-basic profile check; most work is done during compilation
 (defn profile? [p] (map? p))
 
 (defn profile-err-msg [_] "Must be a valid JSON object.")
 
+(defn statement? [s] (s/valid? ::xs/statement s))
+
 (defn statement-err-data [s] (s/explain-data ::xs/statement s))
 
+(defn statement-err-msg [s] (s/explain-str ::xs/statement s))
+
+(defn statements? [s]
+  (s/or :single   (s/valid? ::xs/statement s)
+        :multiple (s/valid? ::xs/statements s)))
+
 (defn statements-err-data [s] (s/explain-data ::xs/statements s))
+
+(defn statements-err-msg [s]
+  (if (vector? s)
+    (s/explain-str ::xs/statements s)
+    (s/explain-str ::xs/statement s)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Error printing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn printerr
   "Print the `error-messages` vector line-by-line to stderr."
@@ -30,9 +61,10 @@
     (run! println error-messages))
   (flush))
 
-(defn handle-asserts
+(defn print-assert-errors
   "Handle all possible assertions given an ExceptionInfo `ex` thrown from
-   the `persephone.utils.asserts` namespace."
+   the `persephone.utils.asserts` namespace. Print assertion exceptions to
+   stderr using `printerr`, or re-throw if not recognized."
   [ex]
   (case (or (-> ex ex-data :kind)
             (-> ex ex-data :type))
@@ -55,15 +87,13 @@
     ;; else
     (throw ex)))
 
-(defn handle-args
-  "Parse `args` based on `cli-options` (which should follow the tools.cli
-   specification) and either return `:error`, print `--help` command and
-   return `:help`, or return the parsed `options` map."
-  [args cli-options]
-  (let [{:keys [options summary errors]}
-        (cli/parse-opts args cli-options)
-        {:keys [help]}
-        options]
+(defn handle-parsed-args
+  "Given the return value of `cli/parse-opts`, return either `:error`,
+   `:help` or the parsed `options` map. In the `:error` case, print the
+   CLI errors to stderr, and in the `:help` case, print the `--help`
+   command result to stdout."
+  [{:keys [options summary errors]}]
+  (let [{:keys [help]} options]
     (cond
       ;; Display help menu and exit
       help

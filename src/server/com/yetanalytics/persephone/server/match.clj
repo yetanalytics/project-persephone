@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.server.match
-  (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.server.util :as u])
+  (:require [clojure.tools.cli :as cli]
+            [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.persephone.utils.cli :as u])
   (:import [clojure.lang ExceptionInfo]))
 
 ;; TODO: There is no --compile-nfa flag since there is no trace printing, and
@@ -31,7 +32,8 @@
   "Parse `arglist`, compile Profiles into FSMs, and store them in-memory.
    Return either `:help`, `:error`, or `nil`."
   [arglist]
-  (let [options (u/handle-args arglist match-statements-options)]
+  (let [parsed  (cli/parse-opts arglist match-statements-options)
+        options (u/handle-parsed-args parsed)]
     (if (keyword? options)
       options
       (try (let [{:keys [profiles pattern-ids compile-nfa]}
@@ -44,7 +46,7 @@
              (swap! match-ref assoc :matchers matchers)
              true)
            (catch ExceptionInfo e
-             (u/handle-asserts e)
+             (u/print-assert-errors e)
              :error)))))
 
 (defn match

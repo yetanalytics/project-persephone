@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.server.validate
-  (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.server.util :as u])
+  (:require [clojure.tools.cli :as cli]
+            [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.persephone.utils.cli :as u])
   (:import [clojure.lang ExceptionInfo]))
 
 ;; TODO: Currently no way to provide Statement Ref property matching since
@@ -44,7 +45,8 @@
   "Parse `arglist`, compile Profiles into Template validators, and store them
    in-memory. Returns either `:help`, `:error`, or `nil`."
   [arglist]
-  (let [options (u/handle-args arglist validate-statement-options)]
+  (let [parsed  (cli/parse-opts arglist validate-statement-options)
+        options (u/handle-parsed-args parsed)]
     (if (keyword? options)
       options
       (try (let [{:keys [profiles template-ids all-valid short-circuit]}
@@ -60,7 +62,7 @@
                     :short-circuit? short-circuit)
              nil)
            (catch ExceptionInfo e
-             (u/handle-asserts e)
+             (u/print-assert-errors e)
              :error)))))
 
 (defn validate

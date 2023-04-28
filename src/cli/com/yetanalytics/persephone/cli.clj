@@ -1,8 +1,9 @@
 (ns com.yetanalytics.persephone.cli
   (:require [clojure.tools.cli :as cli]
+            [com.yetanalytics.persephone.utils.cli :as u]
             [com.yetanalytics.persephone.cli.match     :as m]
             [com.yetanalytics.persephone.cli.validate  :as v]
-            [com.yetanalytics.persephone.cli.util.args :refer [printerr]])
+            #_[com.yetanalytics.persephone.cli.util.args :refer [printerr]])
   (:gen-class))
 
 (def top-level-options
@@ -39,5 +40,5 @@
         (System/exit 1))
       :else
       (do
-        (printerr (format "Unknown subcommand: %s" subcommand))
+        (u/printerr (format "Unknown subcommand: %s" subcommand))
         (System/exit 1)))))

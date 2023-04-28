@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.cli.match
   (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.utils.asserts :as assert]
             [com.yetanalytics.persephone.cli.util.args :as a]
             [com.yetanalytics.persephone.cli.util.file :as f]
             [com.yetanalytics.persephone.cli.util.spec :as s])
@@ -38,13 +37,6 @@
     :id :compile-nfa]
    ["-h" "--help" "Display the 'match' subcommand help menu."]])
 
-(defn- handle-compile-exception [ex]
-  (cond
-    (-> ex ex-data :kind #{::assert/no-patterns})
-    (a/printerr "Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns")
-    :else
-    (throw ex)))
-
 (defn- match*
   "Perform Pattern matching on `statements` based on the options map; print
    match failures or errors and return `false` if errors or failures exist,
@@ -53,7 +45,6 @@
   (try
     (let [compiled (per/compile-profiles->fsms
                     profiles
-                    :validate-profiles? false ; already validated in CLI
                     :compile-nfa?       compile-nfa
                     :selected-patterns  (not-empty pattern-ids))
           state-m  (per/match-statement-batch compiled
@@ -63,7 +54,7 @@
       (not (boolean (or (-> state-m :error)
                         (-> state-m :rejects not-empty)))))
     (catch ExceptionInfo e
-      (handle-compile-exception e)
+      (s/handle-asserts e)
       false)))
 
 (defn match

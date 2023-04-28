@@ -1,6 +1,5 @@
 (ns com.yetanalytics.persephone.cli.validate
   (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.utils.asserts :as assert]
             [com.yetanalytics.persephone.cli.util.args :as a]
             [com.yetanalytics.persephone.cli.util.file :as f]
             [com.yetanalytics.persephone.cli.util.spec :as s]
@@ -54,13 +53,6 @@
     :id :short-circuit]
    ["-h" "--help" "Display the 'validate' subcommand help menu."]])
 
-(defn- handle-compile-exception [ex]
-  (cond
-    (-> ex ex-data :kind #{::assert/no-templates})
-    (a/printerr "Compilation error: no Statement Templates to validate against")
-    :else
-    (throw ex)))
-
 (defn- validate*
   "Perform validation on `statement` based on the CLI options map; print any
    validation errors and return `false` if errors exist, `true` otherwise."
@@ -76,13 +68,12 @@
                        (->> profiles (map prof->map) (apply merge))})
           compiled  (per/compile-profiles->validators
                      profiles
-                     :validate-profiles? false ; already validated as CLI args
                      :selected-templates ?temp-ids
                      :statement-ref-fns  ?sref-fns)
-        ;; `:fn-type` is `:errors` instead of `:printer` since we want to
-        ;; return whether the error results are empty or not.
-        ;; TODO: Redo how validation printing works to be more like in pattern
-        ;; matching and be a side effect that can happen for any `:fn-type`?
+          ;; `:fn-type` is `:errors` instead of `:printer` since we want to
+          ;; return whether the error results are empty or not.
+          ;; TODO: Redo how validation printing works to be more like in pattern
+          ;; matching and be a side effect that can happen for any `:fn-type`?
           error-res (and (some? compiled)
                          (per/validate-statement
                           compiled
@@ -94,7 +85,7 @@
         (dorun (->> error-res vals (apply concat) errs/print-errors)))
       (empty? error-res))
     (catch ExceptionInfo e
-      (handle-compile-exception e)
+      (s/handle-asserts e)
       false)))
 
 (defn validate

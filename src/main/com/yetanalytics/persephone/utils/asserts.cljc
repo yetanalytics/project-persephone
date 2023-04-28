@@ -8,7 +8,8 @@
 
 (defn assert-profile
   "Assert that `profile` conforms to the xAPI spec, or else throw an
-   exception."
+   exception. The ex-data contains an `:errors` map that is the return
+   value of `pan/validate-profile`."
   [profile]
   (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
     (throw (ex-info "Invalid Profile!"
@@ -17,7 +18,8 @@
 
 (defn assert-template
   "Assert that `template` conforms to the xAPI spec, or else throw an
-   exception."
+   exception. The ex-data contains an `:errors` map that is the `s/explain-data`
+   result of `:pan.objects.template/template`."
   [template]
   (when-some [err (s/explain-data ::pan-template/template template)]
     (throw (ex-info "Invalid Statement Template!"

@@ -49,6 +49,19 @@ We can also add additional Profiles as so:
 ```
 and it will output the same result, as the Statement will still match against the `calibration.jsonld` Profile, even though it will fail validation against all Templates in the `catch.json` profile.
 
+However, if we try to duplicate Templates, e.g. by putting in the same Profile twice:
+```
+% ./bin/persephone.sh validate \
+  --profile sample_profiles/calibration.jsonld \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json
+```
+you will receive the following error:
+```
+ID error: Profile IDs are not unique
+```
+You would also receive a similar error if Template IDs are not unique.
+
 To see an example of failed validation, set the `--all-valid` flag so that the Statement has to be valid against all Templates:
 ```
 % ./bin/persephone.sh validate \
@@ -173,6 +186,8 @@ The `--statement` argument can also accept a Statement array file; in this examp
   --statement sample_statements/calibration_coll.json
 ```
 Individual Statements and Statement arrays can be mixed and matched when using `--statement` multiple times.
+
+Note that the `--profile` flag can also be called multiple times to match against Patterns from multiple Profiles (this is important if Patterns in one Profile reference Patterns in another). Be mindful that if you have duplicate Profile or Pattern IDs you will receive an error.
 
 However, if we were to match a Statement that was not intended to be matched with the Profile, for example:
 ```

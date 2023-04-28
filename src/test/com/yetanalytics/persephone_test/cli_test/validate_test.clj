@@ -95,14 +95,18 @@ Template rule was not followed:
                 "No Statement specified.\n")
            (with-err-str
              (validate (list "-p" profile-uri "-s" "non-existent.json")))))
-    (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
+    (is (= (str "Profile errors are present.\n"
                 (with-out-str
                   (pan/validate-profile
                    (pan/json-profile->edn (slurp statement-uri))
-                   :result :print))
-                "No Profiles specified.\n")
+                   :result :print)))
            (with-err-str
              (validate (list "-p" statement-uri "-s" statement-uri)))))
+    (is (= "ID error: Profile IDs are not unique\n"
+           (with-err-str
+             (validate (list "-p" profile-uri
+                             "-p" profile-uri
+                             "-s" statement-uri)))))
     (is (= "Compilation error: no Statement Templates to validate against\n"
            (with-err-str
              (validate (list "-p" profile-uri "-s" statement-uri

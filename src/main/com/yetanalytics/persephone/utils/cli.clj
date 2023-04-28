@@ -20,6 +20,20 @@
   [statement-filename]
   (json/coerce-statement (slurp statement-filename)))
 
+(defn conj-argv
+  "Function to conj a non-array-valued arg `v` to pre-existing `values`."
+  [values v]
+  (let [values (or values [])]
+    (conj values v)))
+
+(defn conj-argv-or-array
+  "Function to conj an array-valued or non-array-valued arg `v` to
+   pre-existing `values`. An array-valued `v` is presumed to be a vector
+   (as opposed to a list or lazy seq)."
+  [values v]
+  (let [values (or values [])]
+    (if (vector? v) (into values v) (conj values v))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Validation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

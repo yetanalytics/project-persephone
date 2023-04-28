@@ -14,13 +14,13 @@
     :multi     true
     :parse-fn  u/read-profile
     :validate  [u/profile? u/profile-err-msg]
-    :update-fn (fnil conj [])]
+    :update-fn u/conj-argv]
    ["-i" "--template-id IRI"
     "IDs of Statement Templates to validate against; can specify zero or more. Filters out all Templates that are not included."
     :id        :template-ids
     :multi     true
     :validate  [u/iri? u/iri-err-msg]
-    :update-fn (fnil conj [])]
+    :update-fn u/conj-argv]
    ["-s" "--statement URI"
     "Statement filepath/location; must specify one."
     :id       :statement
@@ -37,9 +37,7 @@
     :multi     true
     :parse-fn  u/read-statement
     :validate  [u/statements? u/statements-err-msg]
-    :update-fn (fn [xs s]
-                 (let [xs (or xs [])]
-                   (if (vector? s) (into xs s) (conj xs s))))]
+    :update-fn u/conj-argv-or-array]
    ["-a" "--all-valid"
     (str "If set, the Statement is not considered valid unless it is valid "
          "against ALL Templates. "

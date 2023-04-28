@@ -12,13 +12,13 @@
     :multi     true
     :parse-fn  u/read-profile
     :validate  [u/profile? u/profile-err-msg]
-    :update-fn (fnil conj [])]
+    :update-fn u/conj-argv]
    ["-i" "--pattern-id IRI"
     "IDs of primary Patterns to match against; can specify zero or more. Filters out all Patterns that are not included."
     :id        :pattern-ids
     :multi     true
     :validate  [u/iri? u/iri-err-msg]
-    :update-fn (fnil conj [])]
+    :update-fn u/conj-argv]
    ["-s" "--statement URI"
     "Statement filepath/location; must specify one or more. Accepts arrays of Statements."
     :id        :statements
@@ -26,9 +26,7 @@
     :multi     true
     :parse-fn  u/read-statement
     :validate  [u/statements? u/statements-err-msg]
-    :update-fn (fn [xs s]
-                 (let [xs (or xs [])]
-                   (if (vector? s) (into xs s) (conj xs s))))]
+    :update-fn u/conj-argv-or-array]
    ["-n" "--compile-nfa"
     (str "If set, compiles the Patterns into a non-deterministic finite "
          "automaton (NFA) instead of a deterministic one, allowing for "

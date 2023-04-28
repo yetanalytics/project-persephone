@@ -1,9 +1,11 @@
 (ns com.yetanalytics.persephone-test.server-test.validate-test
-  (:require [clojure.test   :refer [deftest testing is]]
-            [clojure.edn    :as edn]
-            [babashka.curl  :as curl]
+  (:require [clojure.test  :refer [deftest testing is]]
+            [clojure.edn   :as edn]
+            [babashka.curl :as curl]
+            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.persephone.server :as server]
-            [com.yetanalytics.persephone.server.validate :as v]))
+            [com.yetanalytics.persephone.server.validate :as v]
+            [com.yetanalytics.persephone-test.test-utils :refer [with-err-str]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 
@@ -32,6 +34,36 @@
   {:headers {"Content-Type" "application/json"}
    :body    body
    :throw   false})
+
+(deftest validate-init-test
+  (testing "Help menu"
+    (is (string? (with-out-str (v/compile-templates! '("--help"))))))
+  (testing "Init errors"
+    (is (= "No Profiles specified.\n"
+           (with-err-str (v/compile-templates! '()))))
+    (is (= (str "Error while parsing option \"-p non-existent.json\": "
+                "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
+                "No Profiles specified.\n")
+           (with-err-str
+             (v/compile-templates!
+              (list "-p" "non-existent.json")))))
+    (is (= (str "Profile errors are present.\n"
+                (with-out-str
+                  (pan/validate-profile
+                   (pan/json-profile->edn
+                    (slurp "test-resources/sample_statements/calibration_1.json"))
+                   :result :print)))
+           (with-err-str
+             (v/compile-templates!
+              (list "-p" "test-resources/sample_statements/calibration_1.json")))))
+    (is (= "ID error: Profile IDs are not unique\n"
+           (with-err-str
+             (v/compile-templates!
+              (list "-p" profile-uri "-p" profile-uri)))))
+    (is (= "Compilation error: no Statement Templates to validate against\n"
+           (with-err-str
+             (v/compile-templates!
+              (list "-p" profile-uri "-i" "http://fake-template.com")))))))
 
 (deftest validate-test
   (test-validate-server
@@ -124,11 +156,4 @@
      (is (= :validation-failure
             (-> body edn/read-string :type)))
      (is (= #{template-2-id template-3-id}
-            (-> body edn/read-string :contents keys set)))))
-  (test-validate-server
-   "Validation works (vacuously) w/ zero templates"
-   (list "-p" profile-uri "-i" "http://fake-template.com")
-   (let [{:keys [status]}
-         (curl/post "localhost:8080/statements"
-                    (post-map statement))]
-     (is (= 204 status)))))
+            (-> body edn/read-string :contents keys set))))))

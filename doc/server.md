@@ -81,7 +81,7 @@ Validation also works with two Profiles:
   --profile sample_profiles/calibration.jsonld \
   --profile sample_profiles/catch.json
 ```
-as well as the `--template-id`, `--all-valid`, and `--short-circuit` flags. These work very similarly to how they work in the [CLI](cli.md#examples-for-persephone-validate).
+as well as the `--template-id`, `--all-valid`, and `--short-circuit` flags. These work very similarly to how they work in the [CLI](cli.md#examples-for-persephone-validate). Note that you should take care not to include duplicate IDs or else you will receive an init error.
 
 # Examples for match mode
 
@@ -116,9 +116,9 @@ where the `:errors` value is a map containing the error data.
 If we have a Statement syntax error, then `:type` will have the value `:invalid-statements` and `:contents` will be a Clojure spec error map. Similarly, if we have invalid JSON, then `:type` will be `:invalid-json`.
 
 As with validation, Pattern matching works with two or more Profiles:
-
 ```
 % ./bin/server.sh match \
   --profile sample_profiles/calibration.jsonld \
   --profile sample_profiles/catch.json
 ```
+though you should be careful not to include any duplicate Profile or Pattern IDs or else you will receive an error.

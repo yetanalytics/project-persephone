@@ -175,5 +175,5 @@
           :else
           (start-server :match host port)))
       :else
-      (do (u/printerr [(format "Unknown subcommand: %s" subcommand)])
+      (do (u/printerr (format "Unknown subcommand: %s" subcommand))
           (System/exit 1)))))

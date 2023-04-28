@@ -1,9 +1,11 @@
 (ns com.yetanalytics.persephone-test.server-test.match-test
-  (:require [clojure.test :refer [deftest testing is]]
-            [clojure.edn  :as edn]
+  (:require [clojure.test  :refer [deftest testing is]]
+            [clojure.edn   :as edn]
             [babashka.curl :as curl]
+            [com.yetanalytics.pan :as pan]
             [com.yetanalytics.persephone.server :as server]
-            [com.yetanalytics.persephone.server.match :as m]))
+            [com.yetanalytics.persephone.server.match :as m])
+  (:require [com.yetanalytics.persephone-test.test-utils :refer [with-err-str]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 
@@ -33,6 +35,36 @@
   {:headers {"Content-Type" "application/json"}
    :body    body
    :throw   false})
+
+(deftest match-init-test
+  (testing "Help menu"
+    (is (string? (with-out-str (m/compile-patterns! '("--help"))))))
+  (testing "Init errors"
+    (is (= "No Profiles specified.\n"
+           (with-err-str (m/compile-patterns! '()))))
+    (is (= (str "Error while parsing option \"-p non-existent.json\": "
+                "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
+                "No Profiles specified.\n")
+           (with-err-str
+             (m/compile-patterns!
+              (list "-p" "non-existent.json")))))
+    (is (= (str "Profile errors are present.\n"
+                (with-out-str
+                  (pan/validate-profile
+                   (pan/json-profile->edn
+                    (slurp "test-resources/sample_statements/calibration_1.json"))
+                   :result :print)))
+           (with-err-str
+             (m/compile-patterns!
+              (list "-p" "test-resources/sample_statements/calibration_1.json")))))
+    (is (= "ID error: Profile IDs are not unique\n"
+           (with-err-str
+             (m/compile-patterns!
+              (list "-p" profile-uri "-p" profile-uri)))))
+    (is (= "Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns\n"
+           (with-err-str
+             (m/compile-patterns!
+              (list "-p" profile-uri "-i" "http://fake-pattern.com")))))))
 
 (deftest match-test
   (test-match-server
@@ -96,13 +128,6 @@
   (test-match-server
    "Pattern matching works w/ two profiles"
    (list "-p" profile-uri "-p" "test-resources/sample_profiles/catch.json")
-   (let [{:keys [status]}
-         (curl/post "localhost:8080/statements"
-                    (post-map (str "[" statement-1 "," statement-2 "]")))]
-     (is (= 204 status))))
-  (test-match-server
-   "Pattern matching works (vacuously) w/ zero patterns"
-   (list "-p" profile-uri "-i" "http://fake-pattern.com")
    (let [{:keys [status]}
          (curl/post "localhost:8080/statements"
                     (post-map (str "[" statement-1 "," statement-2 "]")))]

@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.server.validate
   (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.server.util :as u]))
+            [com.yetanalytics.persephone.server.util :as u])
+  (:import [clojure.lang ExceptionInfo]))
 
 ;; TODO: Currently no way to provide Statement Ref property matching since
 ;; that requires a stream of statements to come from somewhere, which for the
@@ -41,24 +42,26 @@
 
 (defn compile-templates!
   "Parse `arglist`, compile Profiles into Template validators, and store them
-   in-memory."
+   in-memory. Returns either `:help`, `:error`, or `nil`."
   [arglist]
   (let [options (u/handle-args arglist validate-statement-options)]
     (if (keyword? options)
       options
-      (let [{:keys [profiles template-ids all-valid short-circuit]}
-            options
-            validators
-            (per/compile-profiles->validators
-             profiles
-             :validate-profiles? false
-             :selected-templates (not-empty template-ids))]
-        (swap! validator-ref 
-               assoc
-               :validators validators
-               :all-valid? all-valid
-               :short-circuit? short-circuit)
-        nil))))
+      (try (let [{:keys [profiles template-ids all-valid short-circuit]}
+                 options
+                 validators
+                 (per/compile-profiles->validators
+                  profiles
+                  :selected-templates (not-empty template-ids))]
+             (swap! validator-ref 
+                    assoc
+                    :validators validators
+                    :all-valid? all-valid
+                    :short-circuit? short-circuit)
+             nil)
+           (catch ExceptionInfo e
+             (u/handle-asserts e)
+             :error)))))
 
 (defn validate
   "Perform validation on `statement` against the Template validators that

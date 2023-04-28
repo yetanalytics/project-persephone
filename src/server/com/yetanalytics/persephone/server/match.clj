@@ -1,6 +1,7 @@
 (ns com.yetanalytics.persephone.server.match
   (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.server.util :as u]))
+            [com.yetanalytics.persephone.server.util :as u])
+  (:import [clojure.lang ExceptionInfo]))
 
 ;; TODO: There is no --compile-nfa flag since there is no trace printing, and
 ;; the trace is not present in the match response.
@@ -27,21 +28,24 @@
   (atom {:matchers nil}))
 
 (defn compile-patterns!
-  "Parse `arglist`, compile Profiles into FSMs, and store them in-memory."
+  "Parse `arglist`, compile Profiles into FSMs, and store them in-memory.
+   Return either `:help`, `:error`, or `nil`."
   [arglist]
   (let [options (u/handle-args arglist match-statements-options)]
     (if (keyword? options)
       options
-      (let [{:keys [profiles pattern-ids compile-nfa]}
-            options
-            matchers
-            (per/compile-profiles->fsms
-             profiles
-             :validate-profiles? false
-             :compile-nfa? compile-nfa
-             :selected-patterns (not-empty pattern-ids))]
-        (swap! match-ref assoc :matchers matchers)
-        nil))))
+      (try (let [{:keys [profiles pattern-ids compile-nfa]}
+                 options
+                 matchers
+                 (per/compile-profiles->fsms
+                  profiles
+                  :compile-nfa? compile-nfa
+                  :selected-patterns (not-empty pattern-ids))]
+             (swap! match-ref assoc :matchers matchers)
+             true)
+           (catch ExceptionInfo e
+             (u/handle-asserts e)
+             :error)))))
 
 (defn match
   "Perform validation on `statements` against the FSM matchers that

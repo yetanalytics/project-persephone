@@ -22,7 +22,7 @@
       instead of not stdout."
      [& body]
      `(let [s# (new java.io.StringWriter)]
-        (binding [err s#]
+        (binding [~'*err* s#]
           ~@body
           (str s#)))))
 

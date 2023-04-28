@@ -1,7 +1,8 @@
 (ns com.yetanalytics.persephone-test.cli-test.match-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.persephone.cli.match :refer [match]]))
+            [com.yetanalytics.persephone.cli.match :refer [match]]
+            [com.yetanalytics.persephone-test.test-utils :refer [with-err-str]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
@@ -81,47 +82,34 @@ Pattern path:
            (with-out-str (match '("-h" "-p" profile-uri))))))
   (testing "Invalid Arguments"
     (is (= "No Profiles specified.\nNo Statements specified.\n"
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match '())
-               (str s)))))
+           (with-err-str (match '()))))
     (is (= (str "Error while parsing option \"-s non-existent.json\": "
                 "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
                 "No Statements specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match (list "-p" profile-uri "-s" "non-existent.json"))
-               (str s)))))
+           (with-err-str
+             (match (list "-p" profile-uri "-s" "non-existent.json")))))
     (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
                 (with-out-str
                   (pan/validate-profile
                    (pan/json-profile->edn (slurp statement-uri))
                    :result :print))
                 "No Profiles specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match (list "-p" statement-uri "-s" statement-uri))
-               (str s)))))
+           (with-err-str
+             (match (list "-p" statement-uri "-s" statement-uri)))))
     (is (= "Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns\n"
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match (list "-p" profile-uri "-s" statement-uri
-                            "-i" "http://random-pattern.org"))
-               (str s)))
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match (list "-p" profile-uri
-                            "-s" statement-uri
-                            "-s" statement-2-uri
-                            "-i" "http://random-pattern.org"))
-               (str s)))
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (match (list "-p" profile-uri
-                            "-p" "test-resources/sample_profiles/cmi5.json"
-                            "-s" statement-uri
-                            "-i" "https://w3id.org/xapi/cmi5#toplevel"))
-               (str s)))))))
+           (with-err-str
+             (match (list "-p" profile-uri "-s" statement-uri
+                          "-i" "http://random-pattern.org")))
+           (with-err-str
+             (match (list "-p" profile-uri
+                          "-s" statement-uri
+                          "-s" statement-2-uri
+                          "-i" "http://random-pattern.org")))
+           (with-err-str
+             (match (list "-p" profile-uri
+                          "-p" "test-resources/sample_profiles/cmi5.json"
+                          "-s" statement-uri
+                          "-i" "https://w3id.org/xapi/cmi5#toplevel")))))))
 
 (deftest match-cli-test
   (testing "Match Passes"

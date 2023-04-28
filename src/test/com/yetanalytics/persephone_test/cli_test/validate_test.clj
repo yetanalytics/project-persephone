@@ -1,7 +1,8 @@
 (ns com.yetanalytics.persephone-test.cli-test.validate-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.persephone.cli.validate :refer [validate]]))
+            [com.yetanalytics.persephone.cli.validate :refer [validate]]
+            [com.yetanalytics.persephone-test.test-utils :refer [with-err-str]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
@@ -88,33 +89,24 @@ Template rule was not followed:
              (validate (list "-h" "-p" profile-uri "-s" statement-uri))))))
   (testing "Invalid Arguments"
     (is (= "No Profiles specified.\nNo Statement specified.\n"
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate '())
-               (str s)))))
+           (with-err-str (validate '()))))
     (is (= (str "Error while parsing option \"-s non-existent.json\": "
                 "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
                 "No Statement specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate (list "-p" profile-uri "-s" "non-existent.json"))
-               (str s)))))
+           (with-err-str
+             (validate (list "-p" profile-uri "-s" "non-existent.json")))))
     (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
                 (with-out-str
                   (pan/validate-profile
                    (pan/json-profile->edn (slurp statement-uri))
                    :result :print))
                 "No Profiles specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate (list "-p" statement-uri "-s" statement-uri))
-               (str s)))))
+           (with-err-str
+             (validate (list "-p" statement-uri "-s" statement-uri)))))
     (is (= "Compilation error: no Statement Templates to validate against\n"
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate (list "-p" profile-uri "-s" statement-uri
-                               "-i" "http://random-template.org"))
-               (str s)))))))
+           (with-err-str
+             (validate (list "-p" profile-uri "-s" statement-uri
+                             "-i" "http://random-template.org")))))))
 
 (deftest validate-cli-test
   (testing "Validation Passes"

@@ -9,6 +9,7 @@
 - Added printing for pattern match errors (not just failures)
 - Change Statement validation error message header and assert message from `Invalid Statement` to `Statement Validation Failure`
 - Fix bug where the `:selected-patterns` keyword arg for `compile-profiles->fsms` did not work
+- Add `:validate-not-empty?` kwargs to compilation functions that are `true` by default; these will result in `::assert/no-templates` or `::assert/no-patterns` exceptions being thrown if no Template validators or Pattern FSMs, respectively, are present after compilation.
 
 ## 0.8.4 - 2023-04-19
 - Update README and API function docstrings.

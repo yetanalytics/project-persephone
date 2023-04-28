@@ -26,8 +26,8 @@
   :ret ::pan-profile/profile)
 
 (defn coerce-profile
-  "Coerce a Profile JSON string into EDN, keywordizing keys and converting
-   \"@context\" into `:_context`."
+  "Coerce a Profile JSON string into EDN, keywordizing keys and 
+   converting \"@\" prefixes into `:_`."
   [profile-json]
   (json->edn profile-json true))
 
@@ -36,7 +36,8 @@
   :ret ::xs/statement)
 
 (defn coerce-statement
-  "Coerce a Statement JSON string into EDN, stringifying keys."
+  "Coerce a Statement or Statement array JSON string into EDN, 
+   stringifying keys. Converts array JSON into "
   [statement-json]
   (json->edn statement-json false))
 

@@ -1,11 +1,13 @@
 (ns com.yetanalytics.persephone-test.cli-test.validate-test
   (:require [clojure.test :refer [deftest testing is]]
             [com.yetanalytics.pan :as pan]
-            [com.yetanalytics.persephone.cli.validate :refer [validate]]))
+            [com.yetanalytics.persephone.cli.validate :refer [validate]]
+            [com.yetanalytics.persephone-test.test-utils :refer [with-err-str]]))
 
 (def profile-uri "test-resources/sample_profiles/calibration.jsonld")
 (def statement-uri "test-resources/sample_statements/calibration_1.json")
 (def statement-2-uri "test-resources/sample_statements/calibration_2.json")
+(def statement-coll-uri "test-resources/sample_statements/calibration_coll.json")
 
 (def template-1-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-1")
 (def template-2-id "https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2")
@@ -87,27 +89,28 @@ Template rule was not followed:
              (validate (list "-h" "-p" profile-uri "-s" statement-uri))))))
   (testing "Invalid Arguments"
     (is (= "No Profiles specified.\nNo Statement specified.\n"
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate '())
-               (str s)))))
+           (with-err-str (validate '()))))
     (is (= (str "Error while parsing option \"-s non-existent.json\": "
                 "java.io.FileNotFoundException: non-existent.json (No such file or directory)\n"
                 "No Statement specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate (list "-p" profile-uri "-s" "non-existent.json"))
-               (str s)))))
-    (is (= (str "Failed to validate \"-p test-resources/sample_statements/calibration_1.json\": "
+           (with-err-str
+             (validate (list "-p" profile-uri "-s" "non-existent.json")))))
+    (is (= (str "Profile errors are present.\n"
                 (with-out-str
                   (pan/validate-profile
                    (pan/json-profile->edn (slurp statement-uri))
-                   :result :print))
-                "No Profiles specified.\n")
-           (let [s (new java.io.StringWriter)]
-             (binding [*err* s]
-               (validate (list "-p" statement-uri "-s" statement-uri))
-               (str s)))))))
+                   :result :print)))
+           (with-err-str
+             (validate (list "-p" statement-uri "-s" statement-uri)))))
+    (is (= "ID error: Profile IDs are not unique\n"
+           (with-err-str
+             (validate (list "-p" profile-uri
+                             "-p" profile-uri
+                             "-s" statement-uri)))))
+    (is (= "Compilation error: no Statement Templates to validate against\n"
+           (with-err-str
+             (validate (list "-p" profile-uri "-s" statement-uri
+                             "-i" "http://random-template.org")))))))
 
 (deftest validate-cli-test
   (testing "Validation Passes"
@@ -128,9 +131,8 @@ Template rule was not followed:
     (is (validate (list "-p" profile-uri "-s" statement-uri
                         "--extra-statements" statement-2-uri
                         "-e" statement-2-uri)))
-    ;; No templates => statement vacuously validates against all
     (is (validate (list "-p" profile-uri "-s" statement-uri
-                        "-i" "http://random-template.org"))))
+                        "-e" statement-coll-uri))))
   (testing "Validation Fails"
     (is (= (str template-2-fail-str
                 "\n-----------------------------"

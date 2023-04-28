@@ -2,10 +2,10 @@
   (:require [clojure.tools.cli :as cli]))
 
 (defn printerr
-  "Print the `err-messages` vector line-by-line to stderr."
-  [err-messages]
+  "Print the `error-messages` vector line-by-line to stderr."
+  [& error-messages]
   (binding [*out* *err*]
-    (run! println err-messages))
+    (run! println error-messages))
   (flush))
 
 (defn handle-args
@@ -24,7 +24,7 @@
           :help)
       ;; Display error message and exit
       (not-empty errors)
-      (do (printerr errors)
+      (do (apply printerr errors)
           :error)
       ;; Do the things
       :else

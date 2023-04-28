@@ -41,10 +41,11 @@ The compilation functions `compile-templates->validators` and `compile-profiles-
 | Keyword&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 | :--                    | :--
 | `:statement-ref-fns`   | A map used for Statement Ref validation; if `nil`, then Statement Ref validation is ignored. See the [Statement Ref Templates](#statement-ref-templates) section for more details.
-| `:validate-templates?` | Validates the Templates against the xAPI Profile spec and checks for ID clashes. Default `true`.
+| `:validate-templates?` | Validates the Templates against the xAPI Profile spec and checks for ID clashes. If validation fails, the function throws a `::assert/invalid-template` exception. Default `true`.
+| `:validate-not-empty?` | Asserts that at least one Template validator exists after compilation; if `true`, the function throws a `::assert/no-templates` exception, e.g. if an empty Profile coll was provided or if `:selected-profiles` or `:selected-patterns` filtered out all Patterns. Default `true`; if `false`, Template validation would vacuously pass because there would be no Templates to fail against.
 | `:selected-templates`  | Which Statement Templates in the Profiles should be compiled. Useful for selecting only one Template to match against.
 
-`compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument.
+`compile-profiles->validators` is similar, except that it takes Profiles instead of Templates, has `:validate-profiles?` instead of `:validate-templates?`, and has an additional `:selected-profiles` argument. If Profile validation fails when `:validate-profiles?` is `true`, then an `::assert/invalid-profile` exception is thrown.
 
 The `validate-statement` function take the keyword argument `:fn-type`, which can be set to the following:
 
@@ -129,13 +130,14 @@ NOTE: Unlike "true" DFAs, `:dfa` allows for some level of non-determinism, since
 
 The `compile-profiles->fsms` functions have the following keyword arguments:
 
-| Keyword&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
-| :--                  | :--
-| `:statement-ref-fns` | Same as in the Statement Template compilation functions.
-| `:validate-profile?` | Validates Profiles and checks that there are no clashing Profile or Pattern IDs.
-| `:compile-nfa?`      | If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
-| `:selected-profiles` | Which Profiles in the collection should be compiled.
-| `:selected-patterns` | Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
+| Keyword&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+| :--                    | :--
+| `:statement-ref-fns`   | Same as in the Statement Template compilation functions.
+| `:validate-profile?`   | Validates Profiles and checks that there are no clashing Profile or Pattern IDs. If validation fails, the function throws a `::assert/invalid-profile` exception.
+| `:validate-not-empty?` | Asserts that at least one Pattern FSM exists after compilation, and that one exists for each Profile; if `true`, the function throws a `::assert/no-patterns` exception, e.g. if an empty Profile coll was provided or if `:selected-profiles` or `:selected-patterns` filtered out all Patterns. If `false`, then Statements may vacuously match since there would be no Patterns to fail matching against.
+| `:compile-nfa?`        | If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
+| `:selected-profiles`   | Which Profiles in the collection should be compiled.
+| `:selected-patterns`   | Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.
 
 There are five different types of Patterns, based on which of the five following properties they have. The `sequence` and `alternates` properties are arrays of identifiers, while `zeroOrMore`, `oneOrMore` and `optional` give a map of a single identifier. The following description are taken from the [Profile section of the Profile spec](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns):
 

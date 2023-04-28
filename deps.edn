@@ -79,7 +79,7 @@
                 "-p" "src/main"
                 "-s" "src/test"]}
   :build
-  {:paths      ["src/build"]
-   :deps       {io.github.clojure/tools.build {:git/tag "v0.6.6"
-                                               :git/sha "4d41c26"}}
-   :ns-default com.yetanalytics.persephone.build}}}
+  {:replace-paths ["src/build"]
+   :replace-deps  {io.github.clojure/tools.build {:git/tag "v0.6.6"
+                                                  :git/sha "4d41c26"}}
+   :ns-default    com.yetanalytics.persephone.build}}}

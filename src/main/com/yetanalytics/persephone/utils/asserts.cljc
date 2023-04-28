@@ -8,7 +8,8 @@
 
 (defn assert-profile
   "Assert that `profile` conforms to the xAPI spec, or else throw an
-   exception."
+   exception. The ex-data contains an `:errors` map that is the return
+   value of `pan/validate-profile`."
   [profile]
   (when-some [err (pan/validate-profile profile :ids? true :print-errs? false)]
     (throw (ex-info "Invalid Profile!"
@@ -17,12 +18,40 @@
 
 (defn assert-template
   "Assert that `template` conforms to the xAPI spec, or else throw an
-   exception."
+   exception. The ex-data contains an `:errors` map that is the `s/explain-data`
+   result of `:pan.objects.template/template`."
   [template]
   (when-some [err (s/explain-data ::pan-template/template template)]
     (throw (ex-info "Invalid Statement Template!"
                     {:kind   ::invalid-template
                      :errors err}))))
+
+;; Emptiness checks
+
+(defn assert-not-empty-templates
+  "Assert that `compiled-templates` has at least one Template."
+  [compiled-templates]
+  (when (empty? compiled-templates)
+    (throw (ex-info "No Templates present after compilation."
+                    {:kind ::no-templates}))))
+
+(defn assert-not-empty-patterns
+  "Assert that `compiled-patterns` has at least one Pattern for each Profile,
+   and that at least one Profile exists."
+  [compiled-patterns]
+  ;; Check every `(get-in compiled-patterns [profile-version pattern-id])`
+  ;; is an empty map
+  (when (empty? compiled-patterns)
+    (throw (ex-info "No Profiles or Patterns present after compilation."
+                    {:kind ::no-patterns})))
+  (when-some [[prof-id _]
+              (->> compiled-patterns
+                   (into [])
+                   (some (fn [[_ pat-id-m :as prof-pair]]
+                           (when (empty? pat-id-m) prof-pair))))]
+    (throw (ex-info "No Patterns present for a Profile after compilation."
+                    {:kind       ::no-patterns
+                     :profile-id prof-id}))))
 
 ;; TODO: Make these asserts Project Pan's responsibility
 

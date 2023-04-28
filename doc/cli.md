@@ -44,10 +44,23 @@ We can also add additional Profiles as so:
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
-  --profile test-resources/sample_profiles/catch.json \
+  --profile sample_profiles/catch.json \
   --statement sample_statements/calibration_1.json
 ```
 and it will output the same result, as the Statement will still match against the `calibration.jsonld` Profile, even though it will fail validation against all Templates in the `catch.json` profile.
+
+However, if we try to duplicate Templates, e.g. by putting in the same Profile twice:
+```
+% ./bin/persephone.sh validate \
+  --profile sample_profiles/calibration.jsonld \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_1.json
+```
+you will receive the following error:
+```
+ID error: Profile IDs are not unique
+```
+You would also receive a similar error if Template IDs are not unique.
 
 To see an example of failed validation, set the `--all-valid` flag so that the Statement has to be valid against all Templates:
 ```
@@ -131,26 +144,29 @@ If we set the `--short-circuit` flag along with `--all-valid`:
   --statement sample_statements/calibration_1.json \
   --short-circuit --all-valid
 ```
-then only the first validation failure encountered will appear.
+then only validation failures for the first failing Template will appear.
 
 We can use the `--template-id` argument to select which Templates the Statement is validated against.
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
-  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2
+  --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-2 \
   --template-id https://xapinet.org/xapi/yet/calibration/v1/templates#activity-3
 ```
 This way, we pass to the CLI the two Templates the Statement is invalid against, so running this will result in the same validation failure output as in the previous example.
 
-Note that if we set `--template-id` to the ID of a non-existent Template, e.g.
+Note that if we set `--template-id` to the ID of a non-existent Template, such that no Templates would be validated against, e.g.
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --template-id http://random-template.org
 ```
-the validation will pass vacuously, as there are technically no Templates the Statement is invalid against.
+we get the following error message:
+```
+Compilation error: no Statement Templates to validate against
+```
 
 ## Examples for `persephone match`
 
@@ -163,11 +179,21 @@ We can match the Statement batch consisting of `calibration_1.json` and `calibra
 ```
 This will run, print nothing, and exit with code 0, indicating match success.
 
+The `--statement` argument can also accept a Statement array file; in this example, `calibration_coll.json` is an array of the Statements in `calibration_1.json` and `calibration_2.json`, in that order.
+```
+% ./bin/persephone.sh match \
+  --profile sample_profiles/calibration.jsonld \
+  --statement sample_statements/calibration_coll.json
+```
+Individual Statements and Statement arrays can be mixed and matched when using `--statement` multiple times.
+
+Note that the `--profile` flag can also be called multiple times to match against Patterns from multiple Profiles (this is important if Patterns in one Profile reference Patterns in another). Be mindful that if you have duplicate Profile or Pattern IDs you will receive an error.
+
 However, if we were to match a Statement that was not intended to be matched with the Profile, for example:
 ```
 % ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
-  --statement test-resources/sample_statements/adl_3.json
+  --statement sample_statements/adl_3.json
 ```
 the CLI will print an error message to stdout indicating that the Statement does not refer to the profile version in its category context activity IDs:
 ```
@@ -219,12 +245,15 @@ Pattern path:
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
 ```
 
-Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern:
+Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern so that no Patterns are available to be matched:
 ```
 % ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
-  --statement sample_statements/calibration_2.json
+  --statement sample_statements/calibration_2.json \
   --pattern-id http://random-pattern.org
 ```
-then matching will vacuously pass, as there would be no Patterns the Statements will fail to match against.
+we will receive the following error message
+```
+Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns
+```

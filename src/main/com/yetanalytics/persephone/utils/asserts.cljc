@@ -24,6 +24,26 @@
                     {:kind   ::invalid-template
                      :errors err}))))
 
+;; Emptiness checks
+
+(defn assert-not-empty-templates
+  "Assert that `compiled-templates` has at least one Template."
+  [compiled-templates]
+  (when (empty? compiled-templates)
+    (throw (ex-info "No Templates present after compilation."
+                    {:kind     ::no-templates
+                     :compiled compiled-templates}))))
+
+(defn assert-not-empty-patterns
+  "Asser that `compiled-patterns` has at least one Pattern."
+  [compiled-patterns]
+  ;; Check every `(get-in compiled-patterns [profile-version pattern-id])`
+  ;; is an empty map
+  (when (->> compiled-patterns vals (mapcat vals) (every? empty?))
+    (throw (ex-info "No Patterns present after compilation."
+                    {:kind     ::no-patterns
+                     :compiled compiled-patterns}))))
+
 ;; TODO: Make these asserts Project Pan's responsibility
 
 (defn assert-profile-ids

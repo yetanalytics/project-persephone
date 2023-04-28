@@ -94,34 +94,43 @@
    
    `compile-templates->validators` takes the following kwargs:
 
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
-   | `:validate-template?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
-   | `:selected-profiles`  | If present, filters out Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not version IDs.)
-   | `:selected-templates` | If present, filters out Templates whose IDs are not in the coll.
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
+   | `:validate-templates?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
+   | `:validate-not-empty?` | Whether to assert that compilation produced at least one Template validator; default `true`.
+   | `:selected-profiles`   | If present, filters out Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates`  | If present, filters out Templates whose IDs are not in the coll.
    
    The following are the fields of the `:statement-ref-fns` map:
 
    | Argument Map Key    | Description
    | ---                 | ---
    | `:get-template-fn`  | A function or map that takes a Template ID and returns the Template, or `nil` if not found. See also: `template.statement-ref/profile->id-template-map`.
-   | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found."
+   | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found.
+   
+   If there are no Templates after `selected-templates` filtering, or if
+   an empty `templates` is provided in the first place, this throws an
+   `::no-templates` exception."
   [templates & {:keys [statement-ref-fns
                        validate-templates?
+                       validate-not-empty?
                        selected-templates]
-                :or   {validate-templates? true}}]
+                :or   {validate-templates? true
+                       validate-not-empty? true}}]
   (when validate-templates?
     (dorun (map assert/assert-template templates))
     (assert/assert-template-ids templates))
   (let [?temp-id-set    (when selected-templates (set selected-templates))
-        temp->validator (fn [temp]
-                          (template->validator temp statement-ref-fns))]
-    (cond->> templates
-      ?temp-id-set
-      (filter (fn [{:keys [id]}] (?temp-id-set id)))
-      true
-      (map temp->validator))))
+        temp->validator #(template->validator % statement-ref-fns)
+        validators      (cond->> templates
+                          ?temp-id-set
+                          (filter (fn [{:keys [id]}] (?temp-id-set id)))
+                          true
+                          (map temp->validator))]
+    (when validate-not-empty?
+      (assert/assert-not-empty-templates validators))
+    validators))
 
 (s/fdef compile-profiles->validators
   :args (s/cat :profiles ::profiles
@@ -136,17 +145,23 @@
    `:validator-fn`, and `:predicate-fn`, just like with
    `compile-templates->validators`. Takes the following kwargs:
 
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | Same as in `compile-templates->validators`.
-   | `:validate-profiles?` | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
-   | `:selected-profiles`  | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
-   | `:selected-templates` | If present, filters out any Templates whose IDs are not present in the coll."
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | Same as in `compile-templates->validators`.
+   | `:validate-profiles?`  | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
+   | `:validate-not-empty?` | Whether to assert that compilation produced at least one Template validator; default `true`.
+   | `:selected-profiles`   | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates`  | If present, filters out any Templates whose IDs are not present in the coll.
+   
+   If there are no Templates after `selected-templates` filtering, or if
+   no Templates exist in `profiles`, this throws an `::no-templates` exn."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
+                      validate-not-empty?
                       selected-profiles
                       selected-templates]
-               :or   {validate-profiles? true}}]
+               :or   {validate-profiles?  true
+                      validate-not-empty? true}}]
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
@@ -161,9 +176,10 @@
                                   (concat acc templates))
                                 []))]
     (compile-templates->validators template-coll
-                                   :statement-ref-fns statement-ref-fns
-                                   :selected-templates selected-templates
-                                   :validate-templates? false)))
+                                   :statement-ref-fns   statement-ref-fns
+                                   :selected-templates  selected-templates
+                                   :validate-templates? false
+                                   :validate-not-empty? validate-not-empty?)))
 
 ;; Statement Validation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -487,20 +503,23 @@
 
    The following are optional keyword arguments:
      
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | Takes the key-value pairs described in `template->validator`.
-   | `:validate-profiles?` | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
-   | `:compile-nfa?`       | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
-   | `:selected-profiles`  | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
-   | `:selected-patterns`  | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | Takes the key-value pairs described in `template->validator`.
+   | `:validate-profiles?`  | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
+   | `:validate-not-empty?` | If `true`, asserts that at least one Pattern FSM map is present after compilation. Default `true`.
+   | `:compile-nfa?`        | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
+   | `:selected-profiles`   | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
+   | `:selected-patterns`   | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
+                      validate-not-empty?
                       compile-nfa?
                       selected-profiles
                       selected-patterns]
-               :or   {validate-profiles? true
-                      compile-nfa?       false}}]
+               :or   {validate-profiles?  true
+                      validate-not-empty? true
+                      compile-nfa?        false}}]
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
@@ -511,16 +530,19 @@
                       ;; TODO: Rename back to :selected-patterns?
                       :select-patterns   selected-patterns}
         ?prof-id-set (when selected-profiles (set selected-profiles))
-        profiles     (cond->> profiles
+        profiles*    (cond->> profiles
                        ?prof-id-set
                        (filter (fn [{:keys [id]}] (?prof-id-set id))))
         prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
-                          profiles)
+                          profiles*)
         pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
-                          profiles)]
-    (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
-                  prof-id-seq
-                  pat-fsm-seq))))
+                          profiles*)
+        pat-fsm-map  (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                                   prof-id-seq
+                                   pat-fsm-seq))]
+    (when validate-not-empty?
+      (assert/assert-not-empty-patterns pat-fsm-map))
+    pat-fsm-map))
 
 ;; Registration Key Construction
 

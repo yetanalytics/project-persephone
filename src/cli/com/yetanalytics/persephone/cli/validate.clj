@@ -1,10 +1,12 @@
 (ns com.yetanalytics.persephone.cli.validate
   (:require [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.persephone.utils.asserts :as assert]
             [com.yetanalytics.persephone.cli.util.args :as a]
             [com.yetanalytics.persephone.cli.util.file :as f]
             [com.yetanalytics.persephone.cli.util.spec :as s]
             [com.yetanalytics.persephone.template.errors        :as errs]
-            [com.yetanalytics.persephone.template.statement-ref :as sref]))
+            [com.yetanalytics.persephone.template.statement-ref :as sref])
+  (:import [clojure.lang ExceptionInfo]))
 
 (def validate-statement-options
   [["-p" "--profile URI"
@@ -52,36 +54,48 @@
     :id :short-circuit]
    ["-h" "--help" "Display the 'validate' subcommand help menu."]])
 
+(defn- handle-compile-exception [ex]
+  (cond
+    (-> ex ex-data :kind #{::assert/no-templates})
+    (a/printerr "Compilation error: no Statement Templates to validate against")
+    :else
+    (throw ex)))
+
 (defn- validate*
   "Perform validation on `statement` based on the CLI options map; print any
    validation errors and return `false` if errors exist, `true` otherwise."
   [{:keys [profiles template-ids statement extra-statements
            all-valid short-circuit]}]
-  (let [prof->map #(sref/profile->id-template-map % :validate-profile? false)
-        ?temp-ids (not-empty template-ids)
-        ?sref-fns (when (not-empty extra-statements)
-                    {:get-statement-fn
-                     (sref/statement-batch->id-statement-map extra-statements)
-                     :get-template-fn
-                     (->> profiles (map prof->map) (apply merge))})
-        compiled  (per/compile-profiles->validators
-                   profiles
-                   :validate-profiles? false ; already validated as CLI args
-                   :selected-templates ?temp-ids
-                   :statement-ref-fns  ?sref-fns)
+  (try
+    (let [prof->map #(sref/profile->id-template-map % :validate-profile? false)
+          ?temp-ids (not-empty template-ids)
+          ?sref-fns (when (not-empty extra-statements)
+                      {:get-statement-fn
+                       (sref/statement-batch->id-statement-map extra-statements)
+                       :get-template-fn
+                       (->> profiles (map prof->map) (apply merge))})
+          compiled  (per/compile-profiles->validators
+                     profiles
+                     :validate-profiles? false ; already validated as CLI args
+                     :selected-templates ?temp-ids
+                     :statement-ref-fns  ?sref-fns)
         ;; `:fn-type` is `:errors` instead of `:printer` since we want to
         ;; return whether the error results are empty or not.
         ;; TODO: Redo how validation printing works to be more like in pattern
         ;; matching and be a side effect that can happen for any `:fn-type`?
-        error-res (per/validate-statement
-                   compiled
-                   statement
-                   :fn-type :errors
-                   :all-valid? all-valid
-                   :short-circuit? short-circuit)]
-    (when (some? error-res)
-      (dorun (->> error-res vals (apply concat) errs/print-errors)))
-    (empty? error-res)))
+          error-res (and (some? compiled)
+                         (per/validate-statement
+                          compiled
+                          statement
+                          :fn-type :errors
+                          :all-valid? all-valid
+                          :short-circuit? short-circuit))]
+      (when (some? error-res)
+        (dorun (->> error-res vals (apply concat) errs/print-errors)))
+      (empty? error-res))
+    (catch ExceptionInfo e
+      (handle-compile-exception e)
+      false)))
 
 (defn validate
   "Perform Statement Template validation based on `arglist`; print any

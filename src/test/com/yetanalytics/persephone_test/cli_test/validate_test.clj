@@ -108,6 +108,12 @@ Template rule was not followed:
            (let [s (new java.io.StringWriter)]
              (binding [*err* s]
                (validate (list "-p" statement-uri "-s" statement-uri))
+               (str s)))))
+    (is (= "Compilation error: no Statement Templates to validate against\n"
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (validate (list "-p" profile-uri "-s" statement-uri
+                               "-i" "http://random-template.org"))
                (str s)))))))
 
 (deftest validate-cli-test
@@ -130,10 +136,7 @@ Template rule was not followed:
                         "--extra-statements" statement-2-uri
                         "-e" statement-2-uri)))
     (is (validate (list "-p" profile-uri "-s" statement-uri
-                        "-e" statement-coll-uri)))
-    ;; No templates => statement vacuously validates against all
-    (is (validate (list "-p" profile-uri "-s" statement-uri
-                        "-i" "http://random-template.org"))))
+                        "-e" statement-coll-uri))))
   (testing "Validation Fails"
     (is (= (str template-2-fail-str
                 "\n-----------------------------"

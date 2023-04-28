@@ -39,5 +39,5 @@
         (System/exit 1))
       :else
       (do
-        (printerr [(format "Unknown subcommand: %s" subcommand)])
+        (printerr (format "Unknown subcommand: %s" subcommand))
         (System/exit 1)))))

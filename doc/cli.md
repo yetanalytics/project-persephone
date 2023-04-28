@@ -143,14 +143,17 @@ We can use the `--template-id` argument to select which Templates the Statement 
 ```
 This way, we pass to the CLI the two Templates the Statement is invalid against, so running this will result in the same validation failure output as in the previous example.
 
-Note that if we set `--template-id` to the ID of a non-existent Template, e.g.
+Note that if we set `--template-id` to the ID of a non-existent Template, such that no Templates would be validated against, e.g.
 ```
 % ./bin/persephone.sh validate \
   --profile sample_profiles/calibration.jsonld \
   --statement sample_statements/calibration_1.json \
   --template-id http://random-template.org
 ```
-the validation will pass vacuously, as there are technically no Templates the Statement is invalid against.
+we get the following error message:
+```
+Compilation error: no Statement Templates to validate against
+```
 
 ## Examples for `persephone match`
 
@@ -227,7 +230,7 @@ Pattern path:
   https://xapinet.org/xapi/yet/calibration/v1/patterns#pattern-1
 ```
 
-Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern:
+Note that similar to `--template-id`, we can use `--pattern-id` to filter out Patterns (note that these must be primary Patterns). If we set `--pattern-id` to a non-existent Pattern so that no Patterns are available to be matched:
 ```
 % ./bin/persephone.sh match \
   --profile sample_profiles/calibration.jsonld \
@@ -235,4 +238,7 @@ Note that similar to `--template-id`, we can use `--pattern-id` to filter out Pa
   --statement sample_statements/calibration_2.json \
   --pattern-id http://random-pattern.org
 ```
-then matching will vacuously pass, as there would be no Patterns the Statements will fail to match against.
+we will receive the following error message
+```
+Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns
+```

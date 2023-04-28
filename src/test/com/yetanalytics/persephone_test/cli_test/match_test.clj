@@ -101,6 +101,26 @@ Pattern path:
            (let [s (new java.io.StringWriter)]
              (binding [*err* s]
                (match (list "-p" statement-uri "-s" statement-uri))
+               (str s)))))
+    (is (= "Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns\n"
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match (list "-p" profile-uri "-s" statement-uri
+                            "-i" "http://random-pattern.org"))
+               (str s)))
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match (list "-p" profile-uri
+                            "-s" statement-uri
+                            "-s" statement-2-uri
+                            "-i" "http://random-pattern.org"))
+               (str s)))
+           (let [s (new java.io.StringWriter)]
+             (binding [*err* s]
+               (match (list "-p" profile-uri
+                            "-p" "test-resources/sample_profiles/cmi5.json"
+                            "-s" statement-uri
+                            "-i" "https://w3id.org/xapi/cmi5#toplevel"))
                (str s)))))))
 
 (deftest match-cli-test
@@ -117,20 +137,7 @@ Pattern path:
                             "-s" statement-uri))))
     (is (true? (match (list "-p" profile-uri "-s" statement-uri
                             "--pattern-id" pattern-id))))
-    (is (true? (match (list "-p" profile-uri "-s" statement-uri "-n"))))
-    ;; No patterns => statement vacuously matches against all
-    (is (true? (match (list "-p" profile-uri "-s" statement-uri
-                            "-i" "http://random-profile.org"))))
-    (is (true? (match (list "-p" profile-uri
-                            "-s" statement-uri
-                            "-s" statement-2-uri
-                            "-i" "http://random-pattern.org"))))
-    ;; Pattern vacuously matches against the calibration profile even though
-    ;; only cmi5 patterns is present
-    (is (true? (match (list "-p" profile-uri
-                            "-p" "test-resources/sample_profiles/cmi5.json"
-                            "-s" statement-uri
-                            "-i" "https://w3id.org/xapi/cmi5#toplevel")))))
+    (is (true? (match (list "-p" profile-uri "-s" statement-uri "-n")))))
   (testing "Match Fails"
     (is (= missing-profile-ref-error-str-1
            (with-out-str

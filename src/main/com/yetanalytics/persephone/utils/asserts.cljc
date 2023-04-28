@@ -31,18 +31,25 @@
   [compiled-templates]
   (when (empty? compiled-templates)
     (throw (ex-info "No Templates present after compilation."
-                    {:kind     ::no-templates
-                     :compiled compiled-templates}))))
+                    {:kind ::no-templates}))))
 
 (defn assert-not-empty-patterns
-  "Asser that `compiled-patterns` has at least one Pattern."
+  "Assert that `compiled-patterns` has at least one Pattern for each Profile,
+   and that at least one Profile exists."
   [compiled-patterns]
   ;; Check every `(get-in compiled-patterns [profile-version pattern-id])`
   ;; is an empty map
-  (when (->> compiled-patterns vals (mapcat vals) (every? empty?))
-    (throw (ex-info "No Patterns present after compilation."
-                    {:kind     ::no-patterns
-                     :compiled compiled-patterns}))))
+  (when (empty? compiled-patterns)
+    (throw (ex-info "No Profiles or Patterns present after compilation."
+                    {:kind ::no-patterns})))
+  (when-some [[prof-id _]
+              (->> compiled-patterns
+                   (into [])
+                   (some (fn [[_ pat-id-m :as prof-pair]]
+                           (when (empty? pat-id-m) prof-pair))))]
+    (throw (ex-info "No Patterns present for a Profile after compilation."
+                    {:kind       ::no-patterns
+                     :profile-id prof-id}))))
 
 ;; TODO: Make these asserts Project Pan's responsibility
 

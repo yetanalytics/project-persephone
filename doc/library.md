@@ -134,7 +134,7 @@ The `compile-profiles->fsms` functions have the following keyword arguments:
 | :--                    | :--
 | `:statement-ref-fns`   | Same as in the Statement Template compilation functions.
 | `:validate-profile?`   | Validates Profiles and checks that there are no clashing Profile or Pattern IDs. If validation fails, the function throws a `::assert/invalid-profile` exception.
-| `:validate-not-empty?` | Asserts that at least one Pattern FSM exists after compilation; if `true`, the function throws a `::assert/no-patterns` exception, e.g. if an empty Profile coll was provided or if `:selected-profiles` or `:selected-patterns` filtered out all Patterns.
+| `:validate-not-empty?` | Asserts that at least one Pattern FSM exists after compilation, and that one exists for each Profile; if `true`, the function throws a `::assert/no-patterns` exception, e.g. if an empty Profile coll was provided or if `:selected-profiles` or `:selected-patterns` filtered out all Patterns.
 | `:compile-nfa?`        | If `:nfa` should be compiled; doing so will allow for detailed tracing of visited Templates and involved Patterns.
 | `:selected-profiles`   | Which Profiles in the collection should be compiled.
 | `:selected-patterns`   | Which Patterns in the Profiles should be compiled. Useful for selecting only one Pattern to match against.

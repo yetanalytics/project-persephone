@@ -507,7 +507,7 @@
    | ---                    | ---
    | `:statement-ref-fns`   | Takes the key-value pairs described in `template->validator`.
    | `:validate-profiles?`  | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
-   | `:validate-not-empty?` | If `true`, asserts that at least one Pattern FSM map is present after compilation. Default `true`.
+   | `:validate-not-empty?` | If `true`, asserts that at least one Pattern FSM map is present after compilation in general and for each Profile. Default `true`.
    | `:compile-nfa?`        | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
    | `:selected-profiles`   | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
    | `:selected-patterns`   | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."

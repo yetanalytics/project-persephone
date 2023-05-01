@@ -21,7 +21,7 @@
  {:cli
   {:extra-paths ["src/cli"]
    :extra-deps  {org.clojure/clojure   {:mvn/version "1.10.2"}
-                 org.clojure/tools.cli {:mvn/version "1.0.206"} }}
+                 org.clojure/tools.cli {:mvn/version "1.0.206"}}}
   :server
   {:extra-paths ["src/server"]
    :extra-deps  {org.clojure/clojure    {:mvn/version "1.10.2"}

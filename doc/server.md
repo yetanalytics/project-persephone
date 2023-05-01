@@ -81,7 +81,7 @@ We can also input a Statement array, e.g. `sample_statements/calibration_coll.js
 
 If we try to validate an invalid Statement:
 ```bash
-% curl localhost:8080/statements \
+% curl -i localhost:8080/statements \
   -H "Content-Type: application/json" \
   -d @sample_statements/adl_1.json
 ```

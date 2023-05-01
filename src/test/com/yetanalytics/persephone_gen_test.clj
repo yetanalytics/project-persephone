@@ -36,7 +36,7 @@
                  ;; Return error on invalid stmt
                  :fn-type :errors)]
         (if (some? err)
-          (throw (ex-info "Statmenet stream not valid against tc3 Profiles"
+          (throw (ex-info "Statement stream not valid against tc3 Profiles"
                           {:kind      :datasim-template-test-failed
                            :statement next-stmt
                            :error     err}))

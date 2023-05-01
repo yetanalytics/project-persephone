@@ -94,34 +94,43 @@
    
    `compile-templates->validators` takes the following kwargs:
 
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
-   | `:validate-template?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
-   | `:selected-profiles`  | If present, filters out Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not version IDs.)
-   | `:selected-templates` | If present, filters out Templates whose IDs are not in the coll.
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | A map with two fields: `:get-template-fn` and `get-statement-fn`. If not present, then any Template's StatementRef properties are ignored.
+   | `:validate-templates?` | Whether to validate against the Template spec and check for ID clashes before compilation; default `true`.
+   | `:validate-not-empty?` | Whether to assert that compilation produced at least one Template validator; default `true`.
+   | `:selected-profiles`   | If present, filters out Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates`  | If present, filters out Templates whose IDs are not in the coll.
    
    The following are the fields of the `:statement-ref-fns` map:
 
    | Argument Map Key    | Description
    | ---                 | ---
    | `:get-template-fn`  | A function or map that takes a Template ID and returns the Template, or `nil` if not found. See also: `template.statement-ref/profile->id-template-map`.
-   | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found."
+   | `:get-statement-fn` | A function or map that takes a Statement ID and returns the Statement, or `nil` if not found.
+   
+   If there are no Templates after `selected-templates` filtering, or if
+   an empty `templates` is provided in the first place, this throws an
+   `::no-templates` exception."
   [templates & {:keys [statement-ref-fns
                        validate-templates?
+                       validate-not-empty?
                        selected-templates]
-                :or   {validate-templates? true}}]
+                :or   {validate-templates? true
+                       validate-not-empty? true}}]
   (when validate-templates?
     (dorun (map assert/assert-template templates))
     (assert/assert-template-ids templates))
   (let [?temp-id-set    (when selected-templates (set selected-templates))
-        temp->validator (fn [temp]
-                          (template->validator temp statement-ref-fns))]
-    (cond->> templates
-      ?temp-id-set
-      (filter (fn [{:keys [id]}] (?temp-id-set id)))
-      true
-      (map temp->validator))))
+        temp->validator #(template->validator % statement-ref-fns)
+        validators      (cond->> templates
+                          ?temp-id-set
+                          (filter (fn [{:keys [id]}] (?temp-id-set id)))
+                          true
+                          (map temp->validator))]
+    (when validate-not-empty?
+      (assert/assert-not-empty-templates validators))
+    validators))
 
 (s/fdef compile-profiles->validators
   :args (s/cat :profiles ::profiles
@@ -136,17 +145,23 @@
    `:validator-fn`, and `:predicate-fn`, just like with
    `compile-templates->validators`. Takes the following kwargs:
 
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | Same as in `compile-templates->validators`.
-   | `:validate-profiles?` | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
-   | `:selected-profiles`  | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
-   | `:selected-templates` | If present, filters out any Templates whose IDs are not present in the coll."
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | Same as in `compile-templates->validators`.
+   | `:validate-profiles?`  | Whether to validate against the Profile spec and check for ID clashes before compilation; default `true`.
+   | `:validate-not-empty?` | Whether to assert that compilation produced at least one Template validator; default `true`.
+   | `:selected-profiles`   | If present, filters out any Profiles whose IDs are not in the coll (Note that these should be profile IDs, not version IDs.)
+   | `:selected-templates`  | If present, filters out any Templates whose IDs are not present in the coll.
+   
+   If there are no Templates after `selected-templates` filtering, or if
+   no Templates exist in `profiles`, this throws an `::no-templates` exn."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
+                      validate-not-empty?
                       selected-profiles
                       selected-templates]
-               :or   {validate-profiles? true}}]
+               :or   {validate-profiles?  true
+                      validate-not-empty? true}}]
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
@@ -161,9 +176,10 @@
                                   (concat acc templates))
                                 []))]
     (compile-templates->validators template-coll
-                                   :statement-ref-fns statement-ref-fns
-                                   :selected-templates selected-templates
-                                   :validate-templates? false)))
+                                   :statement-ref-fns   statement-ref-fns
+                                   :selected-templates  selected-templates
+                                   :validate-templates? false
+                                   :validate-not-empty? validate-not-empty?)))
 
 ;; Statement Validation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -262,8 +278,9 @@
                                               statement
                                               :all-valid? all-valid?
                                               :short-circuit? short-circuit?)]
-    (throw (ex-info "Invalid Statement." {:kind   ::invalid-statement
-                                          :errors errs}))))
+    (throw (ex-info "Statement Validation Failure."
+                    {:kind   ::invalid-statement
+                     :errors errs}))))
 
 (s/fdef validate-statement-print
   :args (s/cat :compiled-templates compiled-templates-spec
@@ -474,9 +491,9 @@
      }
    }
    ```
-   where `profile-version` is the latest version ID in the Profile
-   and `pattern-id` is the ID of a primary Pattern in that Profile. The
-   leaf values include the following: 
+   where `profile-version` is the Profile version ID and `pattern-id` is the
+   ID of a primary Pattern in that Profile. The FSM map keys are as follows:
+   
    | FSM Map Key | Description
    | ---         | ---
    | `:id`       | The Pattern ID.
@@ -485,20 +502,24 @@
    | `:nfa-meta` | The NFA metadata; assoc-ed here in case meta is lost from the `:nfa` value. Only present if `:nfa` is.
 
    The following are optional keyword arguments:
-   | Keyword Argument      | Description
-   | ---                   | ---
-   | `:statement-ref-fns`  | Takes the key-value pairs described in `template->validator`.
-   | `:validate-profiles?` | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
-   | `:compile-nfa?`       | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
-   | `:selected-profiles`  | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
-   | `:selected-patterns`  | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."
+     
+   | Keyword Argument       | Description
+   | ---                    | ---
+   | `:statement-ref-fns`   | Takes the key-value pairs described in `template->validator`.
+   | `:validate-profiles?`  | If `true` checks that all Profiles conform to the xAPI Profile spec and that all Profile, Template, and Pattern IDs do not clash. Throws exception if validation fails. Default `true`.
+   | `:validate-not-empty?` | If `true`, asserts that at least one Pattern FSM map is present after compilation in general and for each Profile. Default `true`.
+   | `:compile-nfa?`        | If `true` compiles an additional NFA that is used for composing detailed error traces. Default `false`.
+   | `:selected-profiles`   | Coll that, if present, filters out any Profiles whose IDs are not in the coll. (Note that these should be profile IDs, not profile version IDs.)
+   | `:selected-patterns`   | Coll that, if present, filters out any primary Patterns whose IDs are not in the coll."
   [profiles & {:keys [statement-ref-fns
                       validate-profiles?
+                      validate-not-empty?
                       compile-nfa?
                       selected-profiles
                       selected-patterns]
-               :or   {validate-profiles? true
-                      compile-nfa?       false}}]
+               :or   {validate-profiles?  true
+                      validate-not-empty? true
+                      compile-nfa?        false}}]
   (when validate-profiles?
     (dorun (map assert/assert-profile profiles))
     (assert/assert-profile-ids profiles)
@@ -506,18 +527,22 @@
     (assert/assert-profile-pattern-ids profiles))
   (let [opt-map      {:statement-ref-fns statement-ref-fns
                       :compile-nfa?      compile-nfa?
-                      :selected-patterns selected-patterns}
+                      ;; TODO: Rename back to :selected-patterns?
+                      :select-patterns   selected-patterns}
         ?prof-id-set (when selected-profiles (set selected-profiles))
-        profiles     (cond->> profiles
+        profiles*    (cond->> profiles
                        ?prof-id-set
                        (filter (fn [{:keys [id]}] (?prof-id-set id))))
         prof-id-seq  (map (fn [prof] (->> prof prof/latest-version :id))
-                          profiles)
+                          profiles*)
         pat-fsm-seq  (map (fn [prof] (p/profile->fsms prof opt-map))
-                          profiles)]
-    (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
-                  prof-id-seq
-                  pat-fsm-seq))))
+                          profiles*)
+        pat-fsm-map  (into {} (map (fn [prof-id pf-map] [prof-id pf-map])
+                                   prof-id-seq
+                                   pat-fsm-seq))]
+    (when validate-not-empty?
+      (assert/assert-not-empty-patterns pat-fsm-map))
+    pat-fsm-map))
 
 ;; Registration Key Construction
 
@@ -531,28 +556,35 @@
 
 ;; Statement Pattern Matching ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn- cond-println
+  "Println only if `print?` is `true`."
+  [print? expr]
+  (when print? (println expr)))
+
 (defn- match-statement-vs-pattern
   "Match `statement` against the Pattern DFA, and upon failure (i.e.
    `fsm/read-next` returns `#{}`), append printable failure metadata
    to the return value."
-  [{pat-dfa   :dfa
-    ?pat-nfa  :nfa
+  [{pat-dfa  :dfa
+    ?pat-nfa :nfa
     :as fsms}
    state-info
    statement
    print?]
   (let [start-opts  {:record-visits? (some? ?pat-nfa)}
         new-st-info (fsm/read-next pat-dfa start-opts state-info statement)]
-    (if (empty? new-st-info)
+    (if (fsm/rejected? new-st-info)
       (if-some [{old-fail-meta :failure :as old-meta} (meta state-info)]
+        ;; The state info is stuck in the failure state from a prev iteration
         (do
-          (when print? (println (perr-printer/error-msg-str old-fail-meta)))
+          (cond-println print? (perr-printer/failure-message-str old-fail-meta))
           (with-meta new-st-info old-meta))
+        ;; The state info encountered a failure state on this iteration
         (let [fail-meta (fmeta/construct-failure-info
                          fsms
                          state-info
                          statement)]
-          (when print? (println (perr-printer/error-msg-str fail-meta))) 
+          (cond-println print? (perr-printer/failure-message-str fail-meta)) 
           (with-meta new-st-info {:failure fail-meta})))
       new-st-info)))
 
@@ -571,24 +603,20 @@
    Matches `statement` to against `compiled-profiles` and returns an
    updated value of `state-info-map`.
 
-   `state-info-map` is a map of the form:
-   ```clojure
-     {:accepts    [[registration-key pattern-id] ...]
-      :rejects    [[registration-key pattern-id] ...]
-      :states-map {registration-key {pattern-id state-info}}}
-   ```
-   where
+   `state-info-map` is a map with the following keys:
+
    | Map Key       | Description
    | ---           | ---
-   | `:accepts`    | A coll of identifiers for accepted state infos (where `:accepted?` is `true`).
-   | `:rejects`    | A coll of identifiers for rejected state infos (where they are empty sets).
-   | `:states-map` | A doubly-nested map that associates registration keys and Pattern IDs to state info maps.
+   | `:accepts`    | A vector of `[registration-key pattern-id]` key paths for accepted state infos (where `:accepted?` is `true`).
+   | `:rejects`    | A vecotr of `[registration-key pattern-id]` for rejected state infos (where they are empty sets).
+   | `:states-map` | A map of the form `{registration-key {pattern-id state-info}}}`
    
    `registration-key` can either be a registration UUID or a
    pair of registration and subregistration UUIDs. Statements without
    registrations will be assigned a default `:no-registration` key.
    
-   `state-info` is a map of the following:
+   `state-info` is a map of the following keys:
+
    | Map Key      | Description
    | ---          | ---
    | `:state`     | The current state in the FSM, i.e. where is the current location in the Pattern?
@@ -605,6 +633,7 @@
    }
    ```
    where `error-kw` is one of the following:
+
    | Pattern Match Error Keyword        | Description
    | ---                                | ---
    | `::missing-profile-reference`      | If `statement` does not have a Profile ID from `compiled-profiles` as a category context Activity.
@@ -615,8 +644,10 @@
    then prints any error or match failure."
   [compiled-profiles state-info-map statement & {:keys [print?]
                                                  :or   {print? false}}]
-  (if (:error state-info-map) ; TODO: Should errors also be printed?
-    state-info-map
+  (if-some [match-err (:error state-info-map)]
+    (do
+      (cond-println print? (perr-printer/error-message-str match-err))
+      state-info-map)
     (let [reg-pat-st-m  (:states-map state-info-map)
           prof-id-set   (set (keys compiled-profiles))
           stmt-prof-ids (stmt/get-statement-profile-ids statement prof-id-set)
@@ -624,8 +655,10 @@
           ?stmt-subreg  (stmt/get-statement-subregistration statement stmt-reg)]
       (if-let [err-kw (or (when (keyword? stmt-prof-ids) stmt-prof-ids)
                           (when (keyword? ?stmt-subreg) ?stmt-subreg))]
-        {:error {:type      err-kw
-                 :statement statement}}
+        (let [match-err {:type      err-kw
+                         :statement statement}]
+          (cond-println print? (perr-printer/error-message-str match-err))
+          {:error match-err})
         (let [match-res
               (for [;; Map over profile IDs
                     [prof-id pat-fsm-m] compiled-profiles
@@ -695,4 +728,5 @@
             match-res
             ;; Valid state info map - continue
             (recur (rest stmt-coll) match-res)))
+        ;; Finish matching
         st-info-map))))

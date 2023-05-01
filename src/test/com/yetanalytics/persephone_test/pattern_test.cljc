@@ -3,7 +3,8 @@
             [clojure.zip :as zip]
             [com.yetanalytics.persephone.pattern :as pv]
             [com.yetanalytics.persephone.pattern.fsm :as fsm]
-            [com.yetanalytics.persephone.pattern.errors :as err]))
+            [com.yetanalytics.persephone.pattern.errors :as err]
+            [com.yetanalytics.persephone.utils.statement :as stmt]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test fixtures
@@ -398,6 +399,59 @@
 
 (deftest err-msg-test
   (testing "Error messages"
+    (is (= (str "----- Pattern Match Error -----\n"
+                "Error Description:  Missing Profile version in context category activity IDs\n"
+                "Statement ID:       00000000-4000-8000-0000-111111111111\n"
+                "\n"
+                "Category contextActivity IDs:\n"
+                "http://foo.org\n"
+                "http://bar.org")
+           (err/error-message-str
+            {:type ::stmt/missing-profile-reference
+             :statement {"id" "00000000-4000-8000-0000-111111111111"
+                         "context" {"contextActivities" {"category" [{"id" "http://foo.org"}
+                                                                     {"id" "http://bar.org"}]}}}})))
+    (is (= (str "----- Pattern Match Error -----\n"
+                "Error Description:  Missing Profile version in context category activity IDs\n"
+                "Statement ID:       00000000-4000-8000-0000-111111111111\n"
+                "\n"
+                "Category contextActivity IDs:\n"
+                "(None)")
+           (err/error-message-str
+            {:type ::stmt/missing-profile-reference
+             :statement {"id" "00000000-4000-8000-0000-111111111111"
+                         "context" {"contextActivities" {"category" []}}}})))
+    (is (= (str "----- Pattern Match Error -----\n"
+                "Error Description:  Invalid subregistration - no statement registration\n"
+                "Statement ID:       00000000-4000-8000-0000-111111111111\n"
+                "\n"
+                "Registration value:\n"
+                "null\n"
+                "Subregistration extension value:\n"
+                "[{\"profile\" \"http://foo.org\",\n"
+                "  \"subregistration\" \"00000000-4000-8000-0000-111122223333\"}]")
+           (err/error-message-str
+            {:type ::stmt/invalid-subreg-no-registration
+             :statement {"id" "00000000-4000-8000-0000-111111111111"
+                         "context" {"extensions" {stmt/subregistration-iri
+                                                  [{"profile" "http://foo.org"
+                                                    "subregistration" "00000000-4000-8000-0000-111122223333"}]}}}})))
+    (is (= (str "----- Pattern Match Error -----\n"
+                "Error Description:  Invalid subregistration - does not conform to spec\n"
+                "Statement ID:       00000000-4000-8000-0000-111111111111\n"
+                "\n"
+                "Registration value:\n"
+                "00000000-4000-8000-0000-555555555555\n"
+                "Subregistration extension value:\n"
+                "[{\"profile\" \"http://foo.org\", \"subregistration\" 2}]")
+           (err/error-message-str
+            {:type ::stmt/invalid-subreg-nonconformant
+             :statement {"id" "00000000-4000-8000-0000-111111111111"
+                         "context" {"registration" "00000000-4000-8000-0000-555555555555"
+                                    "extensions" {stmt/subregistration-iri
+                                                  [{"profile" "http://foo.org"
+                                                    "subregistration" 2}]}}}}))))
+  (testing "Match Failure messages"
     (is (= (str "----- Pattern Match Failure -----\n"
                 "Primary Pattern ID: http://example.org/p1\n"
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
@@ -418,7 +472,7 @@
                 "  http://example.org/t1\n"
                 "Pattern path:\n"
                 "  http://example.org/p1")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    [{:templates ["http://example.org/t3"
@@ -434,7 +488,7 @@
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "\n"
                 "Pattern cannot match any statements.")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    []})))
@@ -443,7 +497,7 @@
                 "Statement ID:       fd41c918-b88b-4b20-a0a5-a4c32391aaa0\n"
                 "\n"
                 "Pattern matching has failed.")
-           (err/error-msg-str
+           (err/failure-message-str
             {:statement "fd41c918-b88b-4b20-a0a5-a4c32391aaa0"
              :pattern   "http://example.org/p1"
              :traces    nil})))))

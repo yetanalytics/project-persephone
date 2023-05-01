@@ -2,12 +2,14 @@
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [com.yetanalytics.persephone :as p]
             [com.yetanalytics.persephone.template.statement-ref :as sref]
-            [com.yetanalytics.persephone.pattern.errors :as perrs]
-            [com.yetanalytics.persephone.utils.statement :as stmt]
+            [com.yetanalytics.persephone.pattern.errors         :as perrs]
+            [com.yetanalytics.persephone.utils.asserts          :as assert]
+            [com.yetanalytics.persephone.utils.statement        :as stmt]
             #?(:clj
                [com.yetanalytics.persephone-test.test-utils :as test-u]
                :cljs
-               [com.yetanalytics.persephone-test.test-utils :as test-u :refer [slurp]])))
+               [com.yetanalytics.persephone-test.test-utils :as test-u :refer [slurp]]))
+  #?(:clj (:import [clojure.lang ExceptionInfo])))
 
 (use-fixtures :once test-u/instrumentation-fixture)
 
@@ -94,6 +96,34 @@
                                 "type"        "https://w3id.org/xapi/catch/activitytypes/domain"}}]}
     "extensions"
     {"https://w3id.org/xapi/cmi5/context/extensions/sessionid" 74}}})
+
+(deftest statement-template-compilation-test
+  (testing "template compilation"
+    (is (= 1
+           (count (p/compile-templates->validators [ex-template]))))
+    (is (= 0
+           (count (p/compile-templates->validators []
+                                                   :validate-not-empty? false))))
+    (is (= 0
+           (count (p/compile-templates->validators [ex-template]
+                                                   :validate-not-empty? false
+                                                   :selected-templates []))))
+    (is (= ::assert/invalid-template
+           (try
+             (p/compile-templates->validators [{"id" "foo"}])
+             (catch #?(:clj ExceptionInfo :cljs js/Error) e
+               (-> e ex-data :kind)))))
+    (is (= ::assert/no-templates
+           (try
+             (p/compile-templates->validators [])
+             (catch #?(:clj ExceptionInfo :cljs js/Error) e
+               (-> e ex-data :kind)))))
+    (is (= ::assert/no-templates
+           (try
+             (p/compile-templates->validators [ex-template]
+                                              :selected-templates [])
+             (catch #?(:clj ExceptionInfo :cljs js/Error) e
+               (-> e ex-data :kind)))))))
 
 (deftest statement-validation-test
   (testing "validate statement using an example Template and Statement"
@@ -445,7 +475,8 @@
 
 (def cmi-fsm-map (p/compile-profiles->fsms [cmi-profile]
                                            :compile-nfa? true
-                                           :select-patterns [cmi-pattern-id]))
+                                           :selected-patterns [cmi-pattern-id]))
+
 (def match-cmi (partial p/match-statement cmi-fsm-map))
 
 (def failure-msg-1
@@ -467,6 +498,32 @@ Pattern path:
   https://w3id.org/xapi/cmi5#typicalsession
   https://w3id.org/xapi/cmi5#typicalsessions
   https://w3id.org/xapi/cmi5#toplevel")
+
+
+(deftest pattern-compilation-test
+  (testing "Testing compilation with 1 primary Pattern"
+    (is (some? (not-empty
+                (-> cmi-fsm-map
+                    (get "https://w3id.org/xapi/cmi5/v1.0"))))))
+  (testing "Testing compilation with 0 primary Patterns"
+    (is (= {} (p/compile-profiles->fsms []
+                                        :validate-not-empty? false)))
+    (is (= {} (-> (p/compile-profiles->fsms [cmi-profile]
+                                            :validate-not-empty? false
+                                            :compile-nfa? true
+                                            :selected-patterns [])
+                  
+                  (get "https://w3id.org/xapi/cmi5/v1.0"))))
+    (is (= ::assert/no-patterns
+           (try (p/compile-profiles->fsms [])
+                (catch #?(:clj ExceptionInfo :cljs js/Error) e
+                  (-> e ex-data :kind)))))
+    (is (= ::assert/no-patterns
+           (try (p/compile-profiles->fsms [cmi-profile]
+                                          :compile-nfa? true
+                                          :selected-patterns [])
+                (catch #?(:clj ExceptionInfo :cljs js/Error) e
+                  (-> e ex-data :kind)))))))
 
 (deftest pattern-match-test
   (testing "Testing matching of a stream of Statements using Patterns from the cmi5 Profile."
@@ -609,7 +666,7 @@ Pattern path:
                    "https://w3id.org/xapi/cmi5#toplevel"]]}]}}
              errs-1))
       (is (= failure-msg-1
-             (perrs/error-msg-str (:failure errs-1)))))
+             (perrs/failure-message-str (:failure errs-1)))))
     (let [errs-2 (-> nil
                      (match-cmi satisfied-stmt)
                      (match-cmi launched-stmt)
@@ -647,7 +704,7 @@ Pattern path:
                  (update-in [:failure :traces 0 :patterns] set))))
       ;; Patterns ordering will be different in clj and cljs, so don't bother
       ;; with exact string matching.
-      (is (string? (perrs/error-msg-str (:failure errs-2)))))
+      (is (string? (perrs/failure-message-str (:failure errs-2)))))
     (testing ":print? kwarg set to true"
       (let [match-cmi-print (fn [si stmt]
                               (p/match-statement cmi-fsm-map
@@ -1044,7 +1101,7 @@ Pattern path:
     (is (not (p/validate-statement
               catch-compiled-profile-1
               test-stmt-3)))
-    (is (= (str "----- Invalid Statement -----\n"
+    (is (= (str "----- Statement Validation Failure -----\n"
                 "Template ID:  https://w3id.org/xapi/catch/templates#evidence-advocacy-provide\n"
                 ;; UUID of test-stmt-3
                 "Statement ID: 48f4ea6b-990b-458b-849e-92d2ac10e6af\n"

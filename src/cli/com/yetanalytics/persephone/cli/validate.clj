@@ -1,8 +1,7 @@
 (ns com.yetanalytics.persephone.cli.validate
-  (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.cli.util.args :as a]
-            [com.yetanalytics.persephone.cli.util.file :as f]
-            [com.yetanalytics.persephone.cli.util.spec :as s]
+  (:require [clojure.tools.cli :as cli]
+            [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.persephone.utils.cli :as u]
             [com.yetanalytics.persephone.template.errors        :as errs]
             [com.yetanalytics.persephone.template.statement-ref :as sref])
   (:import [clojure.lang ExceptionInfo]))
@@ -13,21 +12,21 @@
     :id        :profiles
     :missing   "No Profiles specified."
     :multi     true
-    :parse-fn  f/read-profile
-    :validate  [s/profile? s/profile-err-msg]
-    :update-fn (fnil conj [])]
+    :parse-fn  u/read-profile
+    :validate  [u/profile? u/profile-err-msg]
+    :update-fn u/conj-argv]
    ["-i" "--template-id IRI"
     "IDs of Statement Templates to validate against; can specify zero or more. Filters out all Templates that are not included."
     :id        :template-ids
     :multi     true
-    :validate  [s/iri? s/iri-err-msg]
-    :update-fn (fnil conj [])]
+    :validate  [u/iri? u/iri-err-msg]
+    :update-fn u/conj-argv]
    ["-s" "--statement URI"
     "Statement filepath/location; must specify one."
     :id       :statement
     :missing  "No Statement specified."
-    :parse-fn f/read-statement
-    :validate [s/statement? s/statement-err-msg]]
+    :parse-fn u/read-statement
+    :validate [u/statement? u/statement-err-msg]]
    ["-e" "--extra-statements URI"
     (str "Extra Statement batch filepath/location; can specify zero or more "
          "and accepts arrays of Statements. "
@@ -36,11 +35,9 @@
          "and its Template exists in a provided Profile.")
     :id        :extra-statements
     :multi     true
-    :parse-fn  f/read-statement
-    :validate  [s/statements? s/statements-err-msg]
-    :update-fn (fn [xs s]
-                 (let [xs (or xs [])]
-                   (if (vector? s) (into xs s) (conj xs s))))]
+    :parse-fn  u/read-statement
+    :validate  [u/statements? u/statements-err-msg]
+    :update-fn u/conj-argv-or-array]
    ["-a" "--all-valid"
     (str "If set, the Statement is not considered valid unless it is valid "
          "against ALL Templates. "
@@ -85,7 +82,7 @@
         (dorun (->> error-res vals (apply concat) errs/print-errors)))
       (empty? error-res))
     (catch ExceptionInfo e
-      (s/handle-asserts e)
+      (u/print-assert-errors e)
       false)))
 
 (defn validate
@@ -93,7 +90,8 @@
    validation errors and return `false` if errors exist, `true` if validation
    passes or the `--help` argument was present."
   [arglist]
-  (let [options (a/handle-args arglist validate-statement-options)]
+  (let [parsed  (cli/parse-opts arglist validate-statement-options)
+        options (u/handle-parsed-args parsed)]
     (cond
       (= :help options)  true
       (= :error options) false

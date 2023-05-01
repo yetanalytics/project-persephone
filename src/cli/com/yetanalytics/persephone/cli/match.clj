@@ -1,8 +1,7 @@
 (ns com.yetanalytics.persephone.cli.match
-  (:require [com.yetanalytics.persephone :as per]
-            [com.yetanalytics.persephone.cli.util.args :as a]
-            [com.yetanalytics.persephone.cli.util.file :as f]
-            [com.yetanalytics.persephone.cli.util.spec :as s])
+  (:require [clojure.tools.cli :as cli]
+            [com.yetanalytics.persephone :as per]
+            [com.yetanalytics.persephone.utils.cli :as u])
   (:import [clojure.lang ExceptionInfo]))
 
 (def match-statements-options
@@ -11,25 +10,23 @@
     :id        :profiles
     :missing   "No Profiles specified."
     :multi     true
-    :parse-fn  f/read-profile
-    :validate  [s/profile? s/profile-err-msg]
-    :update-fn (fnil conj [])]
+    :parse-fn  u/read-profile
+    :validate  [u/profile? u/profile-err-msg]
+    :update-fn u/conj-argv]
    ["-i" "--pattern-id IRI"
     "IDs of primary Patterns to match against; can specify zero or more. Filters out all Patterns that are not included."
     :id        :pattern-ids
     :multi     true
-    :validate  [s/iri? s/iri-err-msg]
-    :update-fn (fnil conj [])]
+    :validate  [u/iri? u/iri-err-msg]
+    :update-fn u/conj-argv]
    ["-s" "--statement URI"
     "Statement filepath/location; must specify one or more. Accepts arrays of Statements."
     :id        :statements
     :missing   "No Statements specified."
     :multi     true
-    :parse-fn  f/read-statement
-    :validate  [s/statements? s/statements-err-msg]
-    :update-fn (fn [xs s]
-                 (let [xs (or xs [])]
-                   (if (vector? s) (into xs s) (conj xs s))))]
+    :parse-fn  u/read-statement
+    :validate  [u/statements? u/statements-err-msg]
+    :update-fn u/conj-argv-or-array]
    ["-n" "--compile-nfa"
     (str "If set, compiles the Patterns into a non-deterministic finite "
          "automaton (NFA) instead of a deterministic one, allowing for "
@@ -54,7 +51,7 @@
       (not (boolean (or (-> state-m :error)
                         (-> state-m :rejects not-empty)))))
     (catch ExceptionInfo e
-      (s/handle-asserts e)
+      (u/print-assert-errors e)
       false)))
 
 (defn match
@@ -62,7 +59,8 @@
    and return `false` if errors or failures exist, `true` if match passes
    or if the `--help` argument was present."
   [arglist]
-  (let [options (a/handle-args arglist match-statements-options)]
+  (let [parsed  (cli/parse-opts arglist match-statements-options)
+        options (u/handle-parsed-args parsed)]
     (cond
       (= :help options)  true
       (= :error options) false

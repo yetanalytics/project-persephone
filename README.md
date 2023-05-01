@@ -19,6 +19,7 @@ com.yetanalytics/project-persephone {:mvn/version "0.9.0"}
 
 - [Library](doc/library.md): How to use the library/API functions
 - [CLI](doc/cli.md): How to run the `validate` and `match` commands
+- [Webserver](doc/server.md): How to start up and run a webserver
 
 ## How It Works 
 

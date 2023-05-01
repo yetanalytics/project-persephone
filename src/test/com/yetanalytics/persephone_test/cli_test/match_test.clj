@@ -95,7 +95,7 @@ Pattern path:
                    :result :print)))
            (with-err-str
              (match (list "-p" statement-uri "-s" statement-uri)))))
-    (is (= (str "ID error: Profile IDs are not unique\n")
+    (is (= "ID error: Profile IDs are not unique\n"
            (with-err-str
              (match (list "-p" profile-uri "-p" profile-uri
                           "-s" statement-uri)))))

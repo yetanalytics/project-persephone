@@ -29,11 +29,14 @@ ci: clean test-clj test-cljs
 target/bundle/cli.jar:
 	clojure -T:build uber :jar cli
 
+target/bundle/server.jar:
+	clojure -T:build uber :jar server
+
 target/bundle/bin:
 	mkdir -p target/bundle/bin
 	cp bin/*.sh target/bundle/bin
 	chmod +x target/bundle/bin/*.sh
 
-target/bundle: target/bundle/cli.jar target/bundle/bin
+target/bundle: target/bundle/cli.jar target/bundle/server.jar target/bundle/bin
 
 bundle: target/bundle

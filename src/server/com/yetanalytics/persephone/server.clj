@@ -5,8 +5,7 @@
             [io.pedestal.http.body-params :as body-params]
             [com.yetanalytics.persephone.utils.cli       :as u]
             [com.yetanalytics.persephone.server.validate :as v]
-            [com.yetanalytics.persephone.server.match    :as m]
-            #_[com.yetanalytics.persephone.server.util     :as u])
+            [com.yetanalytics.persephone.server.match    :as m])
   (:gen-class))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

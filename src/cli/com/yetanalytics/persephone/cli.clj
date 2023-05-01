@@ -2,8 +2,7 @@
   (:require [clojure.tools.cli :as cli]
             [com.yetanalytics.persephone.utils.cli :as u]
             [com.yetanalytics.persephone.cli.match     :as m]
-            [com.yetanalytics.persephone.cli.validate  :as v]
-            #_[com.yetanalytics.persephone.cli.util.args :refer [printerr]])
+            [com.yetanalytics.persephone.cli.validate  :as v])
   (:gen-class))
 
 (def top-level-options

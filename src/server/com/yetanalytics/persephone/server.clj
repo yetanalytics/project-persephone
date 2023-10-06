@@ -174,6 +174,10 @@
           (System/exit 1)
           :else
           (start-server :match host port)))
+      (nil? subcommand)
+      (do
+        (u/printerr (format "No subcommand present; run 'server [-h|--help]'"))
+        (System/exit 1))
       :else
       (do (u/printerr (format "Unknown subcommand: %s" subcommand))
           (System/exit 1)))))

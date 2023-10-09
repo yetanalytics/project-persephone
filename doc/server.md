@@ -5,8 +5,8 @@ Persephone features a webserver that can be used to validate or match Statements
 To use the server, first run `make bundle`, then `cd` into `target/bundle`. You will then be able to run `/bin/server.sh`, which will accept either the `validate` or `match` subcommand to start the server in either Statement Template validation or Pattern matching mode, respectively. The following table shows the top-level arguments to the server init command:
 
 | Command&nbsp;Argument | Default | Description
-| :--           | :--         | :--
-| `-H, --host HOST` | `localhost` | The hostname of the webserver endpoint
+| :--               | :--         | :--
+| `-H, --host HOST` | `0.0.0.0`   | The hostname of the webserver endpoint
 | `-P, --port PORT` | `8080`      | The port number of the webserver endpoint; must be between 0 and 65536
 | `-h, --help`      | N/A         | Display the top-level help guide
 
@@ -56,7 +56,7 @@ For the first few examples, let us start a webserver in validate mode with a sin
 ```
 % ./bin/server.sh validate --profile sample_profiles/calibration.jsonld
 ```
-will start up a server in validate mode on `localhost:8080` with a single Profile set to validate against.
+will start up a server in validate mode on `0.0.0.0:8080` with a single Profile set to validate against.
 
 To validate a single Statement against Templates in that Profile:
 ```bash
@@ -131,7 +131,7 @@ In match mode, we will first start a webserver mode with a single Profile. Runni
 ```
 % ./bin/server.sh match --profile sample_profiles/calibration.jsonld
 ```
-will start up a server in validate mode on `localhost:8080` with a single Profile set to perform Pattern matching against.
+will start up a server in validate mode on `0.0.0.0:8080` with a single Profile set to perform Pattern matching against.
 
 To validate a Statement array against Templates in that Profile:
 ```bash

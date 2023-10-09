@@ -192,3 +192,13 @@ As with validation, Pattern matching works with two or more Profiles:
   --profile sample_profiles/catch.json
 ```
 though you should be careful not to include any duplicate Profile or Pattern IDs or else you will receive an error.
+
+## Docker
+
+To use with Docker, pull the image `yetanalytics/persephone:[tag]` and execute the following:
+
+```
+docker run -v [filepath]:/persephone/[filepath] -p 8080:8080 -it yetanalytics/persephone:docker /persephone/bin/server.sh <subcommand> <args>
+```
+
+The container will run a Persephone server on port 8080. The `-v` command can be use to map filepaths for resources (e.g. Profiles and Statements) to the Docker working directory `/persephone`.

@@ -257,3 +257,15 @@ we will receive the following error message
 ```
 Compilation error: no Patterns to match against, or one or more Profiles lacks Patterns
 ```
+
+## Docker
+
+To use with Docker, pull the image `yetanalytics/persephone:[tag]` and execute the following:
+
+```
+docker run -v [filepath]:/persephone/[filepath] -it yetanalytics/persephone:docker /persephone/bin/persephone.sh <subcommand> <args>
+```
+
+The container will run and exit once the command completes. The `-v` command can be use to map filepaths for resources (e.g. Profiles and Statements) to the Docker working directory `/persephone`.
+
+Note that if `/persephone/bin/persephone.sh validate <args>` is not provided, then the container will run `persephone.sh --help` by default.

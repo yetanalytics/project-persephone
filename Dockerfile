@@ -16,5 +16,5 @@ RUN apk update \
 
 WORKDIR /persephone
 EXPOSE 8080
-EXPOSE 8443
+EXPOSE 8081
 CMD ["/persephone/bin/persephone.sh", "--help"]

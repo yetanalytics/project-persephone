@@ -3,11 +3,9 @@ FROM alpine:3.14
 ADD target/bundle /persephone
 ADD .java_modules /persephone/.java_modules
 
-# replace the linux runtime via jlink
+# Replace Alpine's Java runtime via jlink
 RUN apk update \
     && apk upgrade \
-    && apk add ca-certificates \
-    && update-ca-certificates \
     && apk add --no-cache openjdk11 \
     && mkdir -p /persephone/runtimes \
     && jlink --output /persephone/runtimes/linux/ --add-modules $(cat /persephone/.java_modules) \
@@ -16,4 +14,7 @@ RUN apk update \
 
 WORKDIR /persephone
 EXPOSE 8080
+
+# This is mainly a placeholder; the intended use is to pass in args
+# when running the Docker image.
 CMD ["/persephone/bin/persephone.sh", "--help"]

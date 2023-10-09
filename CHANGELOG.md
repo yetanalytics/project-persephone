@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.9.1 - 2023-10-09
+- Add Docker images for the CLI and server; see the Docker section for the [CLI](doc/cli.md#docker) and [server](doc/cli.md#docker).
+- Use bundled Java runtimes and modules instead of the local Java runtime (this is necessary for Docker implementation).
+- Minor changes to CLI/server description text.
+
 ## 0.9.0 - 2023-04-25
 - Add CLI for Persephone as two commands that can be made using `make bundle`; command options can be viewed using `--help`.
   - `validate`: Performs Statement Template validation for a single Statement

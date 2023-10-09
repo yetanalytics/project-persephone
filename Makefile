@@ -26,6 +26,10 @@ ci: clean test-clj test-cljs
 
 .PHONY: bundle
 
+MACHINE ?= $(shell bin/machine.sh)
+JAVA_MODULES ?= $(shell cat .java_modules)
+BUNDLE_RUNTIMES ?= true # false for Docker
+
 target/bundle/cli.jar:
 	clojure -T:build uber :jar cli
 
@@ -37,13 +41,14 @@ target/bundle/bin:
 	cp bin/*.sh target/bundle/bin
 	chmod +x target/bundle/bin/*.sh
 
-MACHINE ?= $(shell bin/machine.sh)
-JAVA_MODULES ?= $(shell cat .java_modules)
-
 target/bundle/runtimes:
 	mkdir -p target/bundle/runtimes
 	jlink --output target/bundle/runtimes/${MACHINE} --add-modules ${JAVA_MODULES}
 
+ifeq ($(BUNDLE_RUNTIMES),true)
 target/bundle: target/bundle/cli.jar target/bundle/server.jar target/bundle/bin target/bundle/runtimes
+else
+target/bundle: target/bundle/cli.jar target/bundle/server.jar target/bundle/bin
+endif
 
 bundle: target/bundle

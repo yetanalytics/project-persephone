@@ -37,6 +37,13 @@ target/bundle/bin:
 	cp bin/*.sh target/bundle/bin
 	chmod +x target/bundle/bin/*.sh
 
-target/bundle: target/bundle/cli.jar target/bundle/server.jar target/bundle/bin
+MACHINE ?= $(shell bin/machine.sh)
+JAVA_MODULES ?= $(shell cat .java_modules)
+
+target/bundle/runtimes:
+	mkdir -p target/bundle/runtimes
+	jlink --output target/bundle/runtimes/${MACHINE} --add-modules ${JAVA_MODULES}
+
+target/bundle: target/bundle/cli.jar target/bundle/server.jar target/bundle/bin target/bundle/runtimes
 
 bundle: target/bundle

@@ -1,3 +1,5 @@
 #!/bin/sh
 
-java -server -jar server.jar $@
+MACHINE=`bin/machine.sh`
+
+runtimes/$MACHINE/bin/java -server -jar server.jar $@

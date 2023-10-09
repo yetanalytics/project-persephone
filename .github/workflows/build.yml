@@ -1,11 +1,9 @@
 name: Docker Build and Deployment
 
-on: push
-
-# on:
-#   push:
-#     tags:
-#       - 'v*.*.*' # Enforce Semantic Versioning
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Enforce Semantic Versioning
 
 jobs:
   build:
@@ -17,10 +15,6 @@ jobs:
 
     - name: Setup CD Environment
       uses: yetanalytics/actions/setup-env@v0.0.4
-
-    - name: Extract version
-      id: version
-      run: echo version=${GITHUB_REF#refs\/tags\/v} >> $GITHUB_OUTPUT
 
     - name: Build bundle
       run: make bundle BUNDLE_RUNTIMES=false

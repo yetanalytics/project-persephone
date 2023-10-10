@@ -28,7 +28,7 @@ The `match` subcommand matches a Statement batch against Patterns in one or more
 | `-n, --compile-nfa`    | If set, compiles the Patterns into a non-deterministic finite automaton (NFA) instead of a deterministic one, allowing for more detailed error traces at the cost of decreased performance.
 | `-h, --help`           | Display the help menu.
 
-## Examples for `persephone validate`
+## `persephone validate` examples
 
 In the examples in this and the next section, assume that the `test-resources/sample_profiles` and `test-resources/sample_statements` directories were copied into `target/bundle`, i.e. the location where we run `./bin/persephone`.
 
@@ -168,7 +168,7 @@ we get the following error message:
 Compilation error: no Statement Templates to validate against
 ```
 
-## Examples for `persephone match`
+## `persephone match` examples
 
 We can match the Statement batch consisting of `calibration_1.json` and `calibration_2.json` against the Patterns in the `calibration.jsonld` Profile as so:
 ```

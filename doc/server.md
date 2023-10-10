@@ -50,7 +50,7 @@ and a body `"OK"`.
 
 There is no `PUT` or `GET` versions of the `/statements` endpoint, unlike what is required in a learning record store.
 
-# Examples for validate mode
+## Validate mode examples
 
 For the first few examples, let us start a webserver in validate mode with a single Profile. Assume that we have already copied the contents of `test-profile` into the `target/bundle` directory. Running this command
 ```
@@ -125,7 +125,7 @@ Validation also works with two Profiles:
 ```
 as well as the `--template-id`, `--all-valid`, and `--short-circuit` flags. These work very similarly to how they work in the [CLI](cli.md#examples-for-persephone-validate). Note that you should take care not to include duplicate IDs or else you will receive an init error.
 
-# Examples for match mode
+## Match mode examples
 
 In match mode, we will first start a webserver mode with a single Profile. Running this command
 ```

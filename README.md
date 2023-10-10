@@ -23,7 +23,7 @@ com.yetanalytics/project-persephone {:mvn/version "0.9.1"}
 
 Alternatively, to run the CLI or server as an application, you can pull a Docker image from [DockerHub](https://hub.docker.com/repository/docker/yetanalytics/persephone):
 ```
-docker pull yetanalytics/persephone:latest.
+docker pull yetanalytics/persephone:latest
 ```
 
 ## How It Works 

@@ -5,8 +5,8 @@ Persephone features a webserver that can be used to validate or match Statements
 To use the server, first run `make bundle`, then `cd` into `target/bundle`. You will then be able to run `/bin/server.sh`, which will accept either the `validate` or `match` subcommand to start the server in either Statement Template validation or Pattern matching mode, respectively. The following table shows the top-level arguments to the server init command:
 
 | Command&nbsp;Argument | Default | Description
-| :--           | :--         | :--
-| `-H, --host HOST` | `localhost` | The hostname of the webserver endpoint
+| :--               | :--         | :--
+| `-H, --host HOST` | `0.0.0.0`   | The hostname of the webserver endpoint
 | `-P, --port PORT` | `8080`      | The port number of the webserver endpoint; must be between 0 and 65536
 | `-h, --help`      | N/A         | Display the top-level help guide
 
@@ -50,13 +50,13 @@ and a body `"OK"`.
 
 There is no `PUT` or `GET` versions of the `/statements` endpoint, unlike what is required in a learning record store.
 
-# Examples for validate mode
+## Validate mode examples
 
 For the first few examples, let us start a webserver in validate mode with a single Profile. Assume that we have already copied the contents of `test-profile` into the `target/bundle` directory. Running this command
 ```
 % ./bin/server.sh validate --profile sample_profiles/calibration.jsonld
 ```
-will start up a server in validate mode on `localhost:8080` with a single Profile set to validate against.
+will start up a server in validate mode on `0.0.0.0:8080` with a single Profile set to validate against.
 
 To validate a single Statement against Templates in that Profile:
 ```bash
@@ -125,13 +125,13 @@ Validation also works with two Profiles:
 ```
 as well as the `--template-id`, `--all-valid`, and `--short-circuit` flags. These work very similarly to how they work in the [CLI](cli.md#examples-for-persephone-validate). Note that you should take care not to include duplicate IDs or else you will receive an init error.
 
-# Examples for match mode
+## Match mode examples
 
 In match mode, we will first start a webserver mode with a single Profile. Running this command
 ```
 % ./bin/server.sh match --profile sample_profiles/calibration.jsonld
 ```
-will start up a server in validate mode on `localhost:8080` with a single Profile set to perform Pattern matching against.
+will start up a server in validate mode on `0.0.0.0:8080` with a single Profile set to perform Pattern matching against.
 
 To validate a Statement array against Templates in that Profile:
 ```bash
@@ -192,3 +192,13 @@ As with validation, Pattern matching works with two or more Profiles:
   --profile sample_profiles/catch.json
 ```
 though you should be careful not to include any duplicate Profile or Pattern IDs or else you will receive an error.
+
+## Docker
+
+To use with Docker, pull the image `yetanalytics/persephone:[tag]` and execute the following:
+
+```
+docker run -v [filepath]:/persephone/[filepath] -p 8080:8080 -it yetanalytics/persephone:docker /persephone/bin/server.sh <subcommand> <args>
+```
+
+The container will run a Persephone server on port 8080. The `-v` command can be use to map filepaths for resources (e.g. Profiles and Statements) to the Docker working directory `/persephone`.

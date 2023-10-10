@@ -37,6 +37,10 @@
       (if (m/match rest)
         (System/exit 0)
         (System/exit 1))
+      (nil? subcommand)
+      (do
+        (u/printerr (format "No subcommand present; run 'persephone [-h|--help]'"))
+        (System/exit 1))
       :else
       (do
         (u/printerr (format "Unknown subcommand: %s" subcommand))

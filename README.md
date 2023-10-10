@@ -6,20 +6,25 @@
 
 _Only Persephone, daughter of Zeus and wife of Hades, could travel between the Underworld and the world of the living. Project Persephone is the liaison between our physical world and the world of the Semantic Web._
 
-A Clojure library, with a local  for validating xAPI Statements against xAPI Profiles. 
+A Clojure library for validating xAPI Statements against xAPI Profiles, featuring interactive CLI and webserver applications.
+
+## Index
+
+- [Library](doc/library.md): How to use the library/API functions
+- [CLI](doc/cli.md): How to run the `validate` and `match` commands
+- [Webserver](doc/server.md): How to start up and run a webserver
 
 ## Installation
 
 Add the following to the `:deps` map in your `deps.edn` file:
 ```clojure
-com.yetanalytics/project-persephone {:mvn/version "0.9.0"}
+com.yetanalytics/project-persephone {:mvn/version "0.9.1"}
 ```
 
-## Documentation
-
-- [Library](doc/library.md): How to use the library/API functions
-- [CLI](doc/cli.md): How to run the `validate` and `match` commands
-- [Webserver](doc/server.md): How to start up and run a webserver
+Alternatively, to run the CLI or server as an application, you can pull a Docker image from [DockerHub](https://hub.docker.com/repository/docker/yetanalytics/persephone):
+```
+docker pull yetanalytics/persephone:latest
+```
 
 ## How It Works 
 

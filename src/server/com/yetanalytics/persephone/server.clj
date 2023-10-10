@@ -123,7 +123,7 @@
 (def top-level-options
   [["-H" "--host HOST" "The hostname of the webserver endpoint"
     :id      :host
-    :default "localhost"]
+    :default "0.0.0.0"]
    ["-P" "--port PORT" "The port number of the webserver endpoint; must be between 0 and 65536"
     :id       :port
     :default  8080
@@ -174,6 +174,10 @@
           (System/exit 1)
           :else
           (start-server :match host port)))
+      (nil? subcommand)
+      (do
+        (u/printerr (format "No subcommand present; run 'server [-h|--help]'"))
+        (System/exit 1))
       :else
       (do (u/printerr (format "Unknown subcommand: %s" subcommand))
           (System/exit 1)))))

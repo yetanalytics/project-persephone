@@ -45,7 +45,7 @@
     :id :all-valid]
    ["-c" "--short-circuit"
     (str "If set, then print on only the first Template the Statement fails "
-         "validation against."
+         "validation against. "
          "Otherwise, print for all Templates the Statement fails against.")
     :id :short-circuit]
    ["-h" "--help" "Display the 'validate' subcommand help menu."]])

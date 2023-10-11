@@ -95,6 +95,26 @@
                :rejects    [[:no-registration pattern-id]]
                :states-map {:no-registration {pattern-id #{}}}}
               (-> body edn/read-string :contents)))))
+   (testing "match fails (repeated statement in batch)"
+     (let [{:keys [status body]}
+           (curl/post "localhost:8080/statements"
+                      (post-map (str "[" statement-1 "," statement-1 "]")))]
+       (is (= 400 status))
+       (is (= :match-failure
+              (-> body edn/read-string :type)))
+       (is (= {:accepts    []
+               :rejects    [[:no-registration pattern-id]]
+               :states-map {:no-registration {pattern-id #{}}}}
+              (-> body edn/read-string :contents)))))
+   (testing "match does not maintain persistence"
+     (let [{status-1 :status}
+           (curl/post "localhost:8080/statements"
+                      (post-map statement-1))
+           {status-2 :status}
+           (curl/post "localhost:8080/statements"
+                      (post-map statement-1))]
+       (is (= 204 status-1))
+       (is (= 204 status-2))))
    (testing "match errors out"
      (let [{:keys [status body]}
            (curl/post "localhost:8080/statements"
@@ -131,4 +151,15 @@
    (let [{:keys [status]}
          (curl/post "localhost:8080/statements"
                     (post-map (str "[" statement-1 "," statement-2 "]")))]
-     (is (= 204 status)))))
+     (is (= 204 status))))
+  (test-match-server
+   "Pattern matching when state persistence is activated"
+   (list "-p" profile-uri "--persist-state")
+   (let [{:keys [status]}
+         (curl/post "localhost:8080/statements"
+                    (post-map statement-1))]
+     (is (= 204 status)))
+   (let [{:keys [status]}
+         (curl/post "localhost:8080/statements"
+                    (post-map statement-1))]
+     (is (= 400 status)))))

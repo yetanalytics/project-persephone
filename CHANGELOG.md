@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.9.2 - 2024-01-23
+- Update Pedestal to 0.6.3.
+
 ## 0.9.1 - 2023-10-09
 - Add Docker images for the CLI and server; see the Docker section for the [CLI](doc/cli.md#docker) and [server](doc/cli.md#docker).
 - Use bundled Java runtimes and modules instead of the local Java runtime (this is necessary for Docker implementation).

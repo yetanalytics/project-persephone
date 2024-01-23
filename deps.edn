@@ -29,7 +29,7 @@
                  org.slf4j/slf4j-simple {:mvn/version "1.7.28"}
                  ;; pedestal.service
                  io.pedestal/pedestal.service
-                 {:mvn/version "0.5.10"
+                 {:mvn/version "0.6.3"
                   :exclusions  [org.msgpack/msgpack
                                 cheshire/cheshire
                                 ring/ring-core]}
@@ -37,7 +37,7 @@
                  ring/ring-core    {:mvn/version "1.10.0"}
                  ;; pedestal.jetty
                  io.pedestal/pedestal.jetty
-                 {:mvn/version "0.5.10"
+                 {:mvn/version "0.6.3"
                   :exclusions  [org.eclipse.jetty/jetty-server
                                 org.eclipse.jetty/jetty-servlet
                                 org.eclipse.jetty.alpn/alpn-api
@@ -67,8 +67,8 @@
                  org.clojure/clojurescript {:mvn/version "1.10.764"
                                             :exclusions  [org.clojure/data.json]}
                  ;; :server deps
-                 io.pedestal/pedestal.service {:mvn/version "0.5.10"}
-                 io.pedestal/pedestal.jetty   {:mvn/version "0.5.10"}
+                 io.pedestal/pedestal.service {:mvn/version "0.6.3"}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.6.3"}
                  ;; Superseeded by babashka/http-client but we cannot use that
                  ;; due to cljs shadowing the default `random-uuid` fn
                  babashka/babashka.curl  {:mvn/version "0.1.2"}

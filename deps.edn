@@ -27,17 +27,8 @@
    :extra-deps  {org.clojure/clojure    {:mvn/version "1.10.2"}
                  org.clojure/tools.cli  {:mvn/version "1.0.206"}
                  org.slf4j/slf4j-simple {:mvn/version "1.7.28"}
-                 ;; pedestal.service
-                 io.pedestal/pedestal.service
-                 {:mvn/version "0.6.3"
-                  :exclusions  [org.msgpack/msgpack
-                                cheshire/cheshire
-                                ring/ring-core]}
-                 cheshire/cheshire {:mvn/version "5.12.0"}
-                 ring/ring-core    {:mvn/version "1.10.0"}
-                 ;; pedestal.jetty
-                 io.pedestal/pedestal.jetty
-                 {:mvn/version "0.6.3"}}}
+                 io.pedestal/pedestal.service {:mvn/version "0.6.3"}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.6.3"}}}
   :dev
   {:extra-paths ["src/dev"]
    :extra-deps  {org.clojure/clojure       {:mvn/version "1.10.2"}

@@ -33,7 +33,7 @@
                   :exclusions  [org.msgpack/msgpack
                                 cheshire/cheshire
                                 ring/ring-core]}
-                 cheshire/cheshire {:mvn/version "5.11.0"}
+                 cheshire/cheshire {:mvn/version "5.12.0"}
                  ring/ring-core    {:mvn/version "1.10.0"}
                  ;; pedestal.jetty
                  io.pedestal/pedestal.jetty

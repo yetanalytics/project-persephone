@@ -21,7 +21,7 @@ jobs:
       run: echo version=${GITHUB_REF#refs\/tags\/v} >> $GITHUB_OUTPUT
 
     - name: Build and deploy to Clojars
-      uses: yetanalytics/actions/deploy-clojars@v0.0.4
+      uses: yetanalytics/actions-deploy-clojars@v1
       with:
           artifact-id: 'project-persephone'
           version: ${{ steps.version.outputs.version }}

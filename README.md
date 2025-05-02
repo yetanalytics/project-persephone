@@ -18,7 +18,7 @@ A Clojure library for validating xAPI Statements against xAPI Profiles, featurin
 
 Add the following to the `:deps` map in your `deps.edn` file:
 ```clojure
-com.yetanalytics/project-persephone {:mvn/version "0.9.1"}
+com.yetanalytics/project-persephone {:mvn/version "0.9.2"}
 ```
 
 Alternatively, to run the CLI or server as an application, you can pull a Docker image from [DockerHub](https://hub.docker.com/repository/docker/yetanalytics/persephone):

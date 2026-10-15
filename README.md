@@ -26,6 +26,23 @@ Alternatively, to run the CLI or server as an application, you can pull a Docker
 docker pull yetanalytics/persephone:latest
 ```
 
+## Dependency vulnerability tracking
+
+The `Deps` GitHub Actions workflow generates a Maven POM from `deps.edn` and
+submits the resolved Maven dependency tree to GitHub on pushes to `main`.
+It can also be run manually from the Actions tab. With dependency graph and
+Dependabot alerts enabled, GitHub can report known vulnerabilities in these
+dependencies.
+
+Run `make pom.xml` to generate the same POM locally. It includes the base library
+dependencies plus the `:cli` and `:server` aliases. The generated POM is ignored
+by Git; `deps.edn` remains the dependency source.
+
+Development, test, coverage, and build-tool dependencies are excluded from this
+submission, including Git dependencies used for tests and tools.build. Those
+aliases need separate dependency submission handling before their coverage is
+complete. Bundled JRE binaries are also outside this Maven submission.
+
 ## How It Works 
 
 Persephone performs two main tasks on [xAPI Statements](https://github.com/adlnet/xAPI-Spec/blob/master/xAPI-Data.md#20-statements): [Statement Template](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#statment-templates) validation and [Pattern](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-structure.md#patterns) matching. The former checks if a Statement follows the specifications of one or more Statement Templates in xAPI Profiles, while the latter performs regex-like matching against Profile Patterns. Persephone does so following the [validation and matching guidelines](https://github.com/adlnet/xapi-profiles/blob/master/xapi-profiles-communication.md#20-algorithms) of the [xAPI Profile specification](https://github.com/adlnet/xapi-profiles).

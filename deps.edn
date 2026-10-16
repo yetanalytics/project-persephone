@@ -1,5 +1,6 @@
 {:paths ["src/main"]
- :deps {org.clojure/data.json        {:mvn/version "1.0.0"} ; clj only
+ :deps {com.fasterxml.jackson.core/jackson-core {:mvn/version "2.21.7"}
+        org.clojure/data.json        {:mvn/version "1.0.0"} ; clj only
         com.yetanalytics/xapi-schema {:mvn/version "1.2.0"
                                       :exclusions
                                       [org.clojure/clojure
@@ -20,18 +21,26 @@
  :aliases
  {:cli
   {:extra-paths ["src/cli"]
-   :extra-deps  {org.clojure/clojure   {:mvn/version "1.10.2"}
+   :extra-deps  {org.clojure/clojure   {:mvn/version "1.11.4"}
                  org.clojure/tools.cli {:mvn/version "1.0.206"}}}
   :server
   {:extra-paths ["src/server"]
-   :extra-deps  {org.clojure/clojure    {:mvn/version "1.10.2"}
+   :extra-deps  {org.clojure/clojure    {:mvn/version "1.11.4"}
                  org.clojure/tools.cli  {:mvn/version "1.0.206"}
-                 org.slf4j/slf4j-simple {:mvn/version "1.7.28"}
-                 io.pedestal/pedestal.service {:mvn/version "0.6.3"}
-                 io.pedestal/pedestal.jetty   {:mvn/version "0.6.3"}}}
+                 org.slf4j/slf4j-simple {:mvn/version "2.0.18"}
+                 io.pedestal/pedestal.service {:mvn/version "0.8.2"}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
+                 org.eclipse.jetty/jetty-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty/jetty-alpn-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.ee10.websocket/jetty-ee10-websocket-jakarta-server
+                 {:mvn/version "12.0.37"}
+                 commons-fileupload/commons-fileupload {:mvn/version "1.6.0"}
+                 commons-io/commons-io {:mvn/version "2.21.0"}}}
   :dev
   {:extra-paths ["src/dev"]
-   :extra-deps  {org.clojure/clojure       {:mvn/version "1.10.2"}
+   :extra-deps  {org.clojure/clojure       {:mvn/version "1.11.4"}
                  org.clojure/clojurescript {:mvn/version "1.10.764"
                                             :exclusions  [org.clojure/data.json]}
                  cider/piggieback      {:mvn/version "0.5.2"} ; cljs only
@@ -40,12 +49,20 @@
                  com.taoensso/tufte    {:mvn/version "2.2.0"}}}
   :test
   {:extra-paths ["src/cli" "src/server" "src/test" "test-resources"]
-   :extra-deps  {org.clojure/clojure       {:mvn/version "1.10.2"}
+   :extra-deps  {org.clojure/clojure       {:mvn/version "1.11.4"}
                  org.clojure/clojurescript {:mvn/version "1.10.764"
                                             :exclusions  [org.clojure/data.json]}
                  ;; :server deps
-                 io.pedestal/pedestal.service {:mvn/version "0.6.3"}
-                 io.pedestal/pedestal.jetty   {:mvn/version "0.6.3"}
+                 io.pedestal/pedestal.service {:mvn/version "0.8.2"}
+                 io.pedestal/pedestal.jetty   {:mvn/version "0.8.2"}
+                 org.eclipse.jetty/jetty-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty/jetty-alpn-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.37"}
+                 org.eclipse.jetty.ee10.websocket/jetty-ee10-websocket-jakarta-server
+                 {:mvn/version "12.0.37"}
+                 commons-fileupload/commons-fileupload {:mvn/version "1.6.0"}
+                 commons-io/commons-io {:mvn/version "2.21.0"}
                  ;; Superseeded by babashka/http-client but we cannot use that
                  ;; due to cljs shadowing the default `random-uuid` fn
                  babashka/babashka.curl  {:mvn/version "0.1.2"}

@@ -15,7 +15,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup CI Environment
-        uses: yetanalytics/actions/setup-env@v0.0.4
+        uses: yetanalytics/action-setup-env@v2
+        with:
+          java-version: '17'
 
       - name: Run Tests
         run: make ${{ matrix.target }}

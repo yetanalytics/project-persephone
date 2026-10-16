@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:3.23
 
 ADD target/bundle /persephone
 ADD .java_modules /persephone/.java_modules
@@ -6,10 +6,10 @@ ADD .java_modules /persephone/.java_modules
 # Replace Alpine's Java runtime via jlink
 RUN apk update \
     && apk upgrade \
-    && apk add --no-cache openjdk11 \
+    && apk add --no-cache openjdk17 \
     && mkdir -p /persephone/runtimes \
     && jlink --output /persephone/runtimes/linux/ --add-modules $(cat /persephone/.java_modules) \
-    && apk del openjdk11 \
+    && apk del openjdk17 \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /persephone
